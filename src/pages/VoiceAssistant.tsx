@@ -1,17 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useConversation } from '@11labs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import ConversationHistory from '@/components/voice/ConversationHistory';
 import DocumentUpload from '@/components/voice/DocumentUpload';
 
 const VoiceAssistant = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
+
+  // Authentication check
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate('/auth');
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      if (!session) {
+        navigate('/auth');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const conversation = useConversation({
     onConnect: () => {
