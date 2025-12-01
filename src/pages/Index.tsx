@@ -1,9 +1,31 @@
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Mic, Search, FileText } from 'lucide-react';
+import { Sparkles, Mic, Search, FileText, LogIn } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react';
+import { User } from '@supabase/supabase-js';
 
 const Index = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -31,7 +53,7 @@ const Index = () => {
               intelligent web search, and advanced document analysis.
             </p>
 
-            <div className="flex items-center justify-center gap-4 pt-4">
+            <div className="flex items-center justify-center gap-4 pt-4 flex-wrap">
               <Button
                 onClick={() => navigate('/assistant')}
                 size="lg"
@@ -40,6 +62,26 @@ const Index = () => {
                 <Mic className="mr-2 h-5 w-5" />
                 Launch Assistant
               </Button>
+              {user ? (
+                <Button
+                  onClick={handleSignOut}
+                  size="lg"
+                  variant="outline"
+                  className="px-8 py-6 text-lg font-semibold"
+                >
+                  Sign Out
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => navigate('/auth')}
+                  size="lg"
+                  variant="outline"
+                  className="px-8 py-6 text-lg font-semibold"
+                >
+                  <LogIn className="mr-2 h-5 w-5" />
+                  Sign In
+                </Button>
+              )}
             </div>
           </div>
 
