@@ -135,23 +135,22 @@ const VoiceAssistant = () => {
 
   const startConversation = async () => {
     try {
-      const agentId = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
+      // Get signed URL from backend
+      const { data, error } = await supabase.functions.invoke('elevenlabs-session');
       
-      if (!agentId) {
-        toast({
-          title: 'Configuration Error',
-          description: 'ElevenLabs agent ID not configured',
-          variant: 'destructive',
-        });
-        return;
+      if (error || !data?.signedUrl) {
+        throw new Error(error?.message || 'Failed to get session URL');
       }
 
-      await conversation.startSession({ agentId });
+      console.log('Starting ElevenLabs session with signed URL');
+      await conversation.startSession({ 
+        signedUrl: data.signedUrl 
+      });
     } catch (error) {
       console.error('Error starting conversation:', error);
       toast({
         title: 'Error',
-        description: 'Failed to start conversation',
+        description: error instanceof Error ? error.message : 'Failed to start conversation',
         variant: 'destructive',
       });
     }
