@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useConversation } from '@11labs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, VolumeX, MessageSquare, Upload } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, MessageSquare, Upload, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import ConversationHistory from '@/components/voice/ConversationHistory';
@@ -11,6 +11,7 @@ import MessageHistory from '@/components/voice/MessageHistory';
 import SEO from '@/components/SEO';
 import { Header } from '@/components/layout/Header';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import RegistrationPromptModal from '@/components/voice/RegistrationPromptModal';
 
 const VoiceAssistantMobile = () => {
   const { toast } = useToast();
@@ -18,23 +19,22 @@ const VoiceAssistantMobile = () => {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [guestMessages, setGuestMessages] = useState<Array<{ role: string; content: string }>>([]);
+  const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
 
-  // Authentication check
+  // Authentication check (non-blocking)
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate('/auth');
-      }
+      setIsAuthenticated(!!session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (!session) {
-        navigate('/auth');
-      }
+      setIsAuthenticated(!!session);
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   const conversation = useConversation({
     onConnect: () => {
@@ -64,11 +64,23 @@ const VoiceAssistantMobile = () => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           
+          // Guest mode: store in memory only
           if (!user) {
-            return JSON.stringify({ error: 'Not authenticated' });
+            setGuestMessages(prev => [...prev, { role: 'user', content: parameters.message }]);
+            
+            const { data, error } = await supabase.functions.invoke('chat', {
+              body: {
+                messages: [...guestMessages, { role: 'user', content: parameters.message }],
+              },
+            });
+
+            if (error) throw error;
+            
+            setGuestMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+            return JSON.stringify({ response: data.message });
           }
 
-          // Create conversation if needed
+          // Authenticated mode: persist to DB
           let currentConvId = conversationId;
           if (!currentConvId) {
             const { data: newConv } = await supabase
@@ -83,7 +95,6 @@ const VoiceAssistantMobile = () => {
             }
           }
 
-          // Call AI conversation function
           const { data, error } = await supabase.functions.invoke('chat', {
             body: {
               messages: [{ role: 'user', content: parameters.message }],
@@ -181,6 +192,11 @@ const VoiceAssistantMobile = () => {
 
   const endConversation = async () => {
     await conversation.endSession();
+    
+    // Show registration prompt for guests
+    if (!isAuthenticated && guestMessages.length > 0) {
+      setShowRegistrationPrompt(true);
+    }
   };
 
   const toggleMute = () => {
@@ -200,39 +216,59 @@ const VoiceAssistantMobile = () => {
         <Header />
         <div className="flex-1 flex flex-col px-3 pt-2 pb-4">
         
-        {/* Top Action Buttons */}
-        <div className="flex justify-end gap-2 mb-2">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="h-10 w-10">
-                <MessageSquare className="h-5 w-5" />
+        {/* Guest Banner */}
+        {!isAuthenticated && (
+          <div className="mb-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-medium">Guest Mode</p>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="h-8"
+                onClick={() => navigate('/auth')}
+              >
+                <LogIn className="h-3 w-3 mr-1" />
+                Sign In to Save
               </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[85vw] flex flex-col scrollbar-hide">
-              <div className="flex-1 space-y-4 overflow-y-auto scrollbar-hide pt-12">
-                <ConversationHistory 
-                  currentConversationId={conversationId}
-                  onSelectConversation={setConversationId}
-                  onConversationCreated={() => {}}
-                />
-                <MessageHistory conversationId={conversationId} />
-              </div>
-            </SheetContent>
-          </Sheet>
+            </div>
+          </div>
+        )}
+        
+        {/* Top Action Buttons - Only for authenticated users */}
+        {isAuthenticated && (
+          <div className="flex justify-end gap-2 mb-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="h-10 w-10">
+                  <MessageSquare className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[85vw] flex flex-col scrollbar-hide">
+                <div className="flex-1 space-y-4 overflow-y-auto scrollbar-hide pt-12">
+                  <ConversationHistory 
+                    currentConversationId={conversationId}
+                    onSelectConversation={setConversationId}
+                    onConversationCreated={() => {}}
+                  />
+                  <MessageHistory conversationId={conversationId} />
+                </div>
+              </SheetContent>
+            </Sheet>
 
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="h-10 w-10">
-                <Upload className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw] scrollbar-hide">
-              <div className="pt-12">
-                <DocumentUpload conversationId={conversationId} />
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="h-10 w-10">
+                  <Upload className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[85vw] scrollbar-hide">
+                <div className="pt-12">
+                  <DocumentUpload conversationId={conversationId} />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        )}
 
         {/* AI Voice Assistant - Main Card */}
         <div className="rounded-2xl bg-card border border-border p-4 shadow-xl">
@@ -339,6 +375,12 @@ const VoiceAssistantMobile = () => {
         </div>
       </div>
       </div>
+      
+      <RegistrationPromptModal 
+        open={showRegistrationPrompt}
+        onOpenChange={setShowRegistrationPrompt}
+        messageCount={guestMessages.length / 2}
+      />
     </>
   );
 };
