@@ -18,6 +18,8 @@ import {
   SidebarInset 
 } from '@/components/ui/sidebar';
 import RegistrationPromptModal from '@/components/voice/RegistrationPromptModal';
+import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
+import MicrophonePermissionRequest from '@/components/voice/MicrophonePermissionRequest';
 
 const VoiceAssistant = () => {
   const { toast } = useToast();
@@ -28,6 +30,7 @@ const VoiceAssistant = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [guestMessages, setGuestMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
+  const { permissionState, requestPermission, isReady } = useMicrophonePermission();
 
   // Authentication check (non-blocking)
   useEffect(() => {
@@ -285,6 +288,14 @@ const VoiceAssistant = () => {
                   </h1>
                 </div>
 
+                {/* Microphone Permission Request */}
+                {!isReady && (
+                  <MicrophonePermissionRequest 
+                    permissionState={permissionState}
+                    onRequestPermission={requestPermission}
+                  />
+                )}
+
                 {/* Status Indicator */}
                 <div className="flex items-center justify-center mb-8">
                   <div className={`
@@ -322,6 +333,7 @@ const VoiceAssistant = () => {
                       onClick={startConversation}
                       size="lg"
                       className="px-8 py-6 text-lg"
+                      disabled={!isReady}
                     >
                       <Mic className="mr-2 h-5 w-5" />
                       Start Conversation

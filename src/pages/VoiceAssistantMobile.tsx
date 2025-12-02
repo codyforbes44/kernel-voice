@@ -12,6 +12,8 @@ import SEO from '@/components/SEO';
 import { Header } from '@/components/layout/Header';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import RegistrationPromptModal from '@/components/voice/RegistrationPromptModal';
+import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
+import MicrophonePermissionRequest from '@/components/voice/MicrophonePermissionRequest';
 
 const VoiceAssistantMobile = () => {
   const { toast } = useToast();
@@ -22,6 +24,7 @@ const VoiceAssistantMobile = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [guestMessages, setGuestMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
+  const { permissionState, requestPermission, isReady } = useMicrophonePermission();
 
   // Authentication check (non-blocking)
   useEffect(() => {
@@ -293,6 +296,14 @@ const VoiceAssistantMobile = () => {
             </h1>
           </div>
 
+          {/* Microphone Permission Request */}
+          {!isReady && (
+            <MicrophonePermissionRequest 
+              permissionState={permissionState}
+              onRequestPermission={requestPermission}
+            />
+          )}
+
           {/* Status Indicator */}
           <div className="flex items-center justify-center mb-4">
             <div className={`
@@ -330,6 +341,7 @@ const VoiceAssistantMobile = () => {
                 onClick={startConversation}
                 size="lg"
                 className="w-full h-12 text-base font-semibold"
+                disabled={!isReady}
               >
                 <Mic className="mr-2 h-5 w-5" />
                 Start Conversation
