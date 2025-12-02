@@ -31,11 +31,26 @@ const VoiceAssistant = () => {
 
   // Authentication check (non-blocking)
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkAuth = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Session error:', error);
+        setIsAuthenticated(false);
+        return;
+      }
       setIsAuthenticated(!!session);
-    });
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('Session refreshed successfully');
+      }
+      if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        setGuestMessages([]);
+      }
       setIsAuthenticated(!!session);
     });
 
