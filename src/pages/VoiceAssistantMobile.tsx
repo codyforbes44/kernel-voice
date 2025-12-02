@@ -354,7 +354,7 @@ const VoiceAssistantMobile = () => {
                   size="lg"
                   className="w-full h-12 text-base font-semibold"
                 >
-                  End Call
+                  Continue Later
                 </Button>
                 
                 <div className="grid grid-cols-2 gap-2">

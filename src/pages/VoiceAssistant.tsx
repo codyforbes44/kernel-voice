@@ -345,7 +345,7 @@ const VoiceAssistant = () => {
                         variant="destructive"
                         size="lg"
                       >
-                        End Call
+                        Continue Later
                       </Button>
                       
                       <Button
