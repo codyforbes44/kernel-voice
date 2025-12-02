@@ -19,6 +19,7 @@ const VoiceAssistantMobile = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationTitle, setConversationTitle] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -53,6 +54,32 @@ const VoiceAssistantMobile = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Auto-load last conversation for authenticated users
+  useEffect(() => {
+    const loadLastConversation = async () => {
+      if (!isAuthenticated) return;
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      // Get most recent conversation
+      const { data: lastConv } = await supabase
+        .from('conversations')
+        .select('id, title')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (lastConv) {
+        setConversationId(lastConv.id);
+        setConversationTitle(lastConv.title);
+      }
+    };
+    
+    loadLastConversation();
+  }, [isAuthenticated]);
 
   const conversation = useConversation({
     onConnect: () => {
@@ -247,6 +274,29 @@ const VoiceAssistantMobile = () => {
               >
                 <LogIn className="h-3 w-3 mr-1" />
                 Sign In to Save
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Current Conversation Banner */}
+        {isAuthenticated && conversationTitle && (
+          <div className="mb-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
+            <div className="flex flex-col gap-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Continuing:</p>
+                <p className="text-sm font-medium">{conversationTitle}</p>
+              </div>
+              <Button 
+                size="sm"
+                variant="outline"
+                className="h-8"
+                onClick={() => {
+                  setConversationId(null);
+                  setConversationTitle(null);
+                }}
+              >
+                New Conversation
               </Button>
             </div>
           </div>
