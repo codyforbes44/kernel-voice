@@ -4,6 +4,7 @@ import { Sparkles, Mic, Search, FileText, LogIn, Smartphone, Download } from 'lu
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
+import SEO from '@/components/SEO';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -28,7 +29,14 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <>
+      <SEO 
+        title="Premium AI Voice Assistant"
+        description="Experience the future of AI interaction with real-time voice conversations, intelligent web search, and advanced document analysis. Powered by xAI Grok and ElevenLabs."
+        image="/og-home.png"
+        keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI", "ElevenLabs", "xAI Grok"]}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="container mx-auto px-4 py-16">
         <div className="text-center max-w-4xl mx-auto space-y-8">
           {/* Hero Section */}
@@ -140,7 +148,8 @@ const Index = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

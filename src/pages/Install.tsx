@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Smartphone, Share2, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import SEO from '@/components/SEO';
 
 const Install = () => {
   const navigate = useNavigate();
@@ -45,7 +46,14 @@ const Install = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
+    <>
+      <SEO 
+        title="Install App"
+        description="Install the AI Voice Assistant as a native app on your device. Works offline with faster performance, native notifications, and seamless experience across all platforms."
+        image="/og-install.png"
+        keywords={["install PWA", "voice assistant app", "offline AI", "progressive web app", "native app experience"]}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg border-border/50 bg-card/50 backdrop-blur-xl">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow-primary">
@@ -164,7 +172,8 @@ const Install = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 };
 
