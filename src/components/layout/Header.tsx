@@ -35,11 +35,8 @@ export const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              Home
-            </Link>
             <Link to="/assistant" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              Assistant
+              Desktop Version
             </Link>
             <Link to="/install" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               Install
@@ -70,18 +67,11 @@ export const Header = () => {
         {mobileMenuOpen && (
           <nav className="md:hidden py-4 space-y-2 border-t border-border/40">
             <Link
-              to="/"
-              className="block px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Home
-            </Link>
-            <Link
               to="/assistant"
               className="block px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Assistant
+              Desktop Version
             </Link>
             <Link
               to="/install"

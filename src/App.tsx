@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
-import Index from "./pages/Index";
+import LandingPageArchived from "./pages/LandingPageArchived";
 import VoiceAssistant from "./pages/VoiceAssistant";
 import VoiceAssistantMobile from "./pages/VoiceAssistantMobile";
 import Auth from "./pages/Auth";
@@ -26,9 +26,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<VoiceAssistantMobile />} />
             <Route path="/assistant" element={<VoiceAssistant />} />
-            <Route path="/mobile-assistant" element={<VoiceAssistantMobile />} />
+            <Route path="/landing" element={<LandingPageArchived />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/install" element={<Install />} />
             <Route path="/admin" element={<AdminDashboard />} />
