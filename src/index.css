@@ -98,4 +98,26 @@ All colors MUST be HSL.
   .glow-accent {
     box-shadow: var(--shadow-accent-glow);
   }
+
+  /* Hide scrollbars while keeping scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Safe area support for mobile notches */
+  .safe-area-inset {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Prevent overscroll bounce on mobile */
+body {
+  overscroll-behavior: none;
 }

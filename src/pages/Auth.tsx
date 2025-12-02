@@ -109,7 +109,7 @@ const Auth = () => {
       />
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex items-center justify-center py-16 px-4">
+        <div className="flex items-center justify-center py-6 md:py-16 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">AI Intelligence</CardTitle>

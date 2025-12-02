@@ -56,7 +56,7 @@ const Install = () => {
       />
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex items-center justify-center py-16 px-4">
+        <div className="flex items-center justify-center py-6 md:py-16 px-4">
       <Card className="w-full max-w-lg border-border/50 bg-card/50 backdrop-blur-xl">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow-primary">
@@ -148,25 +148,25 @@ const Install = () => {
               )}
 
               {/* Benefits */}
-              <div className="pt-4 border-t border-border/50">
-                <h4 className="font-semibold mb-3 text-sm text-muted-foreground">
+              <div className="pt-3 border-t border-border/50">
+                <h4 className="font-semibold mb-2 text-xs text-muted-foreground">
                   Why Install?
                 </h4>
-                <ul className="space-y-2 text-sm">
+                <ul className="space-y-1.5 text-xs">
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
                     <span>Works offline with cached conversations</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
                     <span>Native app experience on your device</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
                     <span>Faster loading and better performance</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
                     <span>Quick access from home screen</span>
                   </li>
                 </ul>

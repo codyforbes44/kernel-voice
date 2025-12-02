@@ -25,12 +25,12 @@ export const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-14 items-center justify-between">
+      <div className="container mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex h-12 sm:h-14 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
-            <Mic className="h-6 w-6 text-primary group-hover:text-primary/80 transition-colors" />
-            <span className="font-bold text-lg hidden sm:inline-block">AI Intelligence</span>
+            <Mic className="h-5 w-5 sm:h-6 sm:w-6 text-primary group-hover:text-primary/80 transition-colors" />
+            <span className="font-bold text-base sm:text-lg hidden sm:inline-block">AI Intelligence</span>
           </Link>
 
           {/* Desktop Navigation */}

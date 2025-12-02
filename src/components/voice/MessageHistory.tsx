@@ -100,16 +100,16 @@ const MessageHistory = ({ conversationId }: MessageHistoryProps) => {
   }
 
   return (
-    <div className="rounded-xl bg-card border border-border p-4">
-      <h3 className="font-semibold mb-4 flex items-center gap-2">
+    <div className="rounded-xl bg-card border border-border p-3 flex flex-col h-full">
+      <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm">
         <MessageSquare className="h-4 w-4" />
         Conversation History
       </h3>
       
-      <ScrollArea className="h-[400px] pr-4" ref={scrollRef}>
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 pr-2 scrollbar-hide" ref={scrollRef}>
+        <div className="space-y-2">
           {messages.length === 0 ? (
-            <p className="text-center text-muted-foreground text-sm">No messages yet</p>
+            <p className="text-center text-muted-foreground text-xs py-4">No messages yet</p>
           ) : (
             messages.map((message) => (
               <div
@@ -118,15 +118,15 @@ const MessageHistory = ({ conversationId }: MessageHistoryProps) => {
               >
                 <div
                   className={`
-                    max-w-[80%] rounded-lg p-3
+                    max-w-[80%] rounded-lg p-2
                     ${message.role === 'user'
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-foreground'
                     }
                   `}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <p className="text-xs opacity-70 mt-1">
+                  <p className="text-xs whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                  <p className="text-[10px] opacity-60 mt-1">
                     {new Date(message.created_at).toLocaleTimeString()}
                   </p>
                 </div>
