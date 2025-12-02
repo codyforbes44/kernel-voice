@@ -229,112 +229,113 @@ const VoiceAssistantMobile = () => {
           </Sheet>
         </div>
 
-        {/* Main Voice Interface */}
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-full max-w-md">
-            <div className="rounded-3xl bg-card border border-border p-8 shadow-2xl">
-              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  AI Voice Assistant
-                </h1>
-              </div>
+        {/* AI Voice Assistant - Top Section */}
+        <div className="rounded-3xl bg-card border border-border p-8 shadow-2xl mb-4">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              AI Voice Assistant
+            </h1>
+          </div>
 
-              {/* Status Indicator */}
-              <div className="flex items-center justify-center mb-8">
-                <div className={`
-                  relative w-40 h-40 rounded-full flex items-center justify-center
-                  ${conversation.status === 'connected' 
-                    ? 'bg-gradient-to-br from-primary to-primary/50 shadow-glow-primary' 
-                    : 'bg-gradient-to-br from-muted to-muted-foreground/20'
-                  }
-                  ${conversation.isSpeaking ? 'animate-pulse' : ''}
-                  transition-all duration-300 shadow-xl
-                `}>
-                  <Mic className="w-16 h-16 text-primary-foreground" />
-                  {conversation.status === 'connected' && (
-                    <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
-                  )}
-                </div>
-              </div>
-
-              {/* Status Text */}
-              <div className="text-center mb-8">
-                <p className="text-xl font-medium">
-                  {conversation.status === 'connected' 
-                    ? conversation.isSpeaking 
-                      ? '🗣️ Speaking...' 
-                      : '👂 Listening...'
-                    : 'Ready to connect'
-                  }
-                </p>
-              </div>
-
-              {/* Controls */}
-              <div className="space-y-4">
-                {conversation.status !== 'connected' ? (
-                  <Button
-                    onClick={startConversation}
-                    size="lg"
-                    className="w-full h-14 text-lg font-semibold"
-                  >
-                    <Mic className="mr-2 h-6 w-6" />
-                    Start Conversation
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      onClick={endConversation}
-                      variant="destructive"
-                      size="lg"
-                      className="w-full h-14 text-lg font-semibold"
-                    >
-                      End Call
-                    </Button>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <Button
-                        onClick={toggleMute}
-                        variant="outline"
-                        size="lg"
-                        className="h-14"
-                      >
-                        {isMuted ? (
-                          <>
-                            <MicOff className="h-6 w-6 mr-2" />
-                            Muted
-                          </>
-                        ) : (
-                          <>
-                            <Mic className="h-6 w-6 mr-2" />
-                            Mute
-                          </>
-                        )}
-                      </Button>
-
-                      <Button
-                        onClick={() => setVolume(volume > 0 ? 0 : 1)}
-                        variant="outline"
-                        size="lg"
-                        className="h-14"
-                      >
-                        {volume > 0 ? (
-                          <>
-                            <Volume2 className="h-6 w-6 mr-2" />
-                            Volume
-                          </>
-                        ) : (
-                          <>
-                            <VolumeX className="h-6 w-6 mr-2" />
-                            Muted
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
+          {/* Status Indicator */}
+          <div className="flex items-center justify-center mb-8">
+            <div className={`
+              relative w-40 h-40 rounded-full flex items-center justify-center
+              ${conversation.status === 'connected' 
+                ? 'bg-gradient-to-br from-primary to-primary/50 shadow-glow-primary' 
+                : 'bg-gradient-to-br from-muted to-muted-foreground/20'
+              }
+              ${conversation.isSpeaking ? 'animate-pulse' : ''}
+              transition-all duration-300 shadow-xl
+            `}>
+              <Mic className="w-16 h-16 text-primary-foreground" />
+              {conversation.status === 'connected' && (
+                <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
+              )}
             </div>
           </div>
+
+          {/* Status Text */}
+          <div className="text-center mb-8">
+            <p className="text-xl font-medium">
+              {conversation.status === 'connected' 
+                ? conversation.isSpeaking 
+                  ? '🗣️ Speaking...' 
+                  : '👂 Listening...'
+                : 'Ready to connect'
+              }
+            </p>
+          </div>
+
+          {/* Controls */}
+          <div className="space-y-4">
+            {conversation.status !== 'connected' ? (
+              <Button
+                onClick={startConversation}
+                size="lg"
+                className="w-full h-14 text-lg font-semibold"
+              >
+                <Mic className="mr-2 h-6 w-6" />
+                Start Conversation
+              </Button>
+            ) : (
+              <>
+                <Button
+                  onClick={endConversation}
+                  variant="destructive"
+                  size="lg"
+                  className="w-full h-14 text-lg font-semibold"
+                >
+                  End Call
+                </Button>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    onClick={toggleMute}
+                    variant="outline"
+                    size="lg"
+                    className="h-14"
+                  >
+                    {isMuted ? (
+                      <>
+                        <MicOff className="h-6 w-6 mr-2" />
+                        Muted
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="h-6 w-6 mr-2" />
+                        Mute
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    onClick={() => setVolume(volume > 0 ? 0 : 1)}
+                    variant="outline"
+                    size="lg"
+                    className="h-14"
+                  >
+                    {volume > 0 ? (
+                      <>
+                        <Volume2 className="h-6 w-6 mr-2" />
+                        Volume
+                      </>
+                    ) : (
+                      <>
+                        <VolumeX className="h-6 w-6 mr-2" />
+                        Muted
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Message History - Scrollable Bottom Section */}
+        <div className="flex-1 overflow-y-auto">
+          <MessageHistory conversationId={conversationId} />
         </div>
       </div>
     </>
