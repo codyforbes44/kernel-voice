@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import ConversationHistory from '@/components/voice/ConversationHistory';
 import DocumentUpload from '@/components/voice/DocumentUpload';
+import SEO from '@/components/SEO';
 
 const VoiceAssistant = () => {
   const { toast } = useToast();
@@ -185,7 +186,14 @@ const VoiceAssistant = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <>
+      <SEO 
+        title="Voice Assistant"
+        description="Start a real-time voice conversation with AI. Natural, fluid interactions with web search and document analysis capabilities. Powered by ElevenLabs and xAI Grok."
+        image="/og-assistant.png"
+        keywords={["voice conversation", "AI chat", "voice control", "hands-free AI", "conversational AI"]}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
@@ -281,7 +289,8 @@ const VoiceAssistant = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

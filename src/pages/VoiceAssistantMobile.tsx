@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import SEO from '@/components/SEO';
 
 const VoiceAssistantMobile = () => {
   const { toast } = useToast();
@@ -183,7 +184,14 @@ const VoiceAssistantMobile = () => {
   };
 
   return (
-    <div className="min-h-screen h-[100dvh] bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center px-4 py-8 safe-area-inset">
+    <>
+      <SEO 
+        title="Mobile Voice Assistant"
+        description="AI voice assistant optimized for mobile devices. Touch-friendly controls and OLED-optimized interface for seamless voice interactions on the go."
+        image="/og-mobile.png"
+        keywords={["mobile AI assistant", "voice AI app", "mobile voice control", "OLED optimized", "PWA voice assistant"]}
+      />
+      <div className="min-h-screen h-[100dvh] bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center px-4 py-8 safe-area-inset">
       <div className="w-full max-w-md">
         <div className="rounded-3xl bg-card border border-border p-8 shadow-2xl">
           <div className="text-center mb-8">
@@ -288,7 +296,8 @@ const VoiceAssistantMobile = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
