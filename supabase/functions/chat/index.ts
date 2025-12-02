@@ -80,29 +80,52 @@ serve(async (req) => {
     if (conversationId && userId) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-      // Save user message
-      if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-        await supabase.from('messages').insert({
-          conversation_id: conversationId,
-          role: 'user',
-          content: messages[messages.length - 1].content
-        });
-      }
+      // Get the last user message
+      const lastUserMessage = messages.length > 0 && messages[messages.length - 1].role === 'user'
+        ? messages[messages.length - 1].content
+        : '';
 
-      // Save assistant message
-      await supabase.from('messages').insert({
-        conversation_id: conversationId,
-        role: 'assistant',
-        content: assistantMessage
-      });
+      // Save both user message and assistant response
+      await supabaseClient
+        .from('messages')
+        .insert([
+          ...(lastUserMessage ? [{
+            conversation_id: conversationId,
+            role: 'user',
+            content: lastUserMessage,
+          }] : []),
+          {
+            conversation_id: conversationId,
+            role: 'assistant',
+            content: assistantMessage,
+          },
+        ]);
 
-      // Update conversation timestamp
-      await supabase
+      // Auto-generate title from first message if still default
+      const { data: conv } = await supabaseClient
         .from('conversations')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', conversationId);
+        .select('title')
+        .eq('id', conversationId)
+        .single();
+
+      if (conv?.title === 'New Conversation' && lastUserMessage) {
+        const title = lastUserMessage.substring(0, 45) + (lastUserMessage.length > 45 ? '...' : '');
+        await supabaseClient
+          .from('conversations')
+          .update({ 
+            title,
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', conversationId);
+      } else {
+        // Just update timestamp
+        await supabaseClient
+          .from('conversations')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', conversationId);
+      }
     }
 
     return new Response(JSON.stringify({ 
