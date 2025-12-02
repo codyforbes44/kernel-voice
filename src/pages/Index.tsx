@@ -33,15 +33,6 @@ const Index = () => {
         <div className="text-center max-w-4xl mx-auto space-y-8">
           {/* Hero Section */}
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            <div className="inline-block">
-              <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium text-primary">
-                  Powered by xAI Grok & ElevenLabs
-                </span>
-              </div>
-            </div>
-
             <h1 className="text-6xl md:text-7xl font-display font-bold tracking-tight">
               <span className="text-gradient">Premium AI</span>
               <br />

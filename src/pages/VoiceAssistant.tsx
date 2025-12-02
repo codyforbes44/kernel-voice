@@ -204,9 +204,6 @@ const VoiceAssistant = () => {
                 <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                   AI Voice Assistant
                 </h1>
-                <p className="text-muted-foreground">
-                  Powered by xAI Grok & ElevenLabs
-                </p>
               </div>
 
               {/* Status Indicator */}
