@@ -162,19 +162,19 @@ const ConversationHistory = ({
   };
 
   return (
-    <div className="rounded-xl bg-card border border-border p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold flex items-center gap-2">
+    <div className="rounded-xl bg-card border border-border p-3 flex flex-col h-full">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold flex items-center gap-2 text-sm">
           <MessageSquare className="h-4 w-4" />
           Conversations
         </h3>
-        <Button onClick={createNewConversation} size="sm" variant="outline">
+        <Button onClick={createNewConversation} size="sm" variant="outline" className="h-8 w-8 p-0">
           <Plus className="h-4 w-4" />
         </Button>
       </div>
 
-      <ScrollArea className="h-[400px]">
-        <div className="space-y-2">
+      <ScrollArea className="flex-1 scrollbar-hide">
+        <div className="space-y-1">
           {conversations.map((conv) => (
             <div
               key={conv.id}
@@ -188,18 +188,18 @@ const ConversationHistory = ({
             >
               <button
                 onClick={() => onSelectConversation(conv.id)}
-                className="w-full text-left p-3 pr-10"
+                className="w-full text-left p-2 pr-9"
               >
-                <p className="font-medium truncate">{conv.title}</p>
+                <p className="font-medium truncate text-sm">{conv.title}</p>
                 <p className="text-xs opacity-70">
                   {new Date(conv.updated_at).toLocaleDateString()}
                 </p>
               </button>
               <button
                 onClick={(e) => handleDeleteClick(conv.id, e)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive/20 rounded"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded"
               >
-                <Trash2 className="h-4 w-4 text-destructive" />
+                <Trash2 className="h-3.5 w-3.5 text-destructive" />
               </button>
             </div>
           ))}

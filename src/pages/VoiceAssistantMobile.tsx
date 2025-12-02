@@ -196,20 +196,20 @@ const VoiceAssistantMobile = () => {
         image="/og-home.png"
         keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI", "mobile AI assistant", "OLED optimized"]}
       />
-      <div className="min-h-screen bg-background">
+      <div className="flex flex-col min-h-screen bg-background">
         <Header />
-        <div className="h-[100dvh] flex flex-col px-4 py-8 safe-area-inset">
+        <div className="flex-1 flex flex-col px-3 pt-2 pb-4">
         
         {/* Top Action Buttons */}
-        <div className="flex justify-end gap-2 mb-4">
+        <div className="flex justify-end gap-2 mb-2">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="h-10 w-10">
                 <MessageSquare className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[85vw] overflow-y-auto">
-              <div className="space-y-6">
+            <SheetContent side="left" className="w-[85vw] flex flex-col scrollbar-hide">
+              <div className="flex-1 space-y-4 overflow-y-auto scrollbar-hide pt-12">
                 <ConversationHistory 
                   currentConversationId={conversationId}
                   onSelectConversation={setConversationId}
@@ -222,36 +222,38 @@ const VoiceAssistantMobile = () => {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="h-10 w-10">
                 <Upload className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw]">
-              <DocumentUpload conversationId={conversationId} />
+            <SheetContent side="right" className="w-[85vw] scrollbar-hide">
+              <div className="pt-12">
+                <DocumentUpload conversationId={conversationId} />
+              </div>
             </SheetContent>
           </Sheet>
         </div>
 
-        {/* AI Voice Assistant - Top Section */}
-        <div className="rounded-3xl bg-card border border-border p-8 shadow-2xl mb-4">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+        {/* AI Voice Assistant - Main Card */}
+        <div className="rounded-2xl bg-card border border-border p-4 shadow-xl">
+          <div className="text-center mb-4">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               AI Intelligence
             </h1>
           </div>
 
           {/* Status Indicator */}
-          <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center justify-center mb-4">
             <div className={`
-              relative w-40 h-40 rounded-full flex items-center justify-center
+              relative w-28 h-28 rounded-full flex items-center justify-center
               ${conversation.status === 'connected' 
                 ? 'bg-gradient-to-br from-primary to-primary/50 shadow-glow-primary' 
                 : 'bg-gradient-to-br from-muted to-muted-foreground/20'
               }
               ${conversation.isSpeaking ? 'animate-pulse' : ''}
-              transition-all duration-300 shadow-xl
+              transition-all duration-300 shadow-lg
             `}>
-              <Mic className="w-16 h-16 text-primary-foreground" />
+              <Mic className="w-12 h-12 text-primary-foreground" />
               {conversation.status === 'connected' && (
                 <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
               )}
@@ -259,8 +261,8 @@ const VoiceAssistantMobile = () => {
           </div>
 
           {/* Status Text */}
-          <div className="text-center mb-8">
-            <p className="text-xl font-medium">
+          <div className="text-center mb-4">
+            <p className="text-lg font-medium">
               {conversation.status === 'connected' 
                 ? conversation.isSpeaking 
                   ? '🗣️ Speaking...' 
@@ -271,14 +273,14 @@ const VoiceAssistantMobile = () => {
           </div>
 
           {/* Controls */}
-          <div className="space-y-4">
+          <div className="space-y-2">
             {conversation.status !== 'connected' ? (
               <Button
                 onClick={startConversation}
                 size="lg"
-                className="w-full h-14 text-lg font-semibold"
+                className="w-full h-12 text-base font-semibold"
               >
-                <Mic className="mr-2 h-6 w-6" />
+                <Mic className="mr-2 h-5 w-5" />
                 Start Conversation
               </Button>
             ) : (
@@ -287,26 +289,26 @@ const VoiceAssistantMobile = () => {
                   onClick={endConversation}
                   variant="destructive"
                   size="lg"
-                  className="w-full h-14 text-lg font-semibold"
+                  className="w-full h-12 text-base font-semibold"
                 >
                   End Call
                 </Button>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2">
                   <Button
                     onClick={toggleMute}
                     variant="outline"
                     size="lg"
-                    className="h-14"
+                    className="h-12"
                   >
                     {isMuted ? (
                       <>
-                        <MicOff className="h-6 w-6 mr-2" />
+                        <MicOff className="h-5 w-5 mr-2" />
                         Muted
                       </>
                     ) : (
                       <>
-                        <Mic className="h-6 w-6 mr-2" />
+                        <Mic className="h-5 w-5 mr-2" />
                         Mute
                       </>
                     )}
@@ -316,16 +318,16 @@ const VoiceAssistantMobile = () => {
                     onClick={() => setVolume(volume > 0 ? 0 : 1)}
                     variant="outline"
                     size="lg"
-                    className="h-14"
+                    className="h-12"
                   >
                     {volume > 0 ? (
                       <>
-                        <Volume2 className="h-6 w-6 mr-2" />
+                        <Volume2 className="h-5 w-5 mr-2" />
                         Volume
                       </>
                     ) : (
                       <>
-                        <VolumeX className="h-6 w-6 mr-2" />
+                        <VolumeX className="h-5 w-5 mr-2" />
                         Muted
                       </>
                     )}
@@ -334,11 +336,6 @@ const VoiceAssistantMobile = () => {
               </>
             )}
           </div>
-        </div>
-
-        {/* Message History - Scrollable Bottom Section */}
-        <div className="flex-1 overflow-y-auto">
-          <MessageHistory conversationId={conversationId} />
         </div>
       </div>
       </div>
