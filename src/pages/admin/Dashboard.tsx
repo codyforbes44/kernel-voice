@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, MessageSquare, FileText, TrendingUp } from 'lucide-react';
+import { Users, MessageSquare, FileText, TrendingUp, BookOpen, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminGuard } from '@/components/admin/AdminGuard';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -12,11 +12,13 @@ export default function AdminDashboard() {
     totalConversations: 0,
     totalDocuments: 0,
     activeToday: 0,
+    kbDocuments: 0,
+    kbChunks: 0,
   });
 
   useEffect(() => {
     const fetchStats = async () => {
-      const [usersRes, conversationsRes, documentsRes, profilesRes] = await Promise.all([
+      const [usersRes, conversationsRes, documentsRes, profilesRes, kbDocsRes, kbChunksRes] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.from('conversations').select('id', { count: 'exact', head: true }),
         supabase.from('documents').select('id', { count: 'exact', head: true }),
@@ -24,6 +26,8 @@ export default function AdminDashboard() {
           .from('profiles')
           .select('id')
           .gte('updated_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+        supabase.from('knowledge_base_documents').select('id', { count: 'exact', head: true }),
+        supabase.from('knowledge_base_chunks').select('id', { count: 'exact', head: true }),
       ]);
 
       setStats({
@@ -31,6 +35,8 @@ export default function AdminDashboard() {
         totalConversations: conversationsRes.count || 0,
         totalDocuments: documentsRes.count || 0,
         activeToday: profilesRes.data?.length || 0,
+        kbDocuments: kbDocsRes.count || 0,
+        kbChunks: kbChunksRes.count || 0,
       });
     };
 
@@ -54,7 +60,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <StatsCard
               title="Total Users"
               value={stats.totalUsers}
@@ -78,6 +84,18 @@ export default function AdminDashboard() {
               value={stats.activeToday}
               icon={TrendingUp}
               description="Last 24 hours"
+            />
+            <StatsCard
+              title="KB Documents"
+              value={stats.kbDocuments}
+              icon={BookOpen}
+              description="Knowledge base docs"
+            />
+            <StatsCard
+              title="KB Chunks"
+              value={stats.kbChunks}
+              icon={Database}
+              description="Total text chunks"
             />
           </div>
         </div>
