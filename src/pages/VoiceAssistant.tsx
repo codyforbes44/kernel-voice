@@ -25,6 +25,7 @@ const VoiceAssistant = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationTitle, setConversationTitle] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -59,6 +60,32 @@ const VoiceAssistant = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Auto-load last conversation for authenticated users
+  useEffect(() => {
+    const loadLastConversation = async () => {
+      if (!isAuthenticated) return;
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      // Get most recent conversation
+      const { data: lastConv } = await supabase
+        .from('conversations')
+        .select('id, title')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (lastConv) {
+        setConversationId(lastConv.id);
+        setConversationTitle(lastConv.title);
+      }
+    };
+    
+    loadLastConversation();
+  }, [isAuthenticated]);
 
   const conversation = useConversation({
     onConnect: () => {
@@ -268,6 +295,27 @@ const VoiceAssistant = () => {
                     >
                       <LogIn className="h-4 w-4 mr-2" />
                       Sign In to Save
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Current Conversation Banner */}
+              {isAuthenticated && conversationTitle && (
+                <div className="mb-4 p-4 rounded-lg bg-primary/10 border border-primary/20">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Continuing conversation:</p>
+                      <p className="font-medium">{conversationTitle}</p>
+                    </div>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setConversationId(null);
+                        setConversationTitle(null);
+                      }}
+                    >
+                      New Conversation
                     </Button>
                   </div>
                 </div>
