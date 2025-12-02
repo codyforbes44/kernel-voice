@@ -15,16 +15,16 @@ serve(async (req) => {
     const agentId = Deno.env.get('VITE_ELEVENLABS_AGENT_ID');
     
     if (!ELEVENLABS_API_KEY) {
-      throw new Error('ELEVENLABS_API_KEY not configured');
+      throw new Error('Voice service not configured');
     }
 
     if (!agentId) {
-      throw new Error('ELEVENLABS_AGENT_ID not configured');
+      throw new Error('Voice agent not configured');
     }
 
-    console.log('Generating ElevenLabs signed URL for agent:', agentId);
+    console.log('Generating voice session URL');
 
-    // Get signed URL from ElevenLabs
+    // Get signed URL from voice service
     const response = await fetch(
       `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
       {
@@ -37,19 +37,19 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('ElevenLabs API error:', errorText);
-      throw new Error(`ElevenLabs API error: ${response.status}`);
+      console.error('Voice service error:', errorText);
+      throw new Error(`Voice service error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Successfully generated signed URL');
+    console.log('Voice session URL generated successfully');
 
     return new Response(JSON.stringify({ signedUrl: data.signed_url }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in elevenlabs-session:', error);
+    console.error('Error generating voice session:', error);
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : 'Unknown error' 
     }), {
