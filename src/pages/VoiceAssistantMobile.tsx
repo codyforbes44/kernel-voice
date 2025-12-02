@@ -191,7 +191,7 @@ const VoiceAssistantMobile = () => {
   return (
     <>
       <SEO 
-        title="AI Voice Assistant - Premium Conversational AI"
+        title="AI Intelligence - Premium Conversational AI"
         description="Experience the future of AI interaction with real-time voice conversations, intelligent web search, and advanced document analysis. OLED-optimized interface for immersive mobile experience."
         image="/og-home.png"
         keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI", "mobile AI assistant", "OLED optimized"]}
@@ -236,7 +236,7 @@ const VoiceAssistantMobile = () => {
         <div className="rounded-3xl bg-card border border-border p-8 shadow-2xl mb-4">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              AI Voice Assistant
+              AI Intelligence
             </h1>
           </div>
 
