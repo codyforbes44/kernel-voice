@@ -9,6 +9,7 @@ import ConversationHistory from '@/components/voice/ConversationHistory';
 import DocumentUpload from '@/components/voice/DocumentUpload';
 import MessageHistory from '@/components/voice/MessageHistory';
 import SEO from '@/components/SEO';
+import { Header } from '@/components/layout/Header';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const VoiceAssistantMobile = () => {
@@ -195,7 +196,9 @@ const VoiceAssistantMobile = () => {
         image="/og-mobile.png"
         keywords={["mobile AI assistant", "voice AI app", "mobile voice control", "OLED optimized", "PWA voice assistant"]}
       />
-      <div className="min-h-screen h-[100dvh] bg-gradient-to-br from-background via-background to-primary/5 flex flex-col px-4 py-8 safe-area-inset">
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="h-[100dvh] flex flex-col px-4 py-8 safe-area-inset">
         
         {/* Top Action Buttons */}
         <div className="flex justify-end gap-2 mb-4">
@@ -337,6 +340,7 @@ const VoiceAssistantMobile = () => {
         <div className="flex-1 overflow-y-auto">
           <MessageHistory conversationId={conversationId} />
         </div>
+      </div>
       </div>
     </>
   );

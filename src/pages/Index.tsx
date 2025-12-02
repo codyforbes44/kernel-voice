@@ -1,22 +1,21 @@
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Mic, Search, FileText, LogIn, Smartphone, Download } from 'lucide-react';
+import { Sparkles, Mic, Search, FileText, Smartphone, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import SEO from '@/components/SEO';
+import { Header } from '@/components/layout/Header';
 
 const Index = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null);
     });
@@ -24,32 +23,29 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
-
   return (
     <>
       <SEO 
-        title="Premium AI Voice Assistant"
-        description="Experience the future of AI interaction with real-time voice conversations, intelligent web search, and advanced document analysis. Powered by xAI Grok and ElevenLabs."
+        title="AI Voice Assistant - Premium Conversational AI"
+        description="Experience the future of AI interaction with real-time voice conversations, intelligent web search, and advanced document analysis."
         image="/og-home.png"
-        keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI", "ElevenLabs", "xAI Grok"]}
+        keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI"]}
       />
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="container mx-auto px-4 py-16">
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-16">
         <div className="text-center max-w-4xl mx-auto space-y-8">
           {/* Hero Section */}
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             <h1 className="text-6xl md:text-7xl font-display font-bold tracking-tight">
-              <span className="text-gradient">Premium AI</span>
+              <span className="text-gradient">AI Voice</span>
               <br />
-              <span className="text-foreground">Voice Assistant</span>
+              <span className="text-foreground">Assistant</span>
             </h1>
 
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Experience the future of AI interaction with real-time voice conversations, 
-              intelligent web search, and advanced document analysis.
+              Experience real-time voice conversations, intelligent web search, 
+              and advanced document analysis powered by cutting-edge AI.
             </p>
 
             <div className="flex items-center justify-center gap-4 pt-4 flex-wrap">
@@ -79,26 +75,6 @@ const Index = () => {
                 <Download className="mr-2 h-5 w-5" />
                 Install App
               </Button>
-              {user ? (
-                <Button
-                  onClick={handleSignOut}
-                  size="lg"
-                  variant="outline"
-                  className="px-8 py-6 text-lg font-semibold"
-                >
-                  Sign Out
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => navigate('/auth')}
-                  size="lg"
-                  variant="outline"
-                  className="px-8 py-6 text-lg font-semibold"
-                >
-                  <LogIn className="mr-2 h-5 w-5" />
-                  Sign In
-                </Button>
-              )}
             </div>
           </div>
 
@@ -110,7 +86,7 @@ const Index = () => {
               </div>
               <h3 className="text-xl font-display font-semibold mb-2">Real-Time Voice</h3>
               <p className="text-muted-foreground">
-                Natural, fluid conversations with advanced voice AI powered by ElevenLabs
+                Natural, fluid conversations with advanced conversational AI
               </p>
             </div>
 
@@ -120,7 +96,7 @@ const Index = () => {
               </div>
               <h3 className="text-xl font-display font-semibold mb-2">Web Search</h3>
               <p className="text-muted-foreground">
-                Access current information instantly with integrated web search capabilities
+                Access current information instantly with integrated search capabilities
               </p>
             </div>
 
@@ -132,18 +108,6 @@ const Index = () => {
               <p className="text-muted-foreground">
                 Upload and analyze documents with AI-powered insights and Q&A
               </p>
-            </div>
-          </div>
-
-          {/* Tech Stack */}
-          <div className="pt-16 pb-8">
-            <p className="text-sm text-muted-foreground mb-4">Built with premium AI technology</p>
-            <div className="flex items-center justify-center gap-8 flex-wrap">
-              <div className="text-lg font-display font-semibold text-primary">xAI Grok</div>
-              <div className="w-px h-8 bg-border" />
-              <div className="text-lg font-display font-semibold text-secondary">ElevenLabs</div>
-              <div className="w-px h-8 bg-border" />
-              <div className="text-lg font-display font-semibold text-primary">Lovable Cloud</div>
             </div>
           </div>
         </div>

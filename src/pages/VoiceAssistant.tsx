@@ -9,6 +9,7 @@ import ConversationHistory from '@/components/voice/ConversationHistory';
 import DocumentUpload from '@/components/voice/DocumentUpload';
 import MessageHistory from '@/components/voice/MessageHistory';
 import SEO from '@/components/SEO';
+import { Header } from '@/components/layout/Header';
 import { 
   SidebarProvider, 
   Sidebar, 
@@ -201,8 +202,10 @@ const VoiceAssistant = () => {
         image="/og-assistant.png"
         keywords={["voice conversation", "AI chat", "voice control", "hands-free AI", "conversational AI"]}
       />
-      <SidebarProvider defaultOpen={true}>
-        <div className="min-h-screen flex w-full bg-gradient-to-br from-background via-background to-primary/5">
+      <div className="min-h-screen bg-background">
+        <Header />
+        <SidebarProvider defaultOpen={true}>
+        <div className="flex w-full">{/* ... keep existing code */}
           {/* Collapsible Sidebar */}
           <Sidebar collapsible="offcanvas">
             <SidebarContent className="p-4 space-y-6">
@@ -310,6 +313,7 @@ const VoiceAssistant = () => {
           </SidebarInset>
         </div>
       </SidebarProvider>
+      </div>
     </>
   );
 };
