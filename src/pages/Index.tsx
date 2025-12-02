@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Mic, Search, FileText, LogIn, Smartphone } from 'lucide-react';
+import { Sparkles, Mic, Search, FileText, LogIn, Smartphone, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
@@ -61,6 +61,15 @@ const Index = () => {
               >
                 <Smartphone className="mr-2 h-5 w-5" />
                 Mobile Version
+              </Button>
+              <Button
+                onClick={() => navigate('/install')}
+                size="lg"
+                variant="outline"
+                className="px-8 py-6 text-lg font-semibold"
+              >
+                <Download className="mr-2 h-5 w-5" />
+                Install App
               </Button>
               {user ? (
                 <Button

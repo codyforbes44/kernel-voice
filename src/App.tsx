@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import VoiceAssistant from "./pages/VoiceAssistant";
 import VoiceAssistantMobile from "./pages/VoiceAssistantMobile";
 import Auth from "./pages/Auth";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/assistant" element={<VoiceAssistant />} />
           <Route path="/mobile-assistant" element={<VoiceAssistantMobile />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/install" element={<Install />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
