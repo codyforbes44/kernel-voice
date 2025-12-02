@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, MessageSquare, FileText, Shield } from 'lucide-react';
+import { Home, Users, MessageSquare, FileText, Shield, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 
@@ -16,6 +16,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
     { to: '/admin/users', label: 'Users', icon: Users },
     { to: '/admin/conversations', label: 'Conversations', icon: MessageSquare },
     { to: '/admin/documents', label: 'Documents', icon: FileText },
+    { to: '/admin/knowledge-base', label: 'Knowledge Base', icon: BookOpen },
   ];
 
   return (

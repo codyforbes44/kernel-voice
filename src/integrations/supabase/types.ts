@@ -111,6 +111,166 @@ export type Database = {
           },
         ]
       }
+      knowledge_base_categories: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      knowledge_base_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string | null
+          document_id: string
+          id: string
+          metadata: Json | null
+          token_count: number | null
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          created_at?: string | null
+          document_id: string
+          id?: string
+          metadata?: Json | null
+          token_count?: number | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string | null
+          document_id?: string
+          id?: string
+          metadata?: Json | null
+          token_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_base_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_base_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_base_documents: {
+        Row: {
+          category_id: string | null
+          chunk_count: number | null
+          content: string | null
+          created_at: string | null
+          error_message: string | null
+          file_path: string | null
+          file_size: number | null
+          filename: string
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          mime_type: string | null
+          original_filename: string
+          status: string | null
+          tags: string[] | null
+          updated_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          chunk_count?: number | null
+          content?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          filename: string
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          mime_type?: string | null
+          original_filename: string
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          chunk_count?: number | null
+          content?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          filename?: string
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          mime_type?: string | null
+          original_filename?: string
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_base_documents_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_base_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_base_settings: {
+        Row: {
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           audio_url: string | null
