@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import SEO from '@/components/SEO';
+import { Header } from '@/components/layout/Header';
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -101,12 +102,14 @@ const Auth = () => {
   return (
     <>
       <SEO 
-        title="Sign In"
+        title="Sign In - AI Voice Assistant"
         description="Sign in or create an account to access the AI Voice Assistant. Secure authentication for your conversations and personalized experience."
         image="/og-auth.png"
         noIndex={true}
       />
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center py-16 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">AI Voice Assistant</CardTitle>
@@ -215,6 +218,7 @@ const Auth = () => {
           </Tabs>
         </CardContent>
       </Card>
+      </div>
       </div>
     </>
   );
