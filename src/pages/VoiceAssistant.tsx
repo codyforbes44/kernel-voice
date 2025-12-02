@@ -230,7 +230,7 @@ const VoiceAssistant = () => {
               <div className="rounded-2xl bg-card border border-border p-8 shadow-2xl mb-6">
                 <div className="text-center mb-8">
                   <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                    AI Voice Assistant
+                    AI Intelligence
                   </h1>
                 </div>
 

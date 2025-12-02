@@ -102,8 +102,8 @@ const Auth = () => {
   return (
     <>
       <SEO 
-        title="Sign In - AI Voice Assistant"
-        description="Sign in or create an account to access the AI Voice Assistant. Secure authentication for your conversations and personalized experience."
+        title="Sign In - AI Intelligence"
+        description="Sign in or create an account to access AI Intelligence. Secure authentication for your conversations and personalized experience."
         image="/og-auth.png"
         noIndex={true}
       />
@@ -112,7 +112,7 @@ const Auth = () => {
         <div className="flex items-center justify-center py-16 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">AI Voice Assistant</CardTitle>
+          <CardTitle className="text-3xl font-bold">AI Intelligence</CardTitle>
           <CardDescription>Sign in or create an account to get started</CardDescription>
         </CardHeader>
         <CardContent>

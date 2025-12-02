@@ -49,8 +49,8 @@ const Install = () => {
   return (
     <>
       <SEO 
-        title="Install App - AI Voice Assistant"
-        description="Install the AI Voice Assistant as a native app on your device. Works offline with faster performance, native notifications, and seamless experience across all platforms."
+        title="Install App - AI Intelligence"
+        description="Install AI Intelligence as a native app on your device. Works offline with faster performance, native notifications, and seamless experience across all platforms."
         image="/og-install.png"
         keywords={["install PWA", "voice assistant app", "offline AI", "progressive web app", "native app experience"]}
       />
