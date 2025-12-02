@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useConversation } from '@11labs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import ConversationHistory from '@/components/voice/ConversationHistory';
@@ -17,6 +17,7 @@ import {
   SidebarTrigger,
   SidebarInset 
 } from '@/components/ui/sidebar';
+import RegistrationPromptModal from '@/components/voice/RegistrationPromptModal';
 
 const VoiceAssistant = () => {
   const { toast } = useToast();
@@ -24,23 +25,22 @@ const VoiceAssistant = () => {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [guestMessages, setGuestMessages] = useState<Array<{ role: string; content: string }>>([]);
+  const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
 
-  // Authentication check
+  // Authentication check (non-blocking)
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate('/auth');
-      }
+      setIsAuthenticated(!!session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (!session) {
-        navigate('/auth');
-      }
+      setIsAuthenticated(!!session);
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   const conversation = useConversation({
     onConnect: () => {
@@ -70,11 +70,23 @@ const VoiceAssistant = () => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           
+          // Guest mode: store in memory only
           if (!user) {
-            return JSON.stringify({ error: 'Not authenticated' });
+            setGuestMessages(prev => [...prev, { role: 'user', content: parameters.message }]);
+            
+            const { data, error } = await supabase.functions.invoke('chat', {
+              body: {
+                messages: [...guestMessages, { role: 'user', content: parameters.message }],
+              },
+            });
+
+            if (error) throw error;
+            
+            setGuestMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+            return JSON.stringify({ response: data.message });
           }
 
-          // Create conversation if needed
+          // Authenticated mode: persist to DB
           let currentConvId = conversationId;
           if (!currentConvId) {
             const { data: newConv } = await supabase
@@ -89,7 +101,6 @@ const VoiceAssistant = () => {
             }
           }
 
-          // Call AI conversation function
           const { data, error } = await supabase.functions.invoke('chat', {
             body: {
               messages: [{ role: 'user', content: parameters.message }],
@@ -187,6 +198,11 @@ const VoiceAssistant = () => {
 
   const endConversation = async () => {
     await conversation.endSession();
+    
+    // Show registration prompt for guests
+    if (!isAuthenticated && guestMessages.length > 0) {
+      setShowRegistrationPrompt(true);
+    }
   };
 
   const toggleMute = () => {
@@ -204,27 +220,47 @@ const VoiceAssistant = () => {
       />
       <div className="min-h-screen bg-background">
         <Header />
-        <SidebarProvider defaultOpen={true}>
-        <div className="flex w-full">{/* ... keep existing code */}
-          {/* Collapsible Sidebar */}
-          <Sidebar collapsible="offcanvas">
-            <SidebarContent className="p-4 space-y-6">
-              <ConversationHistory 
-                currentConversationId={conversationId}
-                onSelectConversation={setConversationId}
-                onConversationCreated={() => {}}
-              />
-              <DocumentUpload conversationId={conversationId} />
-            </SidebarContent>
-          </Sidebar>
+        <SidebarProvider defaultOpen={isAuthenticated}>
+        <div className="flex w-full">
+          {/* Collapsible Sidebar - Only for authenticated users */}
+          {isAuthenticated && (
+            <Sidebar collapsible="offcanvas">
+              <SidebarContent className="p-4 space-y-6">
+                <ConversationHistory 
+                  currentConversationId={conversationId}
+                  onSelectConversation={setConversationId}
+                  onConversationCreated={() => {}}
+                />
+                <DocumentUpload conversationId={conversationId} />
+              </SidebarContent>
+            </Sidebar>
+          )}
 
           {/* Main Content */}
           <SidebarInset>
             <div className="container mx-auto px-4 py-8">
+              {/* Guest Banner */}
+              {!isAuthenticated && (
+                <div className="mb-4 p-4 rounded-lg bg-primary/10 border border-primary/20">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="font-medium">Guest Mode - Conversations won't be saved</p>
+                    <Button 
+                      variant="outline"
+                      onClick={() => navigate('/auth')}
+                    >
+                      <LogIn className="h-4 w-4 mr-2" />
+                      Sign In to Save
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
               {/* Sidebar Trigger */}
-              <div className="mb-4">
-                <SidebarTrigger />
-              </div>
+              {isAuthenticated && (
+                <div className="mb-4">
+                  <SidebarTrigger />
+                </div>
+              )}
 
               {/* AI Voice Assistant - Top Section */}
               <div className="rounded-2xl bg-card border border-border p-8 shadow-2xl mb-6">
@@ -314,6 +350,12 @@ const VoiceAssistant = () => {
         </div>
       </SidebarProvider>
       </div>
+      
+      <RegistrationPromptModal 
+        open={showRegistrationPrompt}
+        onOpenChange={setShowRegistrationPrompt}
+        messageCount={guestMessages.length / 2}
+      />
     </>
   );
 };
