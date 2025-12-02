@@ -1,0 +1,142 @@
+import { useEffect, useState, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { MessageSquare } from 'lucide-react';
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+}
+
+interface MessageHistoryProps {
+  conversationId: string | null;
+}
+
+const MessageHistory = ({ conversationId }: MessageHistoryProps) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (conversationId) {
+      loadMessages();
+      subscribeToMessages();
+    } else {
+      setMessages([]);
+    }
+
+    return () => {
+      supabase.channel('messages').unsubscribe();
+    };
+  }, [conversationId]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const loadMessages = async () => {
+    if (!conversationId) return;
+
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error loading messages:', error);
+    } else {
+      setMessages((data || []) as Message[]);
+    }
+    setLoading(false);
+  };
+
+  const subscribeToMessages = () => {
+    if (!conversationId) return;
+
+    const channel = supabase
+      .channel('messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const newMessage = payload.new as Message;
+          setMessages((prev) => [...prev, newMessage]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  };
+
+  if (!conversationId) {
+    return (
+      <div className="rounded-xl bg-card border border-border p-8 text-center">
+        <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <p className="text-muted-foreground">Select a conversation to view message history</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="rounded-xl bg-card border border-border p-8 text-center">
+        <p className="text-muted-foreground">Loading messages...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl bg-card border border-border p-4">
+      <h3 className="font-semibold mb-4 flex items-center gap-2">
+        <MessageSquare className="h-4 w-4" />
+        Conversation History
+      </h3>
+      
+      <ScrollArea className="h-[400px] pr-4" ref={scrollRef}>
+        <div className="space-y-4">
+          {messages.length === 0 ? (
+            <p className="text-center text-muted-foreground text-sm">No messages yet</p>
+          ) : (
+            messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`
+                    max-w-[80%] rounded-lg p-3
+                    ${message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-foreground'
+                    }
+                  `}
+                >
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <p className="text-xs opacity-70 mt-1">
+                    {new Date(message.created_at).toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+};
+
+export default MessageHistory;

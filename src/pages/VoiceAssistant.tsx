@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import ConversationHistory from '@/components/voice/ConversationHistory';
 import DocumentUpload from '@/components/voice/DocumentUpload';
+import MessageHistory from '@/components/voice/MessageHistory';
 import SEO from '@/components/SEO';
 
 const VoiceAssistant = () => {
@@ -201,6 +202,7 @@ const VoiceAssistant = () => {
             <ConversationHistory 
               currentConversationId={conversationId}
               onSelectConversation={setConversationId}
+              onConversationCreated={() => {}}
             />
             <DocumentUpload conversationId={conversationId} />
           </div>
@@ -285,6 +287,11 @@ const VoiceAssistant = () => {
                   </>
                 )}
               </div>
+            </div>
+
+            {/* Message History */}
+            <div className="mt-6">
+              <MessageHistory conversationId={conversationId} />
             </div>
           </div>
         </div>

@@ -2,10 +2,14 @@ import { useState, useEffect } from 'react';
 import { useConversation } from '@11labs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, MessageSquare, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import ConversationHistory from '@/components/voice/ConversationHistory';
+import DocumentUpload from '@/components/voice/DocumentUpload';
+import MessageHistory from '@/components/voice/MessageHistory';
 import SEO from '@/components/SEO';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const VoiceAssistantMobile = () => {
   const { toast } = useToast();
@@ -191,111 +195,147 @@ const VoiceAssistantMobile = () => {
         image="/og-mobile.png"
         keywords={["mobile AI assistant", "voice AI app", "mobile voice control", "OLED optimized", "PWA voice assistant"]}
       />
-      <div className="min-h-screen h-[100dvh] bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center px-4 py-8 safe-area-inset">
-      <div className="w-full max-w-md">
-        <div className="rounded-3xl bg-card border border-border p-8 shadow-2xl">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              AI Voice Assistant
-            </h1>
-          </div>
+      <div className="min-h-screen h-[100dvh] bg-gradient-to-br from-background via-background to-primary/5 flex flex-col px-4 py-8 safe-area-inset">
+        
+        {/* Top Action Buttons */}
+        <div className="flex justify-end gap-2 mb-4">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MessageSquare className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[85vw] overflow-y-auto">
+              <div className="space-y-6">
+                <ConversationHistory 
+                  currentConversationId={conversationId}
+                  onSelectConversation={setConversationId}
+                  onConversationCreated={() => {}}
+                />
+                <MessageHistory conversationId={conversationId} />
+              </div>
+            </SheetContent>
+          </Sheet>
 
-          {/* Status Indicator */}
-          <div className="flex items-center justify-center mb-8">
-            <div className={`
-              relative w-40 h-40 rounded-full flex items-center justify-center
-              ${conversation.status === 'connected' 
-                ? 'bg-gradient-to-br from-primary to-primary/50 shadow-glow-primary' 
-                : 'bg-gradient-to-br from-muted to-muted-foreground/20'
-              }
-              ${conversation.isSpeaking ? 'animate-pulse' : ''}
-              transition-all duration-300 shadow-xl
-            `}>
-              <Mic className="w-16 h-16 text-primary-foreground" />
-              {conversation.status === 'connected' && (
-                <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
-              )}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Upload className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[85vw]">
+              <DocumentUpload conversationId={conversationId} />
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        {/* Main Voice Interface */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-md">
+            <div className="rounded-3xl bg-card border border-border p-8 shadow-2xl">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  AI Voice Assistant
+                </h1>
+              </div>
+
+              {/* Status Indicator */}
+              <div className="flex items-center justify-center mb-8">
+                <div className={`
+                  relative w-40 h-40 rounded-full flex items-center justify-center
+                  ${conversation.status === 'connected' 
+                    ? 'bg-gradient-to-br from-primary to-primary/50 shadow-glow-primary' 
+                    : 'bg-gradient-to-br from-muted to-muted-foreground/20'
+                  }
+                  ${conversation.isSpeaking ? 'animate-pulse' : ''}
+                  transition-all duration-300 shadow-xl
+                `}>
+                  <Mic className="w-16 h-16 text-primary-foreground" />
+                  {conversation.status === 'connected' && (
+                    <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
+                  )}
+                </div>
+              </div>
+
+              {/* Status Text */}
+              <div className="text-center mb-8">
+                <p className="text-xl font-medium">
+                  {conversation.status === 'connected' 
+                    ? conversation.isSpeaking 
+                      ? '🗣️ Speaking...' 
+                      : '👂 Listening...'
+                    : 'Ready to connect'
+                  }
+                </p>
+              </div>
+
+              {/* Controls */}
+              <div className="space-y-4">
+                {conversation.status !== 'connected' ? (
+                  <Button
+                    onClick={startConversation}
+                    size="lg"
+                    className="w-full h-14 text-lg font-semibold"
+                  >
+                    <Mic className="mr-2 h-6 w-6" />
+                    Start Conversation
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      onClick={endConversation}
+                      variant="destructive"
+                      size="lg"
+                      className="w-full h-14 text-lg font-semibold"
+                    >
+                      End Call
+                    </Button>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <Button
+                        onClick={toggleMute}
+                        variant="outline"
+                        size="lg"
+                        className="h-14"
+                      >
+                        {isMuted ? (
+                          <>
+                            <MicOff className="h-6 w-6 mr-2" />
+                            Muted
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="h-6 w-6 mr-2" />
+                            Mute
+                          </>
+                        )}
+                      </Button>
+
+                      <Button
+                        onClick={() => setVolume(volume > 0 ? 0 : 1)}
+                        variant="outline"
+                        size="lg"
+                        className="h-14"
+                      >
+                        {volume > 0 ? (
+                          <>
+                            <Volume2 className="h-6 w-6 mr-2" />
+                            Volume
+                          </>
+                        ) : (
+                          <>
+                            <VolumeX className="h-6 w-6 mr-2" />
+                            Muted
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-
-          {/* Status Text */}
-          <div className="text-center mb-8">
-            <p className="text-xl font-medium">
-              {conversation.status === 'connected' 
-                ? conversation.isSpeaking 
-                  ? '🗣️ Speaking...' 
-                  : '👂 Listening...'
-                : 'Ready to connect'
-              }
-            </p>
-          </div>
-
-          {/* Controls */}
-          <div className="space-y-4">
-            {conversation.status !== 'connected' ? (
-              <Button
-                onClick={startConversation}
-                size="lg"
-                className="w-full h-14 text-lg font-semibold"
-              >
-                <Mic className="mr-2 h-6 w-6" />
-                Start Conversation
-              </Button>
-            ) : (
-              <>
-                <Button
-                  onClick={endConversation}
-                  variant="destructive"
-                  size="lg"
-                  className="w-full h-14 text-lg font-semibold"
-                >
-                  End Call
-                </Button>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    onClick={toggleMute}
-                    variant="outline"
-                    size="lg"
-                    className="h-14"
-                  >
-                    {isMuted ? (
-                      <>
-                        <MicOff className="h-6 w-6 mr-2" />
-                        Muted
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="h-6 w-6 mr-2" />
-                        Mute
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
-                    onClick={() => setVolume(volume > 0 ? 0 : 1)}
-                    variant="outline"
-                    size="lg"
-                    className="h-14"
-                  >
-                    {volume > 0 ? (
-                      <>
-                        <Volume2 className="h-6 w-6 mr-2" />
-                        Volume
-                      </>
-                    ) : (
-                      <>
-                        <VolumeX className="h-6 w-6 mr-2" />
-                        Muted
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
         </div>
-      </div>
       </div>
     </>
   );

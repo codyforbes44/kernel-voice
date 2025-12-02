@@ -2,8 +2,18 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Plus } from 'lucide-react';
+import { MessageSquare, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Conversation {
   id: string;
@@ -14,14 +24,26 @@ interface Conversation {
 interface ConversationHistoryProps {
   currentConversationId: string | null;
   onSelectConversation: (id: string) => void;
+  onConversationCreated?: () => void;
 }
 
-const ConversationHistory = ({ currentConversationId, onSelectConversation }: ConversationHistoryProps) => {
+const ConversationHistory = ({ 
+  currentConversationId, 
+  onSelectConversation,
+  onConversationCreated 
+}: ConversationHistoryProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     loadConversations();
+    subscribeToConversations();
+
+    return () => {
+      supabase.channel('conversations').unsubscribe();
+    };
   }, []);
 
   const loadConversations = async () => {
@@ -41,6 +63,23 @@ const ConversationHistory = ({ currentConversationId, onSelectConversation }: Co
     }
 
     setConversations(data || []);
+  };
+
+  const subscribeToConversations = () => {
+    const channel = supabase
+      .channel('conversations')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+        },
+        () => {
+          loadConversations();
+        }
+      )
+      .subscribe();
   };
 
   const createNewConversation = async () => {
@@ -71,6 +110,55 @@ const ConversationHistory = ({ currentConversationId, onSelectConversation }: Co
 
     setConversations([data, ...conversations]);
     onSelectConversation(data.id);
+    onConversationCreated?.();
+  };
+
+  const deleteConversation = async (id: string) => {
+    // Delete all messages in the conversation first
+    await supabase
+      .from('messages')
+      .delete()
+      .eq('conversation_id', id);
+
+    // Delete the conversation
+    const { error } = await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete conversation',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setConversations(conversations.filter(conv => conv.id !== id));
+    
+    if (currentConversationId === id) {
+      onSelectConversation(conversations[0]?.id || '');
+    }
+
+    toast({
+      title: 'Deleted',
+      description: 'Conversation deleted successfully',
+    });
+  };
+
+  const handleDeleteClick = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConversationToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (conversationToDelete) {
+      deleteConversation(conversationToDelete);
+    }
+    setDeleteDialogOpen(false);
+    setConversationToDelete(null);
   };
 
   return (
@@ -88,25 +176,52 @@ const ConversationHistory = ({ currentConversationId, onSelectConversation }: Co
       <ScrollArea className="h-[400px]">
         <div className="space-y-2">
           {conversations.map((conv) => (
-            <button
+            <div
               key={conv.id}
-              onClick={() => onSelectConversation(conv.id)}
               className={`
-                w-full text-left p-3 rounded-lg transition-colors
+                relative group rounded-lg transition-colors
                 ${currentConversationId === conv.id 
                   ? 'bg-primary text-primary-foreground' 
                   : 'hover:bg-muted'
                 }
               `}
             >
-              <p className="font-medium truncate">{conv.title}</p>
-              <p className="text-xs opacity-70">
-                {new Date(conv.updated_at).toLocaleDateString()}
-              </p>
-            </button>
+              <button
+                onClick={() => onSelectConversation(conv.id)}
+                className="w-full text-left p-3 pr-10"
+              >
+                <p className="font-medium truncate">{conv.title}</p>
+                <p className="text-xs opacity-70">
+                  {new Date(conv.updated_at).toLocaleDateString()}
+                </p>
+              </button>
+              <button
+                onClick={(e) => handleDeleteClick(conv.id, e)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive/20 rounded"
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </button>
+            </div>
           ))}
         </div>
       </ScrollArea>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Conversation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this conversation and all its messages. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
