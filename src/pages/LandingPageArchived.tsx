@@ -1,3 +1,6 @@
+// ARCHIVED: Original landing page preserved for future use
+// This was the homepage before making VoiceAssistantMobile the main entry point
+
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Mic, Search, FileText, Smartphone, Download } from 'lucide-react';
@@ -7,7 +10,7 @@ import { User } from '@supabase/supabase-js';
 import SEO from '@/components/SEO';
 import { Header } from '@/components/layout/Header';
 
-const Index = () => {
+const LandingPageArchived = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
 
@@ -58,7 +61,7 @@ const Index = () => {
                 Launch Assistant
               </Button>
               <Button
-                onClick={() => navigate('/mobile-assistant')}
+                onClick={() => navigate('/')}
                 size="lg"
                 variant="secondary"
                 className="px-8 py-6 text-lg font-semibold"
@@ -117,4 +120,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default LandingPageArchived;

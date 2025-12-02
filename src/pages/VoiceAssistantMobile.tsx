@@ -191,10 +191,10 @@ const VoiceAssistantMobile = () => {
   return (
     <>
       <SEO 
-        title="Mobile Voice Assistant"
-        description="AI voice assistant optimized for mobile devices. Touch-friendly controls, OLED-optimized interface, and seamless voice interactions with intelligent search and document analysis."
-        image="/og-mobile.png"
-        keywords={["mobile AI assistant", "voice AI app", "mobile voice control", "OLED optimized", "PWA voice assistant"]}
+        title="AI Voice Assistant - Premium Conversational AI"
+        description="Experience the future of AI interaction with real-time voice conversations, intelligent web search, and advanced document analysis. OLED-optimized interface for immersive mobile experience."
+        image="/og-home.png"
+        keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI", "mobile AI assistant", "OLED optimized"]}
       />
       <div className="min-h-screen bg-background">
         <Header />
