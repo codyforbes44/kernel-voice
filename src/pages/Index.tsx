@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Mic, Search, FileText, LogIn } from 'lucide-react';
+import { Sparkles, Mic, Search, FileText, LogIn, Smartphone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
@@ -61,6 +61,15 @@ const Index = () => {
               >
                 <Mic className="mr-2 h-5 w-5" />
                 Launch Assistant
+              </Button>
+              <Button
+                onClick={() => navigate('/mobile-assistant')}
+                size="lg"
+                variant="secondary"
+                className="px-8 py-6 text-lg font-semibold"
+              >
+                <Smartphone className="mr-2 h-5 w-5" />
+                Mobile Version
               </Button>
               {user ? (
                 <Button
