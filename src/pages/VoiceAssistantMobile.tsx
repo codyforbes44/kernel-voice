@@ -33,20 +33,20 @@ const VoiceAssistantMobile = () => {
 
   const conversation = useConversation({
     onConnect: () => {
-      console.log('Connected to ElevenLabs');
+      console.log('Connected to voice service');
       toast({
         title: 'Connected',
         description: 'Voice assistant is ready',
       });
     },
     onDisconnect: () => {
-      console.log('Disconnected from ElevenLabs');
+      console.log('Disconnected from voice service');
     },
     onMessage: (message) => {
       console.log('Message received:', message);
     },
     onError: (error) => {
-      console.error('ElevenLabs error:', error);
+      console.error('Voice service error:', error);
       toast({
         title: 'Error',
         description: 'Voice connection error',
@@ -54,8 +54,8 @@ const VoiceAssistantMobile = () => {
       });
     },
     clientTools: {
-      // xAI Grok integration as a client tool
-      chat_with_grok: async (parameters: { message: string }) => {
+      // AI conversation handler
+      chat: async (parameters: { message: string }) => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           
@@ -78,8 +78,8 @@ const VoiceAssistantMobile = () => {
             }
           }
 
-          // Call xAI through edge function
-          const { data, error } = await supabase.functions.invoke('chat-with-grok', {
+          // Call AI conversation function
+          const { data, error } = await supabase.functions.invoke('chat', {
             body: {
               messages: [{ role: 'user', content: parameters.message }],
               conversationId: currentConvId,
@@ -91,15 +91,15 @@ const VoiceAssistantMobile = () => {
 
           return JSON.stringify({ response: data.message });
         } catch (error) {
-          console.error('Error calling Grok:', error);
+          console.error('Error in conversation:', error);
           return JSON.stringify({ error: 'Failed to get response' });
         }
       },
 
-      // Web search tool
-      web_search: async (parameters: { query: string }) => {
+      // Web search handler
+      search: async (parameters: { query: string }) => {
         try {
-          const { data, error } = await supabase.functions.invoke('web-search', {
+          const { data, error } = await supabase.functions.invoke('search', {
             body: { query: parameters.query },
           });
 
@@ -107,12 +107,12 @@ const VoiceAssistantMobile = () => {
 
           return JSON.stringify(data);
         } catch (error) {
-          console.error('Error in web search:', error);
+          console.error('Error in search:', error);
           return JSON.stringify({ error: 'Search failed' });
         }
       },
 
-      // Document query tool
+      // Document query handler
       query_document: async (parameters: { documentId: string; query: string }) => {
         try {
           const { data } = await supabase
@@ -127,8 +127,8 @@ const VoiceAssistantMobile = () => {
 
           const fullContent = data.map(chunk => chunk.content).join('\n');
           
-          // Use Grok to answer query about document
-          const { data: response, error } = await supabase.functions.invoke('chat-with-grok', {
+          // Use AI to answer query about document
+          const { data: response, error } = await supabase.functions.invoke('chat', {
             body: {
               messages: [
                 { 
@@ -154,13 +154,13 @@ const VoiceAssistantMobile = () => {
   const startConversation = async () => {
     try {
       // Get signed URL from backend
-      const { data, error } = await supabase.functions.invoke('elevenlabs-session');
+      const { data, error } = await supabase.functions.invoke('voice-session');
       
       if (error || !data?.signedUrl) {
         throw new Error(error?.message || 'Failed to get session URL');
       }
 
-      console.log('Starting ElevenLabs session with signed URL');
+      console.log('Starting voice session');
       await conversation.startSession({ 
         signedUrl: data.signedUrl 
       });
@@ -187,7 +187,7 @@ const VoiceAssistantMobile = () => {
     <>
       <SEO 
         title="Mobile Voice Assistant"
-        description="AI voice assistant optimized for mobile devices. Touch-friendly controls and OLED-optimized interface for seamless voice interactions on the go."
+        description="AI voice assistant optimized for mobile devices. Touch-friendly controls, OLED-optimized interface, and seamless voice interactions with intelligent search and document analysis."
         image="/og-mobile.png"
         keywords={["mobile AI assistant", "voice AI app", "mobile voice control", "OLED optimized", "PWA voice assistant"]}
       />

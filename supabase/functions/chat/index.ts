@@ -14,9 +14,9 @@ serve(async (req) => {
   try {
     const { messages, conversationId, userId } = await req.json();
     
-    const XAI_API_KEY = Deno.env.get('XAI_API_KEY');
-    if (!XAI_API_KEY) {
-      throw new Error('XAI_API_KEY not configured');
+    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error('AI service not configured');
     }
 
     // Get conversation context if conversationId provided
@@ -44,39 +44,37 @@ serve(async (req) => {
     // Combine context with new messages
     const allMessages = [...conversationContext, ...messages];
 
-    console.log('Calling xAI Grok API with messages:', allMessages.length);
+    console.log('Processing conversation with AI model...');
 
-    // Call xAI Grok API
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    // Call Anthropic Claude API
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${XAI_API_KEY}`,
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'grok-2-latest',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful, intelligent AI assistant powered by xAI Grok. You provide accurate, thoughtful responses and can help with a wide variety of tasks. When you need current information, you can use the web_search tool. When asked about documents, you can use the query_document tool.'
-          },
-          ...allMessages
-        ],
-        temperature: 0.7,
-        stream: false,
+        model: 'claude-sonnet-4-5',
+        max_tokens: 4096,
+        system: 'You are a helpful, intelligent AI assistant. You provide accurate, thoughtful responses and can help with a wide variety of tasks. When you need current information, you can use the web_search tool. When asked about documents, you can use the query_document tool.',
+        messages: allMessages.map(msg => ({
+          role: msg.role === 'assistant' ? 'assistant' : 'user',
+          content: msg.content
+        }))
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('xAI API error:', errorText);
-      throw new Error(`xAI API error: ${response.status}`);
+      console.error('AI service error:', response.status, errorText);
+      throw new Error(`AI service error: ${response.status}`);
     }
 
     const data = await response.json();
-    const assistantMessage = data.choices[0].message.content;
+    const assistantMessage = data.content[0].text;
 
-    console.log('Got response from xAI:', assistantMessage.substring(0, 100));
+    console.log('AI response generated successfully');
 
     // Save message to database if conversationId and userId provided
     if (conversationId && userId) {
@@ -109,13 +107,13 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       message: assistantMessage,
-      model: 'grok-2-latest'
+      model: 'ai-assistant'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in chat-with-grok:', error);
+    console.error('Error processing conversation:', error);
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : 'Unknown error' 
     }), {
