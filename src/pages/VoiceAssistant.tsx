@@ -1,10 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useConversation } from '@11labs/react';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, VolumeX, LogIn, Settings } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Mic, MicOff, Volume2, VolumeX, LogIn, Settings, MessageSquare, Upload } from 'lucide-react';
 import ConversationHistory from '@/components/voice/ConversationHistory';
 import DocumentUpload from '@/components/voice/DocumentUpload';
 import MessageHistory from '@/components/voice/MessageHistory';
@@ -18,360 +14,353 @@ import {
   SidebarInset 
 } from '@/components/ui/sidebar';
 import RegistrationPromptModal from '@/components/voice/RegistrationPromptModal';
-import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 import MicrophonePermissionRequest from '@/components/voice/MicrophonePermissionRequest';
-import { VoiceProviderSelector, useVoiceProviderPreference, type VoiceProvider } from '@/components/voice/VoiceProviderSelector';
-import { useGrokConversation } from '@/hooks/useGrokConversation';
-import { LiveTranscripts, type LiveTranscript } from '@/components/voice/LiveTranscripts';
+import { VoiceProviderSelector } from '@/components/voice/VoiceProviderSelector';
+import { LiveTranscripts } from '@/components/voice/LiveTranscripts';
+import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Slider } from '@/components/ui/slider';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const VoiceAssistant = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [conversationTitle, setConversationTitle] = useState<string | null>(null);
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(1);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [guestMessages, setGuestMessages] = useState<Array<{ role: string; content: string }>>([]);
-  const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
-  const { permissionState, requestPermission, isReady } = useMicrophonePermission();
+  const isMobile = useIsMobile();
   
-  // Voice provider state
-  const { provider: voiceProvider, setProvider: setVoiceProvider, grokVoice, setGrokVoice, loading: providerLoading } = useVoiceProviderPreference(isAuthenticated);
+  const {
+    isAuthenticated,
+    conversationId,
+    setConversationId,
+    conversationTitle,
+    setConversationTitle,
+    voiceProvider,
+    setVoiceProvider,
+    grokVoice,
+    setGrokVoice,
+    providerLoading,
+    isConnected,
+    isSpeaking,
+    isMuted,
+    toggleMute,
+    volume,
+    setVolume,
+    startConversation,
+    endConversation,
+    liveTranscripts,
+    permissionState,
+    requestPermission,
+    isReady,
+    guestMessages,
+    showRegistrationPrompt,
+    setShowRegistrationPrompt,
+  } = useVoiceAssistant();
 
-  // Live transcripts state
-  const [liveTranscripts, setLiveTranscripts] = useState<LiveTranscript[]>([]);
-  const [currentAssistantId, setCurrentAssistantId] = useState<string | null>(null);
+  // Shared voice settings component
+  const VoiceSettings = () => (
+    <div className="space-y-4">
+      <h4 className="font-medium text-lg">Voice Settings</h4>
+      <VoiceProviderSelector
+        value={voiceProvider}
+        onChange={setVoiceProvider}
+        grokVoice={grokVoice}
+        onGrokVoiceChange={setGrokVoice}
+        disabled={isConnected || providerLoading}
+        isAuthenticated={isAuthenticated}
+      />
+    </div>
+  );
 
-  // Helper to add or update transcript
-  const addTranscript = useCallback((role: 'user' | 'assistant', text: string, isPartial = false) => {
-    const id = `${role}-${Date.now()}`;
-    
-    if (role === 'assistant' && isPartial) {
-      // Update existing partial transcript or create new one
-      setLiveTranscripts(prev => {
-        const lastTranscript = prev[prev.length - 1];
-        if (lastTranscript?.role === 'assistant' && lastTranscript?.isPartial) {
-          // Append to existing partial
-          return prev.map((t, i) => 
-            i === prev.length - 1 
-              ? { ...t, text: t.text + text }
-              : t
-          );
-        }
-        // Create new partial transcript
-        setCurrentAssistantId(id);
-        return [...prev, { id, role, text, timestamp: new Date(), isPartial: true }];
-      });
-    } else if (role === 'assistant' && !isPartial && currentAssistantId) {
-      // Finalize assistant transcript
-      setLiveTranscripts(prev => 
-        prev.map(t => 
-          t.id === currentAssistantId 
-            ? { ...t, isPartial: false }
-            : t
-        )
-      );
-      setCurrentAssistantId(null);
-    } else {
-      // Add complete transcript (user messages are always complete)
-      setLiveTranscripts(prev => [...prev, { id, role, text, timestamp: new Date(), isPartial }]);
-    }
-  }, [currentAssistantId]);
+  // Shared main voice interface
+  const VoiceInterface = () => (
+    <div className="rounded-2xl bg-card border border-border p-4 md:p-8 shadow-xl">
+      {/* Header with Settings */}
+      <div className="flex items-center justify-between mb-6 md:mb-8">
+        <div className="flex-1" />
+        <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          AI Intelligence
+        </h1>
+        <div className="flex-1 flex justify-end">
+          {isMobile ? (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" disabled={isConnected} className="h-10 w-10">
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-auto max-h-[80vh]">
+                <div className="pt-4 pb-8">
+                  <VoiceSettings />
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" disabled={isConnected}>
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <VoiceSettings />
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+      </div>
 
-  // Authentication check (non-blocking)
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Session error:', error);
-        setIsAuthenticated(false);
-        return;
-      }
-      setIsAuthenticated(!!session);
-    };
+      {/* Microphone Permission Request */}
+      {!isReady && (
+        <MicrophonePermissionRequest 
+          permissionState={permissionState}
+          onRequestPermission={requestPermission}
+        />
+      )}
 
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('Session refreshed successfully');
-      }
-      if (event === 'SIGNED_OUT') {
-        setIsAuthenticated(false);
-        setGuestMessages([]);
-      }
-      setIsAuthenticated(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Auto-load last conversation for authenticated users
-  useEffect(() => {
-    const loadLastConversation = async () => {
-      if (!isAuthenticated) return;
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
-      // Get most recent conversation
-      const { data: lastConv } = await supabase
-        .from('conversations')
-        .select('id, title')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (lastConv) {
-        setConversationId(lastConv.id);
-        setConversationTitle(lastConv.title);
-      }
-    };
-    
-    loadLastConversation();
-  }, [isAuthenticated]);
-
-  // Client tools shared by both providers
-  const clientTools = {
-    chat: async (parameters: { message: string }) => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setGuestMessages(prev => [...prev, { role: 'user', content: parameters.message }]);
-          
-          const { data, error } = await supabase.functions.invoke('chat', {
-            body: {
-              messages: [...guestMessages, { role: 'user', content: parameters.message }],
-            },
-          });
-
-          if (error) throw error;
-          
-          setGuestMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
-          return JSON.stringify({ response: data.message });
-        }
-
-        let currentConvId = conversationId;
-        if (!currentConvId) {
-          const { data: newConv } = await supabase
-            .from('conversations')
-            .insert({ user_id: user.id })
-            .select()
-            .single();
-          
-          if (newConv) {
-            currentConvId = newConv.id;
-            setConversationId(currentConvId);
+      {/* Microphone Orb */}
+      <div className="flex items-center justify-center mb-6 md:mb-8">
+        <div className={`
+          relative w-24 h-24 md:w-32 md:h-32 rounded-full flex items-center justify-center
+          ${isConnected 
+            ? 'bg-gradient-to-br from-primary to-primary/50' 
+            : 'bg-gradient-to-br from-muted to-muted-foreground/20'
           }
-        }
+          ${isSpeaking ? 'animate-pulse' : ''}
+          transition-all duration-300 shadow-lg
+        `}>
+          <Mic className="w-10 h-10 md:w-12 md:h-12 text-primary-foreground" />
+          {isConnected && (
+            <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
+          )}
+        </div>
+      </div>
 
-        const { data, error } = await supabase.functions.invoke('chat', {
-          body: {
-            messages: [{ role: 'user', content: parameters.message }],
-            conversationId: currentConvId,
-            userId: user.id,
-          },
-        });
+      {/* Status Text */}
+      <div className="text-center mb-6 md:mb-8">
+        <p className="text-base md:text-lg font-medium">
+          {isConnected 
+            ? isSpeaking 
+              ? '🗣️ Speaking...' 
+              : '👂 Listening...'
+            : 'Ready to connect'
+          }
+        </p>
+        <p className="text-xs md:text-sm text-muted-foreground mt-1">
+          Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : 'Grok'}
+        </p>
+      </div>
 
-        if (error) throw error;
+      {/* Controls */}
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex items-center justify-center gap-3 md:gap-4">
+          {!isConnected ? (
+            <Button
+              onClick={startConversation}
+              size="lg"
+              className="px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px]"
+              disabled={!isReady || providerLoading}
+            >
+              <Mic className="mr-2 h-5 w-5" />
+              Start Conversation
+            </Button>
+          ) : (
+            <>
+              <Button
+                onClick={endConversation}
+                variant="destructive"
+                size="lg"
+                className="min-h-[48px]"
+              >
+                {isMobile ? 'End' : 'Continue Later'}
+              </Button>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={toggleMute}
+                    variant="outline"
+                    size="lg"
+                    className="min-h-[48px] min-w-[48px]"
+                    aria-label={isMuted ? 'Unmute' : 'Mute'}
+                  >
+                    {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isMuted ? 'Unmute microphone' : 'Mute microphone'}
+                </TooltipContent>
+              </Tooltip>
 
-        return JSON.stringify({ response: data.message });
-      } catch (error) {
-        console.error('Error in conversation:', error);
-        return JSON.stringify({ error: 'Failed to get response' });
-      }
-    },
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => setVolume(volume > 0 ? 0 : 1)}
+                    variant="outline"
+                    size="lg"
+                    className="min-h-[48px] min-w-[48px]"
+                    aria-label={volume > 0 ? 'Mute audio' : 'Unmute audio'}
+                  >
+                    {volume > 0 ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {volume > 0 ? 'Mute audio' : 'Unmute audio'}
+                </TooltipContent>
+              </Tooltip>
+            </>
+          )}
+        </div>
 
-    search: async (parameters: { query: string }) => {
-      try {
-        const { data, error } = await supabase.functions.invoke('search', {
-          body: { query: parameters.query },
-        });
+        {/* Volume Slider - Show when connected */}
+        {isConnected && !isMobile && (
+          <div className="flex items-center gap-3 w-48">
+            <VolumeX className="h-4 w-4 text-muted-foreground" />
+            <Slider
+              value={[volume * 100]}
+              onValueChange={([v]) => setVolume(v / 100)}
+              max={100}
+              step={1}
+              className="flex-1"
+              aria-label="Volume"
+            />
+            <Volume2 className="h-4 w-4 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
-        if (error) throw error;
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <>
+        <SEO 
+          title="AI Intelligence - Voice Assistant"
+          description="Experience the future of AI interaction with real-time voice conversations, intelligent web search, and advanced document analysis."
+          image="/og-home.png"
+          keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI"]}
+        />
+        <div className="flex flex-col min-h-screen bg-background">
+          <Header />
+          <div className="flex-1 flex flex-col px-3 pt-2 pb-4">
+            {/* Guest Banner */}
+            {!isAuthenticated && (
+              <div className="mb-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">Guest Mode</p>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-9 min-h-[44px]"
+                    onClick={() => navigate('/auth')}
+                  >
+                    <LogIn className="h-3 w-3 mr-1" />
+                    Sign In
+                  </Button>
+                </div>
+              </div>
+            )}
 
-        return JSON.stringify(data);
-      } catch (error) {
-        console.error('Error in search:', error);
-        return JSON.stringify({ error: 'Search failed' });
-      }
-    },
+            {/* Current Conversation Banner */}
+            {isAuthenticated && conversationTitle && (
+              <div className="mb-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-muted-foreground">Continuing:</p>
+                    <p className="text-sm font-medium truncate">{conversationTitle}</p>
+                  </div>
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    className="h-9 min-h-[44px] shrink-0"
+                    onClick={() => {
+                      setConversationId(null);
+                      setConversationTitle(null);
+                    }}
+                  >
+                    New
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {/* Top Action Buttons */}
+            {isAuthenticated && (
+              <div className="flex justify-end gap-2 mb-2">
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-11 w-11 min-h-[44px]">
+                      <MessageSquare className="h-5 w-5" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[85vw] flex flex-col">
+                    <div className="flex-1 space-y-4 overflow-y-auto pt-12">
+                      <ConversationHistory 
+                        currentConversationId={conversationId}
+                        onSelectConversation={setConversationId}
+                        onConversationCreated={() => {}}
+                      />
+                      <MessageHistory conversationId={conversationId} />
+                    </div>
+                  </SheetContent>
+                </Sheet>
 
-    query_document: async (parameters: { documentId: string; query: string }) => {
-      try {
-        const { data } = await supabase
-          .from('document_chunks')
-          .select('content')
-          .eq('document_id', parameters.documentId)
-          .order('chunk_index');
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-11 w-11 min-h-[44px]">
+                      <Upload className="h-5 w-5" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[85vw]">
+                    <div className="pt-12">
+                      <DocumentUpload conversationId={conversationId} />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+            )}
 
-        if (!data || data.length === 0) {
-          return JSON.stringify({ error: 'Document not found' });
-        }
+            {/* Main Voice Interface */}
+            <VoiceInterface />
 
-        const fullContent = data.map(chunk => chunk.content).join('\n');
+            {/* Live Transcripts */}
+            {(isConnected || liveTranscripts.length > 0) && (
+              <div className="mt-4">
+                <LiveTranscripts 
+                  transcripts={liveTranscripts}
+                  isConnected={isConnected}
+                  isSpeaking={isSpeaking}
+                />
+              </div>
+            )}
+
+            {/* Message History for guests */}
+            {!isAuthenticated && guestMessages.length > 0 && (
+              <div className="mt-4">
+                <MessageHistory conversationId={conversationId} />
+              </div>
+            )}
+          </div>
+        </div>
         
-        const { data: response, error } = await supabase.functions.invoke('chat', {
-          body: {
-            messages: [
-              { 
-                role: 'system', 
-                content: `You are analyzing a document. Here is the content:\n\n${fullContent}` 
-              },
-              { role: 'user', content: parameters.query }
-            ],
-          },
-        });
+        <RegistrationPromptModal 
+          open={showRegistrationPrompt}
+          onOpenChange={setShowRegistrationPrompt}
+          messageCount={guestMessages.length / 2}
+        />
+      </>
+    );
+  }
 
-        if (error) throw error;
-
-        return JSON.stringify({ answer: response.message });
-      } catch (error) {
-        console.error('Error querying document:', error);
-        return JSON.stringify({ error: 'Failed to query document' });
-      }
-    },
-  };
-
-  // ElevenLabs conversation hook
-  const elevenlabsConversation = useConversation({
-    onConnect: () => {
-      console.log('Connected to ElevenLabs voice service');
-      setLiveTranscripts([]); // Clear transcripts on new connection
-      toast({
-        title: 'Connected',
-        description: 'Voice assistant is ready (ElevenLabs)',
-      });
-    },
-    onDisconnect: () => {
-      console.log('Disconnected from ElevenLabs voice service');
-    },
-    onMessage: (message: any) => {
-      console.log('ElevenLabs message received:', message);
-      
-      // Handle different ElevenLabs message types
-      if (message.type === 'user_transcript' && message.user_transcription_event?.user_transcript) {
-        addTranscript('user', message.user_transcription_event.user_transcript);
-      } else if (message.type === 'agent_response' && message.agent_response_event?.agent_response) {
-        addTranscript('assistant', message.agent_response_event.agent_response);
-      } else if (message.type === 'agent_response_correction' && message.agent_response_correction_event?.corrected_agent_response) {
-        // Update the last assistant message with corrected response
-        setLiveTranscripts(prev => {
-          const lastAssistantIdx = [...prev].reverse().findIndex(t => t.role === 'assistant');
-          if (lastAssistantIdx === -1) return prev;
-          const actualIdx = prev.length - 1 - lastAssistantIdx;
-          return prev.map((t, i) => 
-            i === actualIdx 
-              ? { ...t, text: message.agent_response_correction_event.corrected_agent_response, isPartial: false }
-              : t
-          );
-        });
-      }
-    },
-    onError: (error) => {
-      console.error('ElevenLabs voice service error:', error);
-      toast({
-        title: 'Error',
-        description: 'Voice connection error',
-        variant: 'destructive',
-      });
-    },
-    clientTools,
-  });
-
-  // Grok conversation hook
-  const grokConversation = useGrokConversation({
-    onConnect: () => {
-      console.log('Connected to Grok voice service');
-      setLiveTranscripts([]); // Clear transcripts on new connection
-      toast({
-        title: 'Connected',
-        description: 'Voice assistant is ready (Grok)',
-      });
-    },
-    onDisconnect: () => {
-      console.log('Disconnected from Grok voice service');
-    },
-    onMessage: (message) => {
-      console.log('Grok message received:', message);
-    },
-    onError: (error) => {
-      console.error('Grok voice service error:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Voice connection error',
-        variant: 'destructive',
-      });
-    },
-    onTranscript: (transcript) => {
-      console.log('Grok transcript:', transcript);
-      if (transcript.role === 'assistant') {
-        addTranscript('assistant', transcript.text, true); // Grok sends partial transcripts
-      } else {
-        addTranscript('user', transcript.text);
-      }
-    },
-    clientTools,
-    voice: grokVoice,
-  });
-
-  // Use the selected provider's conversation
-  const conversation = voiceProvider === 'elevenlabs' ? elevenlabsConversation : grokConversation;
-  const isConnected = conversation.status === 'connected';
-
-  const startConversation = async () => {
-    try {
-      setLiveTranscripts([]); // Clear transcripts when starting
-      
-      if (voiceProvider === 'elevenlabs') {
-        const { data, error } = await supabase.functions.invoke('voice-session');
-        
-        if (error || !data?.signedUrl) {
-          throw new Error(error?.message || 'Failed to get session URL');
-        }
-
-        console.log('Starting ElevenLabs voice session');
-        await elevenlabsConversation.startSession({ 
-          signedUrl: data.signedUrl 
-        });
-      } else {
-        console.log('Starting Grok voice session');
-        await grokConversation.startSession();
-      }
-    } catch (error) {
-      console.error('Error starting conversation:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to start conversation',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const endConversation = async () => {
-    if (voiceProvider === 'elevenlabs') {
-      await elevenlabsConversation.endSession();
-    } else {
-      await grokConversation.endSession();
-    }
-    
-    if (!isAuthenticated && guestMessages.length > 0) {
-      setShowRegistrationPrompt(true);
-    }
-  };
-
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
-
+  // Desktop Layout
   return (
     <>
       <SEO 
@@ -383,191 +372,88 @@ const VoiceAssistant = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <SidebarProvider defaultOpen={isAuthenticated}>
-        <div className="flex w-full">
-          {isAuthenticated && (
-            <Sidebar collapsible="offcanvas">
-              <SidebarContent className="p-4 space-y-6">
-                <ConversationHistory 
-                  currentConversationId={conversationId}
-                  onSelectConversation={setConversationId}
-                  onConversationCreated={() => {}}
-                />
-                <DocumentUpload conversationId={conversationId} />
-              </SidebarContent>
-            </Sidebar>
-          )}
-
-          <SidebarInset>
-            <div className="container mx-auto px-4 py-8">
-              {!isAuthenticated && (
-                <div className="mb-4 p-4 rounded-lg bg-primary/10 border border-primary/20">
-                  <div className="flex items-center justify-between gap-4">
-                    <p className="font-medium">Guest Mode - Conversations won't be saved</p>
-                    <Button 
-                      variant="outline"
-                      onClick={() => navigate('/auth')}
-                    >
-                      <LogIn className="h-4 w-4 mr-2" />
-                      Sign In to Save
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {isAuthenticated && conversationTitle && (
-                <div className="mb-4 p-4 rounded-lg bg-primary/10 border border-primary/20">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Continuing conversation:</p>
-                      <p className="font-medium">{conversationTitle}</p>
-                    </div>
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        setConversationId(null);
-                        setConversationTitle(null);
-                      }}
-                    >
-                      New Conversation
-                    </Button>
-                  </div>
-                </div>
-              )}
-              
-              {isAuthenticated && (
-                <div className="mb-4">
-                  <SidebarTrigger />
-                </div>
-              )}
-
-              <div className="rounded-2xl bg-card border border-border p-8 shadow-2xl mb-6">
-                {/* Header with Settings */}
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex-1" />
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                    AI Intelligence
-                  </h1>
-                  <div className="flex-1 flex justify-end">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" disabled={isConnected}>
-                          <Settings className="h-5 w-5" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80" align="end">
-                        <div className="space-y-4">
-                          <h4 className="font-medium">Voice Settings</h4>
-                          <VoiceProviderSelector
-                            value={voiceProvider}
-                            onChange={setVoiceProvider}
-                            grokVoice={grokVoice}
-                            onGrokVoiceChange={setGrokVoice}
-                            disabled={isConnected || providerLoading}
-                            isAuthenticated={isAuthenticated}
-                          />
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                {!isReady && (
-                  <MicrophonePermissionRequest 
-                    permissionState={permissionState}
-                    onRequestPermission={requestPermission}
+          <div className="flex w-full">
+            {isAuthenticated && (
+              <Sidebar collapsible="offcanvas">
+                <SidebarContent className="p-4 space-y-6">
+                  <ConversationHistory 
+                    currentConversationId={conversationId}
+                    onSelectConversation={setConversationId}
+                    onConversationCreated={() => {}}
                   />
+                  <DocumentUpload conversationId={conversationId} />
+                </SidebarContent>
+              </Sidebar>
+            )}
+
+            <SidebarInset>
+              <div className="container mx-auto px-4 py-8">
+                {/* Guest Banner */}
+                {!isAuthenticated && (
+                  <div className="mb-4 p-4 rounded-lg bg-primary/10 border border-primary/20">
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="font-medium">Guest Mode - Conversations won't be saved</p>
+                      <Button 
+                        variant="outline"
+                        onClick={() => navigate('/auth')}
+                      >
+                        <LogIn className="h-4 w-4 mr-2" />
+                        Sign In to Save
+                      </Button>
+                    </div>
+                  </div>
                 )}
 
-                <div className="flex items-center justify-center mb-8">
-                  <div className={`
-                    relative w-32 h-32 rounded-full flex items-center justify-center
-                    ${isConnected 
-                      ? 'bg-gradient-to-br from-primary to-primary/50' 
-                      : 'bg-gradient-to-br from-muted to-muted-foreground/20'
-                    }
-                    ${conversation.isSpeaking ? 'animate-pulse' : ''}
-                    transition-all duration-300 shadow-lg
-                  `}>
-                    <Mic className="w-12 h-12 text-primary-foreground" />
-                    {isConnected && (
-                      <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
-                    )}
-                  </div>
-                </div>
-
-                <div className="text-center mb-8">
-                  <p className="text-lg font-medium">
-                    {isConnected 
-                      ? conversation.isSpeaking 
-                        ? '🗣️ Speaking...' 
-                        : '👂 Listening...'
-                      : 'Ready to connect'
-                    }
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : 'Grok'}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-center gap-4">
-                  {!isConnected ? (
-                    <Button
-                      onClick={startConversation}
-                      size="lg"
-                      className="px-8 py-6 text-lg"
-                      disabled={!isReady || providerLoading}
-                    >
-                      <Mic className="mr-2 h-5 w-5" />
-                      Start Conversation
-                    </Button>
-                  ) : (
-                    <>
-                      <Button
-                        onClick={endConversation}
-                        variant="destructive"
-                        size="lg"
-                      >
-                        Continue Later
-                      </Button>
-                      
-                      <Button
-                        onClick={toggleMute}
-                        variant="outline"
-                        size="lg"
-                      >
-                        {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-                      </Button>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          onClick={() => setVolume(volume > 0 ? 0 : 1)}
-                          variant="outline"
-                          size="lg"
-                        >
-                          {volume > 0 ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-                        </Button>
+                {/* Current Conversation Banner */}
+                {isAuthenticated && conversationTitle && (
+                  <div className="mb-4 p-4 rounded-lg bg-primary/10 border border-primary/20">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Continuing conversation:</p>
+                        <p className="font-medium">{conversationTitle}</p>
                       </div>
-                    </>
-                  )}
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          setConversationId(null);
+                          setConversationTitle(null);
+                        }}
+                      >
+                        New Conversation
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Sidebar Trigger */}
+                {isAuthenticated && (
+                  <div className="mb-4">
+                    <SidebarTrigger />
+                  </div>
+                )}
+
+                {/* Main Voice Interface */}
+                <VoiceInterface />
+
+                {/* Live Transcripts */}
+                {(isConnected || liveTranscripts.length > 0) && (
+                  <div className="mt-6">
+                    <LiveTranscripts 
+                      transcripts={liveTranscripts}
+                      isConnected={isConnected}
+                      isSpeaking={isSpeaking}
+                    />
+                  </div>
+                )}
+
+                {/* Message History */}
+                <div className="mt-6">
+                  <MessageHistory conversationId={conversationId} />
                 </div>
               </div>
-
-              {/* Live Transcripts - Show during active conversation */}
-              {(isConnected || liveTranscripts.length > 0) && (
-                <div className="mb-6">
-                  <LiveTranscripts 
-                    transcripts={liveTranscripts}
-                    isConnected={isConnected}
-                    isSpeaking={conversation.isSpeaking}
-                  />
-                </div>
-              )}
-
-              <MessageHistory conversationId={conversationId} />
-            </div>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
       </div>
       
       <RegistrationPromptModal 
