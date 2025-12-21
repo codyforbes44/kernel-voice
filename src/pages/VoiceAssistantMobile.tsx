@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useConversation } from '@11labs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 import MicrophonePermissionRequest from '@/components/voice/MicrophonePermissionRequest';
 import { VoiceProviderSelector, useVoiceProviderPreference } from '@/components/voice/VoiceProviderSelector';
 import { useGrokConversation } from '@/hooks/useGrokConversation';
+import { LiveTranscripts, type LiveTranscript } from '@/components/voice/LiveTranscripts';
 
 const VoiceAssistantMobile = () => {
   const { toast } = useToast();
@@ -31,6 +32,41 @@ const VoiceAssistantMobile = () => {
   
   // Voice provider state
   const { provider: voiceProvider, setProvider: setVoiceProvider, grokVoice, setGrokVoice, loading: providerLoading } = useVoiceProviderPreference(isAuthenticated);
+
+  // Live transcripts state
+  const [liveTranscripts, setLiveTranscripts] = useState<LiveTranscript[]>([]);
+  const [currentAssistantId, setCurrentAssistantId] = useState<string | null>(null);
+
+  // Helper to add or update transcript
+  const addTranscript = useCallback((role: 'user' | 'assistant', text: string, isPartial = false) => {
+    const id = `${role}-${Date.now()}`;
+    
+    if (role === 'assistant' && isPartial) {
+      setLiveTranscripts(prev => {
+        const lastTranscript = prev[prev.length - 1];
+        if (lastTranscript?.role === 'assistant' && lastTranscript?.isPartial) {
+          return prev.map((t, i) => 
+            i === prev.length - 1 
+              ? { ...t, text: t.text + text }
+              : t
+          );
+        }
+        setCurrentAssistantId(id);
+        return [...prev, { id, role, text, timestamp: new Date(), isPartial: true }];
+      });
+    } else if (role === 'assistant' && !isPartial && currentAssistantId) {
+      setLiveTranscripts(prev => 
+        prev.map(t => 
+          t.id === currentAssistantId 
+            ? { ...t, isPartial: false }
+            : t
+        )
+      );
+      setCurrentAssistantId(null);
+    } else {
+      setLiveTranscripts(prev => [...prev, { id, role, text, timestamp: new Date(), isPartial }]);
+    }
+  }, [currentAssistantId]);
 
   // Authentication check (non-blocking)
   useEffect(() => {
@@ -192,6 +228,7 @@ const VoiceAssistantMobile = () => {
   const elevenlabsConversation = useConversation({
     onConnect: () => {
       console.log('Connected to ElevenLabs voice service');
+      setLiveTranscripts([]);
       toast({
         title: 'Connected',
         description: 'Voice assistant is ready (ElevenLabs)',
@@ -200,8 +237,25 @@ const VoiceAssistantMobile = () => {
     onDisconnect: () => {
       console.log('Disconnected from ElevenLabs voice service');
     },
-    onMessage: (message) => {
+    onMessage: (message: any) => {
       console.log('ElevenLabs message received:', message);
+      
+      if (message.type === 'user_transcript' && message.user_transcription_event?.user_transcript) {
+        addTranscript('user', message.user_transcription_event.user_transcript);
+      } else if (message.type === 'agent_response' && message.agent_response_event?.agent_response) {
+        addTranscript('assistant', message.agent_response_event.agent_response);
+      } else if (message.type === 'agent_response_correction' && message.agent_response_correction_event?.corrected_agent_response) {
+        setLiveTranscripts(prev => {
+          const lastAssistantIdx = [...prev].reverse().findIndex(t => t.role === 'assistant');
+          if (lastAssistantIdx === -1) return prev;
+          const actualIdx = prev.length - 1 - lastAssistantIdx;
+          return prev.map((t, i) => 
+            i === actualIdx 
+              ? { ...t, text: message.agent_response_correction_event.corrected_agent_response, isPartial: false }
+              : t
+          );
+        });
+      }
     },
     onError: (error) => {
       console.error('ElevenLabs voice service error:', error);
@@ -218,6 +272,7 @@ const VoiceAssistantMobile = () => {
   const grokConversation = useGrokConversation({
     onConnect: () => {
       console.log('Connected to Grok voice service');
+      setLiveTranscripts([]);
       toast({
         title: 'Connected',
         description: 'Voice assistant is ready (Grok)',
@@ -237,6 +292,14 @@ const VoiceAssistantMobile = () => {
         variant: 'destructive',
       });
     },
+    onTranscript: (transcript) => {
+      console.log('Grok transcript:', transcript);
+      if (transcript.role === 'assistant') {
+        addTranscript('assistant', transcript.text, true);
+      } else {
+        addTranscript('user', transcript.text);
+      }
+    },
     clientTools,
     voice: grokVoice,
   });
@@ -247,6 +310,8 @@ const VoiceAssistantMobile = () => {
 
   const startConversation = async () => {
     try {
+      setLiveTranscripts([]);
+      
       if (voiceProvider === 'elevenlabs') {
         const { data, error } = await supabase.functions.invoke('voice-session');
         
@@ -516,6 +581,17 @@ const VoiceAssistantMobile = () => {
             )}
           </div>
         </div>
+
+        {/* Live Transcripts - Show during active conversation */}
+        {(isConnected || liveTranscripts.length > 0) && (
+          <div className="mt-4">
+            <LiveTranscripts 
+              transcripts={liveTranscripts}
+              isConnected={isConnected}
+              isSpeaking={conversation.isSpeaking}
+            />
+          </div>
+        )}
       </div>
       </div>
       
