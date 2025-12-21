@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useConversation } from '@11labs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, VolumeX, MessageSquare, Upload, LogIn } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, MessageSquare, Upload, LogIn, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import ConversationHistory from '@/components/voice/ConversationHistory';
@@ -14,6 +14,8 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import RegistrationPromptModal from '@/components/voice/RegistrationPromptModal';
 import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 import MicrophonePermissionRequest from '@/components/voice/MicrophonePermissionRequest';
+import { VoiceProviderSelector, useVoiceProviderPreference } from '@/components/voice/VoiceProviderSelector';
+import { useGrokConversation } from '@/hooks/useGrokConversation';
 
 const VoiceAssistantMobile = () => {
   const { toast } = useToast();
@@ -26,6 +28,9 @@ const VoiceAssistantMobile = () => {
   const [guestMessages, setGuestMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
   const { permissionState, requestPermission, isReady } = useMicrophonePermission();
+  
+  // Voice provider state
+  const { provider: voiceProvider, setProvider: setVoiceProvider, loading: providerLoading } = useVoiceProviderPreference(isAuthenticated);
 
   // Authentication check (non-blocking)
   useEffect(() => {
@@ -63,7 +68,6 @@ const VoiceAssistantMobile = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
-      // Get most recent conversation
       const { data: lastConv } = await supabase
         .from('conversations')
         .select('id, title')
@@ -81,150 +85,182 @@ const VoiceAssistantMobile = () => {
     loadLastConversation();
   }, [isAuthenticated]);
 
-  const conversation = useConversation({
+  // Client tools shared by both providers
+  const clientTools = {
+    chat: async (parameters: { message: string }) => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setGuestMessages(prev => [...prev, { role: 'user', content: parameters.message }]);
+          
+          const { data, error } = await supabase.functions.invoke('chat', {
+            body: {
+              messages: [...guestMessages, { role: 'user', content: parameters.message }],
+            },
+          });
+
+          if (error) throw error;
+          
+          setGuestMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+          return JSON.stringify({ response: data.message });
+        }
+
+        let currentConvId = conversationId;
+        if (!currentConvId) {
+          const { data: newConv } = await supabase
+            .from('conversations')
+            .insert({ user_id: user.id })
+            .select()
+            .single();
+          
+          if (newConv) {
+            currentConvId = newConv.id;
+            setConversationId(currentConvId);
+          }
+        }
+
+        const { data, error } = await supabase.functions.invoke('chat', {
+          body: {
+            messages: [{ role: 'user', content: parameters.message }],
+            conversationId: currentConvId,
+            userId: user.id,
+          },
+        });
+
+        if (error) throw error;
+
+        return JSON.stringify({ response: data.message });
+      } catch (error) {
+        console.error('Error in conversation:', error);
+        return JSON.stringify({ error: 'Failed to get response' });
+      }
+    },
+
+    search: async (parameters: { query: string }) => {
+      try {
+        const { data, error } = await supabase.functions.invoke('search', {
+          body: { query: parameters.query },
+        });
+
+        if (error) throw error;
+
+        return JSON.stringify(data);
+      } catch (error) {
+        console.error('Error in search:', error);
+        return JSON.stringify({ error: 'Search failed' });
+      }
+    },
+
+    query_document: async (parameters: { documentId: string; query: string }) => {
+      try {
+        const { data } = await supabase
+          .from('document_chunks')
+          .select('content')
+          .eq('document_id', parameters.documentId)
+          .order('chunk_index');
+
+        if (!data || data.length === 0) {
+          return JSON.stringify({ error: 'Document not found' });
+        }
+
+        const fullContent = data.map(chunk => chunk.content).join('\n');
+        
+        const { data: response, error } = await supabase.functions.invoke('chat', {
+          body: {
+            messages: [
+              { 
+                role: 'system', 
+                content: `You are analyzing a document. Here is the content:\n\n${fullContent}` 
+              },
+              { role: 'user', content: parameters.query }
+            ],
+          },
+        });
+
+        if (error) throw error;
+
+        return JSON.stringify({ answer: response.message });
+      } catch (error) {
+        console.error('Error querying document:', error);
+        return JSON.stringify({ error: 'Failed to query document' });
+      }
+    },
+  };
+
+  // ElevenLabs conversation hook
+  const elevenlabsConversation = useConversation({
     onConnect: () => {
-      console.log('Connected to voice service');
+      console.log('Connected to ElevenLabs voice service');
       toast({
         title: 'Connected',
-        description: 'Voice assistant is ready',
+        description: 'Voice assistant is ready (ElevenLabs)',
       });
     },
     onDisconnect: () => {
-      console.log('Disconnected from voice service');
+      console.log('Disconnected from ElevenLabs voice service');
     },
     onMessage: (message) => {
-      console.log('Message received:', message);
+      console.log('ElevenLabs message received:', message);
     },
     onError: (error) => {
-      console.error('Voice service error:', error);
+      console.error('ElevenLabs voice service error:', error);
       toast({
         title: 'Error',
         description: 'Voice connection error',
         variant: 'destructive',
       });
     },
-    clientTools: {
-      // AI conversation handler
-      chat: async (parameters: { message: string }) => {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          
-          // Guest mode: store in memory only
-          if (!user) {
-            setGuestMessages(prev => [...prev, { role: 'user', content: parameters.message }]);
-            
-            const { data, error } = await supabase.functions.invoke('chat', {
-              body: {
-                messages: [...guestMessages, { role: 'user', content: parameters.message }],
-              },
-            });
-
-            if (error) throw error;
-            
-            setGuestMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
-            return JSON.stringify({ response: data.message });
-          }
-
-          // Authenticated mode: persist to DB
-          let currentConvId = conversationId;
-          if (!currentConvId) {
-            const { data: newConv } = await supabase
-              .from('conversations')
-              .insert({ user_id: user.id })
-              .select()
-              .single();
-            
-            if (newConv) {
-              currentConvId = newConv.id;
-              setConversationId(currentConvId);
-            }
-          }
-
-          const { data, error } = await supabase.functions.invoke('chat', {
-            body: {
-              messages: [{ role: 'user', content: parameters.message }],
-              conversationId: currentConvId,
-              userId: user.id,
-            },
-          });
-
-          if (error) throw error;
-
-          return JSON.stringify({ response: data.message });
-        } catch (error) {
-          console.error('Error in conversation:', error);
-          return JSON.stringify({ error: 'Failed to get response' });
-        }
-      },
-
-      // Web search handler
-      search: async (parameters: { query: string }) => {
-        try {
-          const { data, error } = await supabase.functions.invoke('search', {
-            body: { query: parameters.query },
-          });
-
-          if (error) throw error;
-
-          return JSON.stringify(data);
-        } catch (error) {
-          console.error('Error in search:', error);
-          return JSON.stringify({ error: 'Search failed' });
-        }
-      },
-
-      // Document query handler
-      query_document: async (parameters: { documentId: string; query: string }) => {
-        try {
-          const { data } = await supabase
-            .from('document_chunks')
-            .select('content')
-            .eq('document_id', parameters.documentId)
-            .order('chunk_index');
-
-          if (!data || data.length === 0) {
-            return JSON.stringify({ error: 'Document not found' });
-          }
-
-          const fullContent = data.map(chunk => chunk.content).join('\n');
-          
-          // Use AI to answer query about document
-          const { data: response, error } = await supabase.functions.invoke('chat', {
-            body: {
-              messages: [
-                { 
-                  role: 'system', 
-                  content: `You are analyzing a document. Here is the content:\n\n${fullContent}` 
-                },
-                { role: 'user', content: parameters.query }
-              ],
-            },
-          });
-
-          if (error) throw error;
-
-          return JSON.stringify({ answer: response.message });
-        } catch (error) {
-          console.error('Error querying document:', error);
-          return JSON.stringify({ error: 'Failed to query document' });
-        }
-      },
-    },
+    clientTools,
   });
+
+  // Grok conversation hook
+  const grokConversation = useGrokConversation({
+    onConnect: () => {
+      console.log('Connected to Grok voice service');
+      toast({
+        title: 'Connected',
+        description: 'Voice assistant is ready (Grok)',
+      });
+    },
+    onDisconnect: () => {
+      console.log('Disconnected from Grok voice service');
+    },
+    onMessage: (message) => {
+      console.log('Grok message received:', message);
+    },
+    onError: (error) => {
+      console.error('Grok voice service error:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Voice connection error',
+        variant: 'destructive',
+      });
+    },
+    clientTools,
+  });
+
+  // Use the selected provider's conversation
+  const conversation = voiceProvider === 'elevenlabs' ? elevenlabsConversation : grokConversation;
+  const isConnected = conversation.status === 'connected';
 
   const startConversation = async () => {
     try {
-      // Get signed URL from backend
-      const { data, error } = await supabase.functions.invoke('voice-session');
-      
-      if (error || !data?.signedUrl) {
-        throw new Error(error?.message || 'Failed to get session URL');
-      }
+      if (voiceProvider === 'elevenlabs') {
+        const { data, error } = await supabase.functions.invoke('voice-session');
+        
+        if (error || !data?.signedUrl) {
+          throw new Error(error?.message || 'Failed to get session URL');
+        }
 
-      console.log('Starting voice session');
-      await conversation.startSession({ 
-        signedUrl: data.signedUrl 
-      });
+        console.log('Starting ElevenLabs voice session');
+        await elevenlabsConversation.startSession({ 
+          signedUrl: data.signedUrl 
+        });
+      } else {
+        console.log('Starting Grok voice session');
+        await grokConversation.startSession();
+      }
     } catch (error) {
       console.error('Error starting conversation:', error);
       toast({
@@ -236,9 +272,12 @@ const VoiceAssistantMobile = () => {
   };
 
   const endConversation = async () => {
-    await conversation.endSession();
+    if (voiceProvider === 'elevenlabs') {
+      await elevenlabsConversation.endSession();
+    } else {
+      await grokConversation.endSession();
+    }
     
-    // Show registration prompt for guests
     if (!isAuthenticated && guestMessages.length > 0) {
       setShowRegistrationPrompt(true);
     }
@@ -246,7 +285,6 @@ const VoiceAssistantMobile = () => {
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
-    // Implement actual mute functionality
   };
 
   return (
@@ -302,41 +340,63 @@ const VoiceAssistantMobile = () => {
           </div>
         )}
         
-        {/* Top Action Buttons - Only for authenticated users */}
-        {isAuthenticated && (
-          <div className="flex justify-end gap-2 mb-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-10 w-10">
-                  <MessageSquare className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[85vw] flex flex-col scrollbar-hide">
-                <div className="flex-1 space-y-4 overflow-y-auto scrollbar-hide pt-12">
-                  <ConversationHistory 
-                    currentConversationId={conversationId}
-                    onSelectConversation={setConversationId}
-                    onConversationCreated={() => {}}
-                  />
-                  <MessageHistory conversationId={conversationId} />
-                </div>
-              </SheetContent>
-            </Sheet>
+        {/* Top Action Buttons */}
+        <div className="flex justify-end gap-2 mb-2">
+          {/* Settings Sheet */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="h-10 w-10" disabled={isConnected}>
+                <Settings className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="h-auto">
+              <div className="pt-4 pb-8 space-y-4">
+                <h4 className="font-medium text-lg">Voice Settings</h4>
+                <VoiceProviderSelector
+                  value={voiceProvider}
+                  onChange={setVoiceProvider}
+                  disabled={isConnected || providerLoading}
+                  isAuthenticated={isAuthenticated}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
 
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-10 w-10">
-                  <Upload className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[85vw] scrollbar-hide">
-                <div className="pt-12">
-                  <DocumentUpload conversationId={conversationId} />
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        )}
+          {isAuthenticated && (
+            <>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-10 w-10">
+                    <MessageSquare className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[85vw] flex flex-col scrollbar-hide">
+                  <div className="flex-1 space-y-4 overflow-y-auto scrollbar-hide pt-12">
+                    <ConversationHistory 
+                      currentConversationId={conversationId}
+                      onSelectConversation={setConversationId}
+                      onConversationCreated={() => {}}
+                    />
+                    <MessageHistory conversationId={conversationId} />
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-10 w-10">
+                    <Upload className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[85vw] scrollbar-hide">
+                  <div className="pt-12">
+                    <DocumentUpload conversationId={conversationId} />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </>
+          )}
+        </div>
 
         {/* AI Voice Assistant - Main Card */}
         <div className="rounded-2xl bg-card border border-border p-4 shadow-xl">
@@ -344,6 +404,9 @@ const VoiceAssistantMobile = () => {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               AI Intelligence
             </h1>
+            <p className="text-xs text-muted-foreground mt-1">
+              Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : 'Grok'}
+            </p>
           </div>
 
           {/* Microphone Permission Request */}
@@ -358,7 +421,7 @@ const VoiceAssistantMobile = () => {
           <div className="flex items-center justify-center mb-4">
             <div className={`
               relative w-28 h-28 rounded-full flex items-center justify-center
-              ${conversation.status === 'connected' 
+              ${isConnected 
                 ? 'bg-gradient-to-br from-primary to-primary/50 shadow-glow-primary' 
                 : 'bg-gradient-to-br from-muted to-muted-foreground/20'
               }
@@ -366,7 +429,7 @@ const VoiceAssistantMobile = () => {
               transition-all duration-300 shadow-lg
             `}>
               <Mic className="w-12 h-12 text-primary-foreground" />
-              {conversation.status === 'connected' && (
+              {isConnected && (
                 <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
               )}
             </div>
@@ -375,7 +438,7 @@ const VoiceAssistantMobile = () => {
           {/* Status Text */}
           <div className="text-center mb-4">
             <p className="text-lg font-medium">
-              {conversation.status === 'connected' 
+              {isConnected 
                 ? conversation.isSpeaking 
                   ? '🗣️ Speaking...' 
                   : '👂 Listening...'
@@ -386,12 +449,12 @@ const VoiceAssistantMobile = () => {
 
           {/* Controls */}
           <div className="space-y-2">
-            {conversation.status !== 'connected' ? (
+            {!isConnected ? (
               <Button
                 onClick={startConversation}
                 size="lg"
                 className="w-full h-12 text-base font-semibold"
-                disabled={!isReady}
+                disabled={!isReady || providerLoading}
               >
                 <Mic className="mr-2 h-5 w-5" />
                 Start Conversation
