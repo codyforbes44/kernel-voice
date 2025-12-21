@@ -30,7 +30,7 @@ const VoiceAssistantMobile = () => {
   const { permissionState, requestPermission, isReady } = useMicrophonePermission();
   
   // Voice provider state
-  const { provider: voiceProvider, setProvider: setVoiceProvider, loading: providerLoading } = useVoiceProviderPreference(isAuthenticated);
+  const { provider: voiceProvider, setProvider: setVoiceProvider, grokVoice, setGrokVoice, loading: providerLoading } = useVoiceProviderPreference(isAuthenticated);
 
   // Authentication check (non-blocking)
   useEffect(() => {
@@ -238,6 +238,7 @@ const VoiceAssistantMobile = () => {
       });
     },
     clientTools,
+    voice: grokVoice,
   });
 
   // Use the selected provider's conversation
@@ -355,6 +356,8 @@ const VoiceAssistantMobile = () => {
                 <VoiceProviderSelector
                   value={voiceProvider}
                   onChange={setVoiceProvider}
+                  grokVoice={grokVoice}
+                  onGrokVoiceChange={setGrokVoice}
                   disabled={isConnected || providerLoading}
                   isAuthenticated={isAuthenticated}
                 />
