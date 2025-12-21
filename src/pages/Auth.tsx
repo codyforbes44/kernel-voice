@@ -237,7 +237,7 @@ const Auth = () => {
                     : 'Sign in or create an account to get started'}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 sm:px-6">
               {showUpdatePassword ? (
                 <form onSubmit={handleUpdatePassword} className="space-y-4">
                   <div className="space-y-2">
@@ -251,6 +251,8 @@ const Auth = () => {
                       required
                       disabled={isLoading}
                       minLength={6}
+                      autoComplete="new-password"
+                      className="min-h-[44px]"
                     />
                   </div>
                   <div className="space-y-2">
@@ -264,12 +266,14 @@ const Auth = () => {
                       required
                       disabled={isLoading}
                       minLength={6}
+                      autoComplete="new-password"
+                      className="min-h-[44px]"
                     />
                     <p className="text-xs text-muted-foreground">
                       Password must be at least 6 characters
                     </p>
                   </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -292,9 +296,11 @@ const Auth = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       disabled={isLoading}
+                      autoComplete="email"
+                      className="min-h-[44px]"
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -307,7 +313,7 @@ const Auth = () => {
                   <Button
                     type="button"
                     variant="ghost"
-                    className="w-full"
+                    className="w-full min-h-[44px]"
                     onClick={() => setShowResetPassword(false)}
                   >
                     Back to Sign In
@@ -332,6 +338,8 @@ const Auth = () => {
                           onChange={(e) => setEmail(e.target.value)}
                           required
                           disabled={isLoading}
+                          autoComplete="email"
+                          className="min-h-[44px]"
                         />
                       </div>
                       <div className="space-y-2">
@@ -345,14 +353,17 @@ const Auth = () => {
                           required
                           disabled={isLoading}
                           minLength={6}
+                          autoComplete="current-password"
+                          className="min-h-[44px]"
                         />
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
+                        <div className="flex items-center space-x-2 min-h-[44px]">
                           <Checkbox
                             id="remember-me"
                             checked={rememberMe}
                             onCheckedChange={(checked) => handleRememberMe(checked === true)}
+                            className="h-5 w-5"
                           />
                           <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
                             Remember me
@@ -361,13 +372,13 @@ const Auth = () => {
                         <Button
                           type="button"
                           variant="link"
-                          className="px-0 text-sm"
+                          className="h-auto p-0 text-sm justify-start sm:justify-end min-h-[44px] sm:min-h-0"
                           onClick={() => setShowResetPassword(true)}
                         >
                           Forgot password?
                         </Button>
                       </div>
-                      <Button type="submit" className="w-full" disabled={isLoading}>
+                      <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
                         {isLoading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -391,6 +402,8 @@ const Auth = () => {
                           value={displayName}
                           onChange={(e) => setDisplayName(e.target.value)}
                           disabled={isLoading}
+                          autoComplete="name"
+                          className="min-h-[44px]"
                         />
                       </div>
                       <div className="space-y-2">
@@ -403,6 +416,8 @@ const Auth = () => {
                           onChange={(e) => setEmail(e.target.value)}
                           required
                           disabled={isLoading}
+                          autoComplete="email"
+                          className="min-h-[44px]"
                         />
                       </div>
                       <div className="space-y-2">
@@ -416,12 +431,14 @@ const Auth = () => {
                           required
                           disabled={isLoading}
                           minLength={6}
+                          autoComplete="new-password"
+                          className="min-h-[44px]"
                         />
                         <p className="text-xs text-muted-foreground">
                           Password must be at least 6 characters
                         </p>
                       </div>
-                      <Button type="submit" className="w-full" disabled={isLoading}>
+                      <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
                         {isLoading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
