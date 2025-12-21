@@ -17,7 +17,7 @@ serve(async (req) => {
       throw new Error('Grok voice service not configured');
     }
 
-    console.log('Generating Grok voice session config');
+    console.log('Fetching ephemeral token from xAI...');
 
     // Parse request body for optional configuration
     let config: { voice?: string; language?: string } = {};
@@ -28,12 +28,38 @@ serve(async (req) => {
       // No body provided, use defaults
     }
 
-    // Return configuration for Grok WebSocket connection
+    // Fetch ephemeral token from xAI's client_secrets endpoint
+    const tokenResponse = await fetch('https://api.x.ai/v1/realtime/client_secrets', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${XAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        expires_after: { seconds: 300 }, // 5 minute expiry
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('Failed to get ephemeral token:', tokenResponse.status, errorText);
+      throw new Error(`Failed to get ephemeral token: ${tokenResponse.status}`);
+    }
+
+    const tokenData = await tokenResponse.json();
+    console.log('Ephemeral token received successfully');
+
+    if (!tokenData.client_secret?.value) {
+      throw new Error('Invalid token response from xAI');
+    }
+
+    const ephemeralToken = tokenData.client_secret.value;
+
+    // Return configuration with ephemeral token and full WebSocket URL
     const sessionConfig = {
-      apiKey: XAI_API_KEY,
-      wsUrl: 'wss://api.x.ai/v1/realtime',
-      voice: config.voice || 'Ara', // Default voice: Ara (warm, friendly)
-      language: config.language || null, // Auto-detect by default
+      wsUrl: `wss://api.x.ai/v1/realtime?model=grok-2-public&key=${ephemeralToken}`,
+      voice: config.voice || 'Ara',
+      language: config.language || null,
       audioFormat: {
         input: 'pcm16',
         output: 'pcm16',
@@ -43,16 +69,6 @@ serve(async (req) => {
         enabled: true,
         silenceThresholdMs: 500,
       },
-      tools: [
-        {
-          type: 'web_search',
-          enabled: true,
-        },
-        {
-          type: 'x_search', 
-          enabled: true,
-        },
-      ],
     };
 
     console.log('Grok voice session config generated successfully');
