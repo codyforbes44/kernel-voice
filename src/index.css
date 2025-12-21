@@ -10,7 +10,63 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* OLED-Optimized Theme - True Black for Battery Savings */
+    /* Light Theme */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 198 93% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 198 93% 55%;
+
+    --secondary: 271 81% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 271 81% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 198 93% 45%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 198 93% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 198 93% 45%;
+
+    /* Custom gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 100%);
+
+    /* Shadows */
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.2);
+    --shadow-accent-glow: 0 0 40px hsl(var(--secondary) / 0.15);
+    --shadow-card: 0 20px 50px -10px hsl(var(--primary) / 0.1);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    /* OLED-Optimized Dark Theme - True Black for Battery Savings */
     --background: 0 0% 0%;
     --foreground: 213 31% 91%;
 
@@ -40,8 +96,6 @@ All colors MUST be HSL.
     --input: 0 0% 8%;
     --ring: 198 93% 60%;
 
-    --radius: 0.75rem;
-
     --sidebar-background: 0 0% 2%;
     --sidebar-foreground: 213 31% 91%;
     --sidebar-primary: 198 93% 60%;
@@ -60,14 +114,6 @@ All colors MUST be HSL.
     --shadow-glow: 0 0 40px hsl(var(--primary) / 0.3);
     --shadow-accent-glow: 0 0 40px hsl(var(--secondary) / 0.25);
     --shadow-card: 0 20px 50px -10px hsl(var(--primary) / 0.15);
-
-    /* Animations */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .dark {
-    --background: 0 0% 0%;
-    --foreground: 213 31% 91%;
   }
 }
 

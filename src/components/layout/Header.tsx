@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { UserMenu } from './UserMenu';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export const Header = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -52,7 +53,9 @@ export const Header = () => {
           </nav>
 
           {/* Auth Section */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <ThemeToggle />
+            
             {user ? (
               <UserMenu user={user} />
             ) : (
