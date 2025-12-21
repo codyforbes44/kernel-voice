@@ -20,7 +20,6 @@ interface GrokMessage {
 }
 
 interface GrokSessionConfig {
-  apiKey: string;
   wsUrl: string;
   voice: string;
   language: string | null;
@@ -28,6 +27,10 @@ interface GrokSessionConfig {
     input: string;
     output: string;
     sampleRate: number;
+  };
+  vad?: {
+    enabled: boolean;
+    silenceThresholdMs: number;
   };
 }
 
@@ -43,6 +46,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const isPlayingRef = useRef(false);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const configRef = useRef<GrokSessionConfig | null>(null);
+  const sessionCreatedRef = useRef(false);
 
   const playNextAudio = useCallback(async () => {
     if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
@@ -89,14 +93,66 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     }
   }, []);
 
+  const sendSessionUpdate = useCallback(() => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN || !configRef.current) {
+      console.error('Cannot send session update: WebSocket not ready');
+      return;
+    }
+
+    const config = configRef.current;
+    console.log('Sending session.update with config:', config.voice);
+
+    wsRef.current.send(JSON.stringify({
+      type: 'session.update',
+      session: {
+        modalities: ['text', 'audio'],
+        voice: config.voice,
+        input_audio_format: config.audioFormat.input,
+        output_audio_format: config.audioFormat.output,
+        input_audio_transcription: {
+          model: 'grok-2-vision-latest',
+        },
+        turn_detection: {
+          type: 'server_vad',
+          threshold: 0.5,
+          prefix_padding_ms: 300,
+          silence_duration_ms: config.vad?.silenceThresholdMs || 500,
+        },
+        tools: options.clientTools ? Object.keys(options.clientTools).map(name => ({
+          type: 'function',
+          name,
+          description: `Client tool: ${name}`,
+          parameters: {
+            type: 'object',
+            properties: {},
+          },
+        })) : [],
+      },
+    }));
+  }, [options.clientTools]);
+
   const handleWebSocketMessage = useCallback(async (event: MessageEvent) => {
     try {
       const message: GrokMessage = JSON.parse(event.data);
+      console.log('Grok message received:', message.type);
       options.onMessage?.(message);
       
       switch (message.type) {
         case 'session.created':
-          console.log('Grok session created');
+          console.log('Grok session created, sending session.update...');
+          sessionCreatedRef.current = true;
+          // Send session configuration AFTER receiving session.created
+          sendSessionUpdate();
+          break;
+
+        case 'session.updated':
+          console.log('Grok session updated successfully');
+          setStatus('connected');
+          options.onConnect?.();
+          // Start recording after session is fully configured
+          if (configRef.current) {
+            startRecording(configRef.current.audioFormat.sampleRate);
+          }
           break;
           
         case 'input_audio_buffer.speech_started':
@@ -162,16 +218,17 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           
         case 'error':
           console.error('Grok error:', message);
-          options.onError?.(new Error(message.message || 'Grok error'));
+          options.onError?.(new Error(message.message || message.error?.message || 'Grok error'));
           break;
       }
     } catch (error) {
       console.error('Error parsing WebSocket message:', error);
     }
-  }, [options, playNextAudio]);
+  }, [options, playNextAudio, sendSessionUpdate]);
 
   const startRecording = useCallback(async (sampleRate: number) => {
     try {
+      console.log('Starting audio recording at sample rate:', sampleRate);
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -184,7 +241,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       audioContextRef.current = new AudioContext({ sampleRate: 48000 });
       const source = audioContextRef.current.createMediaStreamSource(stream);
       
-      // Use ScriptProcessorNode for audio processing (simpler than AudioWorklet)
+      // Use ScriptProcessorNode for audio processing
       const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
       
       processor.onaudioprocess = (e) => {
@@ -205,6 +262,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       
       source.connect(processor);
       processor.connect(audioContextRef.current.destination);
+      console.log('Audio recording started successfully');
       
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -231,64 +289,34 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
 
   const startSession = useCallback(async () => {
     try {
-      // Get session config from edge function
+      console.log('Starting Grok session...');
+      sessionCreatedRef.current = false;
+      
+      // Get session config from edge function (includes ephemeral token in URL)
       const { data, error } = await supabase.functions.invoke('grok-voice-session', {
         body: { voice: options.voice || 'Ara' },
       });
       
-      if (error || !data?.apiKey) {
-        throw new Error(error?.message || 'Failed to get Grok session config');
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to get Grok session config');
       }
       
+      if (!data?.wsUrl) {
+        console.error('Invalid session config:', data);
+        throw new Error('Failed to get Grok session config: missing wsUrl');
+      }
+      
+      console.log('Got session config, connecting to WebSocket...');
       configRef.current = data;
       
-      // Connect to Grok WebSocket
-      const ws = new WebSocket(data.wsUrl, []);
+      // Connect to Grok WebSocket - URL already includes the ephemeral token
+      const ws = new WebSocket(data.wsUrl);
       wsRef.current = ws;
       
       ws.onopen = () => {
-        console.log('Grok WebSocket connected');
-        
-        // Send session configuration
-        ws.send(JSON.stringify({
-          type: 'session.update',
-          session: {
-            modalities: ['text', 'audio'],
-            voice: data.voice,
-            input_audio_format: data.audioFormat.input,
-            output_audio_format: data.audioFormat.output,
-            input_audio_transcription: {
-              model: 'grok-2-vision-latest',
-            },
-            turn_detection: {
-              type: 'server_vad',
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: data.vad?.silenceThresholdMs || 500,
-            },
-            tools: options.clientTools ? Object.keys(options.clientTools).map(name => ({
-              type: 'function',
-              name,
-              description: `Client tool: ${name}`,
-              parameters: {
-                type: 'object',
-                properties: {},
-              },
-            })) : [],
-          },
-        }));
-        
-        // Add API key header (Grok uses query param or header)
-        ws.send(JSON.stringify({
-          type: 'auth',
-          api_key: data.apiKey,
-        }));
-        
-        setStatus('connected');
-        options.onConnect?.();
-        
-        // Start recording
-        startRecording(data.audioFormat.sampleRate);
+        console.log('Grok WebSocket connected, waiting for session.created...');
+        // Don't send anything here - wait for session.created event
       };
       
       ws.onmessage = handleWebSocketMessage;
@@ -298,8 +326,8 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         options.onError?.(new Error('WebSocket connection error'));
       };
       
-      ws.onclose = () => {
-        console.log('Grok WebSocket closed');
+      ws.onclose = (event) => {
+        console.log('Grok WebSocket closed:', event.code, event.reason);
         stopRecording();
         setStatus('disconnected');
         options.onDisconnect?.();
@@ -309,7 +337,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       console.error('Error starting Grok session:', error);
       throw error;
     }
-  }, [options, handleWebSocketMessage, startRecording, stopRecording]);
+  }, [options, handleWebSocketMessage, stopRecording]);
 
   const endSession = useCallback(async () => {
     stopRecording();
@@ -322,6 +350,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     audioQueueRef.current = [];
     isPlayingRef.current = false;
     setIsSpeaking(false);
+    sessionCreatedRef.current = false;
     
     if (wsRef.current) {
       wsRef.current.close();
