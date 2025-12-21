@@ -314,6 +314,7 @@ export type Database = {
           email: string
           id: string
           updated_at: string | null
+          voice_provider: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -322,6 +323,7 @@ export type Database = {
           email: string
           id: string
           updated_at?: string | null
+          voice_provider?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -330,6 +332,7 @@ export type Database = {
           email?: string
           id?: string
           updated_at?: string | null
+          voice_provider?: string | null
         }
         Relationships: []
       }

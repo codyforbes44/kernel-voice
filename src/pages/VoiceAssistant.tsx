@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useConversation } from '@11labs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, VolumeX, LogIn } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, LogIn, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import ConversationHistory from '@/components/voice/ConversationHistory';
@@ -20,6 +20,13 @@ import {
 import RegistrationPromptModal from '@/components/voice/RegistrationPromptModal';
 import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 import MicrophonePermissionRequest from '@/components/voice/MicrophonePermissionRequest';
+import { VoiceProviderSelector, useVoiceProviderPreference, type VoiceProvider } from '@/components/voice/VoiceProviderSelector';
+import { useGrokConversation } from '@/hooks/useGrokConversation';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 const VoiceAssistant = () => {
   const { toast } = useToast();
@@ -32,6 +39,9 @@ const VoiceAssistant = () => {
   const [guestMessages, setGuestMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
   const { permissionState, requestPermission, isReady } = useMicrophonePermission();
+  
+  // Voice provider state
+  const { provider: voiceProvider, setProvider: setVoiceProvider, loading: providerLoading } = useVoiceProviderPreference(isAuthenticated);
 
   // Authentication check (non-blocking)
   useEffect(() => {
@@ -87,150 +97,182 @@ const VoiceAssistant = () => {
     loadLastConversation();
   }, [isAuthenticated]);
 
-  const conversation = useConversation({
+  // Client tools shared by both providers
+  const clientTools = {
+    chat: async (parameters: { message: string }) => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setGuestMessages(prev => [...prev, { role: 'user', content: parameters.message }]);
+          
+          const { data, error } = await supabase.functions.invoke('chat', {
+            body: {
+              messages: [...guestMessages, { role: 'user', content: parameters.message }],
+            },
+          });
+
+          if (error) throw error;
+          
+          setGuestMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+          return JSON.stringify({ response: data.message });
+        }
+
+        let currentConvId = conversationId;
+        if (!currentConvId) {
+          const { data: newConv } = await supabase
+            .from('conversations')
+            .insert({ user_id: user.id })
+            .select()
+            .single();
+          
+          if (newConv) {
+            currentConvId = newConv.id;
+            setConversationId(currentConvId);
+          }
+        }
+
+        const { data, error } = await supabase.functions.invoke('chat', {
+          body: {
+            messages: [{ role: 'user', content: parameters.message }],
+            conversationId: currentConvId,
+            userId: user.id,
+          },
+        });
+
+        if (error) throw error;
+
+        return JSON.stringify({ response: data.message });
+      } catch (error) {
+        console.error('Error in conversation:', error);
+        return JSON.stringify({ error: 'Failed to get response' });
+      }
+    },
+
+    search: async (parameters: { query: string }) => {
+      try {
+        const { data, error } = await supabase.functions.invoke('search', {
+          body: { query: parameters.query },
+        });
+
+        if (error) throw error;
+
+        return JSON.stringify(data);
+      } catch (error) {
+        console.error('Error in search:', error);
+        return JSON.stringify({ error: 'Search failed' });
+      }
+    },
+
+    query_document: async (parameters: { documentId: string; query: string }) => {
+      try {
+        const { data } = await supabase
+          .from('document_chunks')
+          .select('content')
+          .eq('document_id', parameters.documentId)
+          .order('chunk_index');
+
+        if (!data || data.length === 0) {
+          return JSON.stringify({ error: 'Document not found' });
+        }
+
+        const fullContent = data.map(chunk => chunk.content).join('\n');
+        
+        const { data: response, error } = await supabase.functions.invoke('chat', {
+          body: {
+            messages: [
+              { 
+                role: 'system', 
+                content: `You are analyzing a document. Here is the content:\n\n${fullContent}` 
+              },
+              { role: 'user', content: parameters.query }
+            ],
+          },
+        });
+
+        if (error) throw error;
+
+        return JSON.stringify({ answer: response.message });
+      } catch (error) {
+        console.error('Error querying document:', error);
+        return JSON.stringify({ error: 'Failed to query document' });
+      }
+    },
+  };
+
+  // ElevenLabs conversation hook
+  const elevenlabsConversation = useConversation({
     onConnect: () => {
-      console.log('Connected to voice service');
+      console.log('Connected to ElevenLabs voice service');
       toast({
         title: 'Connected',
-        description: 'Voice assistant is ready',
+        description: 'Voice assistant is ready (ElevenLabs)',
       });
     },
     onDisconnect: () => {
-      console.log('Disconnected from voice service');
+      console.log('Disconnected from ElevenLabs voice service');
     },
     onMessage: (message) => {
-      console.log('Message received:', message);
+      console.log('ElevenLabs message received:', message);
     },
     onError: (error) => {
-      console.error('Voice service error:', error);
+      console.error('ElevenLabs voice service error:', error);
       toast({
         title: 'Error',
         description: 'Voice connection error',
         variant: 'destructive',
       });
     },
-    clientTools: {
-      // AI conversation handler
-      chat: async (parameters: { message: string }) => {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          
-          // Guest mode: store in memory only
-          if (!user) {
-            setGuestMessages(prev => [...prev, { role: 'user', content: parameters.message }]);
-            
-            const { data, error } = await supabase.functions.invoke('chat', {
-              body: {
-                messages: [...guestMessages, { role: 'user', content: parameters.message }],
-              },
-            });
-
-            if (error) throw error;
-            
-            setGuestMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
-            return JSON.stringify({ response: data.message });
-          }
-
-          // Authenticated mode: persist to DB
-          let currentConvId = conversationId;
-          if (!currentConvId) {
-            const { data: newConv } = await supabase
-              .from('conversations')
-              .insert({ user_id: user.id })
-              .select()
-              .single();
-            
-            if (newConv) {
-              currentConvId = newConv.id;
-              setConversationId(currentConvId);
-            }
-          }
-
-          const { data, error } = await supabase.functions.invoke('chat', {
-            body: {
-              messages: [{ role: 'user', content: parameters.message }],
-              conversationId: currentConvId,
-              userId: user.id,
-            },
-          });
-
-          if (error) throw error;
-
-          return JSON.stringify({ response: data.message });
-        } catch (error) {
-          console.error('Error in conversation:', error);
-          return JSON.stringify({ error: 'Failed to get response' });
-        }
-      },
-
-      // Web search handler
-      search: async (parameters: { query: string }) => {
-        try {
-          const { data, error } = await supabase.functions.invoke('search', {
-            body: { query: parameters.query },
-          });
-
-          if (error) throw error;
-
-          return JSON.stringify(data);
-        } catch (error) {
-          console.error('Error in search:', error);
-          return JSON.stringify({ error: 'Search failed' });
-        }
-      },
-
-      // Document query handler
-      query_document: async (parameters: { documentId: string; query: string }) => {
-        try {
-          const { data } = await supabase
-            .from('document_chunks')
-            .select('content')
-            .eq('document_id', parameters.documentId)
-            .order('chunk_index');
-
-          if (!data || data.length === 0) {
-            return JSON.stringify({ error: 'Document not found' });
-          }
-
-          const fullContent = data.map(chunk => chunk.content).join('\n');
-          
-          // Use AI to answer query about document
-          const { data: response, error } = await supabase.functions.invoke('chat', {
-            body: {
-              messages: [
-                { 
-                  role: 'system', 
-                  content: `You are analyzing a document. Here is the content:\n\n${fullContent}` 
-                },
-                { role: 'user', content: parameters.query }
-              ],
-            },
-          });
-
-          if (error) throw error;
-
-          return JSON.stringify({ answer: response.message });
-        } catch (error) {
-          console.error('Error querying document:', error);
-          return JSON.stringify({ error: 'Failed to query document' });
-        }
-      },
-    },
+    clientTools,
   });
+
+  // Grok conversation hook
+  const grokConversation = useGrokConversation({
+    onConnect: () => {
+      console.log('Connected to Grok voice service');
+      toast({
+        title: 'Connected',
+        description: 'Voice assistant is ready (Grok)',
+      });
+    },
+    onDisconnect: () => {
+      console.log('Disconnected from Grok voice service');
+    },
+    onMessage: (message) => {
+      console.log('Grok message received:', message);
+    },
+    onError: (error) => {
+      console.error('Grok voice service error:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Voice connection error',
+        variant: 'destructive',
+      });
+    },
+    clientTools,
+  });
+
+  // Use the selected provider's conversation
+  const conversation = voiceProvider === 'elevenlabs' ? elevenlabsConversation : grokConversation;
+  const isConnected = conversation.status === 'connected';
 
   const startConversation = async () => {
     try {
-      // Get signed URL from backend
-      const { data, error } = await supabase.functions.invoke('voice-session');
-      
-      if (error || !data?.signedUrl) {
-        throw new Error(error?.message || 'Failed to get session URL');
-      }
+      if (voiceProvider === 'elevenlabs') {
+        const { data, error } = await supabase.functions.invoke('voice-session');
+        
+        if (error || !data?.signedUrl) {
+          throw new Error(error?.message || 'Failed to get session URL');
+        }
 
-      console.log('Starting voice session');
-      await conversation.startSession({ 
-        signedUrl: data.signedUrl 
-      });
+        console.log('Starting ElevenLabs voice session');
+        await elevenlabsConversation.startSession({ 
+          signedUrl: data.signedUrl 
+        });
+      } else {
+        console.log('Starting Grok voice session');
+        await grokConversation.startSession();
+      }
     } catch (error) {
       console.error('Error starting conversation:', error);
       toast({
@@ -242,9 +284,12 @@ const VoiceAssistant = () => {
   };
 
   const endConversation = async () => {
-    await conversation.endSession();
+    if (voiceProvider === 'elevenlabs') {
+      await elevenlabsConversation.endSession();
+    } else {
+      await grokConversation.endSession();
+    }
     
-    // Show registration prompt for guests
     if (!isAuthenticated && guestMessages.length > 0) {
       setShowRegistrationPrompt(true);
     }
@@ -252,7 +297,6 @@ const VoiceAssistant = () => {
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
-    // Implement actual mute functionality
   };
 
   return (
@@ -267,7 +311,6 @@ const VoiceAssistant = () => {
         <Header />
         <SidebarProvider defaultOpen={isAuthenticated}>
         <div className="flex w-full">
-          {/* Collapsible Sidebar - Only for authenticated users */}
           {isAuthenticated && (
             <Sidebar collapsible="offcanvas">
               <SidebarContent className="p-4 space-y-6">
@@ -281,10 +324,8 @@ const VoiceAssistant = () => {
             </Sidebar>
           )}
 
-          {/* Main Content */}
           <SidebarInset>
             <div className="container mx-auto px-4 py-8">
-              {/* Guest Banner */}
               {!isAuthenticated && (
                 <div className="mb-4 p-4 rounded-lg bg-primary/10 border border-primary/20">
                   <div className="flex items-center justify-between gap-4">
@@ -300,7 +341,6 @@ const VoiceAssistant = () => {
                 </div>
               )}
 
-              {/* Current Conversation Banner */}
               {isAuthenticated && conversationTitle && (
                 <div className="mb-4 p-4 rounded-lg bg-primary/10 border border-primary/20">
                   <div className="flex items-center justify-between gap-4">
@@ -321,22 +361,41 @@ const VoiceAssistant = () => {
                 </div>
               )}
               
-              {/* Sidebar Trigger */}
               {isAuthenticated && (
                 <div className="mb-4">
                   <SidebarTrigger />
                 </div>
               )}
 
-              {/* AI Voice Assistant - Top Section */}
               <div className="rounded-2xl bg-card border border-border p-8 shadow-2xl mb-6">
-                <div className="text-center mb-8">
-                  <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                {/* Header with Settings */}
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex-1" />
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                     AI Intelligence
                   </h1>
+                  <div className="flex-1 flex justify-end">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" disabled={isConnected}>
+                          <Settings className="h-5 w-5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80" align="end">
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Voice Settings</h4>
+                          <VoiceProviderSelector
+                            value={voiceProvider}
+                            onChange={setVoiceProvider}
+                            disabled={isConnected || providerLoading}
+                            isAuthenticated={isAuthenticated}
+                          />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
 
-                {/* Microphone Permission Request */}
                 {!isReady && (
                   <MicrophonePermissionRequest 
                     permissionState={permissionState}
@@ -344,11 +403,10 @@ const VoiceAssistant = () => {
                   />
                 )}
 
-                {/* Status Indicator */}
                 <div className="flex items-center justify-center mb-8">
                   <div className={`
                     relative w-32 h-32 rounded-full flex items-center justify-center
-                    ${conversation.status === 'connected' 
+                    ${isConnected 
                       ? 'bg-gradient-to-br from-primary to-primary/50' 
                       : 'bg-gradient-to-br from-muted to-muted-foreground/20'
                     }
@@ -356,32 +414,33 @@ const VoiceAssistant = () => {
                     transition-all duration-300 shadow-lg
                   `}>
                     <Mic className="w-12 h-12 text-primary-foreground" />
-                    {conversation.status === 'connected' && (
+                    {isConnected && (
                       <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
                     )}
                   </div>
                 </div>
 
-                {/* Status Text */}
                 <div className="text-center mb-8">
                   <p className="text-lg font-medium">
-                    {conversation.status === 'connected' 
+                    {isConnected 
                       ? conversation.isSpeaking 
                         ? '🗣️ Speaking...' 
                         : '👂 Listening...'
                       : 'Ready to connect'
                     }
                   </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : 'Grok'}
+                  </p>
                 </div>
 
-                {/* Controls */}
                 <div className="flex items-center justify-center gap-4">
-                  {conversation.status !== 'connected' ? (
+                  {!isConnected ? (
                     <Button
                       onClick={startConversation}
                       size="lg"
                       className="px-8 py-6 text-lg"
-                      disabled={!isReady}
+                      disabled={!isReady || providerLoading}
                     >
                       <Mic className="mr-2 h-5 w-5" />
                       Start Conversation
@@ -418,7 +477,6 @@ const VoiceAssistant = () => {
                 </div>
               </div>
 
-              {/* Message History */}
               <MessageHistory conversationId={conversationId} />
             </div>
           </SidebarInset>
