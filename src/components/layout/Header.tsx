@@ -46,9 +46,6 @@ export const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/assistant" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              Desktop Version
-            </Link>
             <Link to="/install" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               Install
             </Link>
@@ -59,15 +56,16 @@ export const Header = () => {
             {user ? (
               <UserMenu user={user} />
             ) : (
-              <Button onClick={() => navigate('/auth')} variant="default" size="sm">
+              <Button onClick={() => navigate('/auth')} variant="default" size="sm" className="min-h-[44px] md:min-h-0">
                 Sign In
               </Button>
             )}
 
             {/* Mobile Menu Button */}
             <button
-              className="md:hidden text-foreground"
+              className="md:hidden text-foreground p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -78,15 +76,8 @@ export const Header = () => {
         {mobileMenuOpen && (
           <nav className="md:hidden py-4 space-y-2 border-t border-border/40">
             <Link
-              to="/assistant"
-              className="block px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Desktop Version
-            </Link>
-            <Link
               to="/install"
-              className="block px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              className="block px-4 py-3 text-sm font-medium text-muted-foreground hover:text-primary transition-colors min-h-[44px] flex items-center"
               onClick={() => setMobileMenuOpen(false)}
             >
               Install
