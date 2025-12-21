@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Mic } from 'lucide-react';
+import { Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
@@ -9,7 +9,6 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 
 export const Header = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,13 +44,6 @@ export const Header = () => {
             <span className="font-bold text-base sm:text-lg hidden sm:inline-block">AI Intelligence</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/install" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              Install
-            </Link>
-          </nav>
-
           {/* Auth Section */}
           <div className="flex items-center space-x-2">
             <ThemeToggle />
@@ -63,30 +55,8 @@ export const Header = () => {
                 Sign In
               </Button>
             )}
-
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden text-foreground p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-            >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
           </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <nav className="md:hidden py-4 space-y-2 border-t border-border/40">
-            <Link
-              to="/install"
-              className="block px-4 py-3 text-sm font-medium text-muted-foreground hover:text-primary transition-colors min-h-[44px] flex items-center"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Install
-            </Link>
-          </nav>
-        )}
       </div>
     </header>
   );
