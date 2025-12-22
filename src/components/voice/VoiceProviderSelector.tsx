@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { SystemPromptEditor, useSystemPromptPreference, DEFAULT_PROMPT } from './SystemPromptEditor';
 
 export interface OpenAIVoiceSettings {
@@ -234,6 +235,46 @@ export function VoiceProviderSelector({
     }
   };
 
+  const handleResetGrokSettings = async () => {
+    onGrokVoiceChange('Charon');
+    onGrokSettingsChange(DEFAULT_GROK_SETTINGS);
+    localStorage.setItem('grok_voice', 'Charon');
+    localStorage.setItem('grok_settings', JSON.stringify(DEFAULT_GROK_SETTINGS));
+    
+    if (!isAuthenticated) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').update({ 
+          grok_voice: 'Charon', 
+          grok_settings: JSON.parse(JSON.stringify(DEFAULT_GROK_SETTINGS))
+        }).eq('id', user.id);
+      }
+    } catch (error) {
+      console.error('Error resetting grok settings:', error);
+    }
+  };
+
+  const handleResetOpenAISettings = async () => {
+    onOpenAIVoiceChange('alloy');
+    onOpenAISettingsChange(DEFAULT_OPENAI_SETTINGS);
+    localStorage.setItem('openai_voice', 'alloy');
+    localStorage.setItem('openai_settings', JSON.stringify(DEFAULT_OPENAI_SETTINGS));
+    
+    if (!isAuthenticated) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').update({ 
+          openai_voice: 'alloy', 
+          openai_settings: JSON.parse(JSON.stringify(DEFAULT_OPENAI_SETTINGS))
+        }).eq('id', user.id);
+      }
+    } catch (error) {
+      console.error('Error resetting openai settings:', error);
+    }
+  };
+
   const selectedGrokVoiceInfo = grokVoices.find(v => v.id === grokVoice);
   const selectedOpenAIVoiceInfo = openaiVoices.find(v => v.id === openaiVoice);
 
@@ -415,6 +456,17 @@ export function VoiceProviderSelector({
                     Audio captured before speech detection
                   </p>
                 </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetGrokSettings}
+                  disabled={disabled}
+                  className="w-full mt-2 text-muted-foreground hover:text-foreground"
+                >
+                  <RotateCcw className="h-3 w-3 mr-2" />
+                  Reset to Defaults
+                </Button>
               </CollapsibleContent>
             </Collapsible>
           </div>
@@ -568,6 +620,17 @@ export function VoiceProviderSelector({
                     Silence before AI responds (shorter = faster, may interrupt)
                   </p>
                 </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetOpenAISettings}
+                  disabled={disabled}
+                  className="w-full mt-2 text-muted-foreground hover:text-foreground"
+                >
+                  <RotateCcw className="h-3 w-3 mr-2" />
+                  Reset to Defaults
+                </Button>
               </CollapsibleContent>
             </Collapsible>
           </div>
