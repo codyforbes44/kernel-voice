@@ -91,7 +91,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
             </DropdownMenuItem>
           </>
         )}
-        <DropdownMenuItem onClick={() => navigate('/')} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => navigate('/assistant')} className="cursor-pointer">
           <Settings className="mr-2 h-4 w-4" />
           <span>Assistant</span>
         </DropdownMenuItem>

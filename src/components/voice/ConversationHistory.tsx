@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { SkeletonList } from '@/components/ui/skeleton-list';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,7 @@ const ConversationHistory = ({
   onConversationCreated 
 }: ConversationHistoryProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const { toast } = useToast();
@@ -48,7 +50,10 @@ const ConversationHistory = ({
 
   const loadConversations = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from('conversations')
@@ -59,10 +64,10 @@ const ConversationHistory = ({
 
     if (error) {
       console.error('Error loading conversations:', error);
-      return;
+    } else {
+      setConversations(data || []);
     }
-
-    setConversations(data || []);
+    setLoading(false);
   };
 
   const subscribeToConversations = () => {
@@ -174,36 +179,45 @@ const ConversationHistory = ({
       </div>
 
       <ScrollArea className="flex-1 scrollbar-hide">
-        <div className="space-y-1">
-          {conversations.map((conv) => (
-            <div
-              key={conv.id}
-              className={`
-                relative group rounded-lg transition-colors
-                ${currentConversationId === conv.id 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'hover:bg-muted'
-                }
-              `}
-            >
-              <button
-                onClick={() => onSelectConversation(conv.id)}
-                className="w-full text-left p-2 pr-9"
-              >
-                <p className="font-medium truncate text-sm">{conv.title}</p>
-                <p className="text-xs opacity-70">
-                  {new Date(conv.updated_at).toLocaleDateString()}
-                </p>
-              </button>
-              <button
-                onClick={(e) => handleDeleteClick(conv.id, e)}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded"
-              >
-                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-              </button>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <SkeletonList count={4} variant="conversation" />
+        ) : (
+          <div className="space-y-1">
+            {conversations.length === 0 ? (
+              <p className="text-center text-muted-foreground text-xs py-4">No conversations yet</p>
+            ) : (
+              conversations.map((conv) => (
+                <div
+                  key={conv.id}
+                  className={`
+                    relative group rounded-lg transition-colors
+                    ${currentConversationId === conv.id 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'hover:bg-muted'
+                    }
+                  `}
+                >
+                  <button
+                    onClick={() => onSelectConversation(conv.id)}
+                    className="w-full text-left p-2 pr-9 min-h-[44px]"
+                  >
+                    <p className="font-medium truncate text-sm">{conv.title}</p>
+                    <p className="text-xs opacity-70">
+                      {new Date(conv.updated_at).toLocaleDateString()}
+                    </p>
+                  </button>
+                  <button
+                    onClick={(e) => handleDeleteClick(conv.id, e)}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-destructive/20 rounded min-w-[36px] min-h-[36px] flex items-center justify-center"
+                    aria-label="Delete conversation"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </ScrollArea>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

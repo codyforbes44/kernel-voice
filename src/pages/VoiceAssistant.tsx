@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, VolumeX, LogIn, Settings, MessageSquare, Upload, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Settings, MessageSquare, Upload } from 'lucide-react';
 import ConversationHistory from '@/components/voice/ConversationHistory';
 import DocumentUpload from '@/components/voice/DocumentUpload';
 import MessageHistory from '@/components/voice/MessageHistory';
@@ -15,29 +15,23 @@ import {
 } from '@/components/ui/sidebar';
 import RegistrationPromptModal from '@/components/voice/RegistrationPromptModal';
 import MicrophonePermissionRequest from '@/components/voice/MicrophonePermissionRequest';
-import { VoiceProviderSelector } from '@/components/voice/VoiceProviderSelector';
 import { LiveTranscripts } from '@/components/voice/LiveTranscripts';
 import { ConnectionStatusBadge } from '@/components/voice/ConnectionStatusBadge';
-import { AudioLevelVisualizer, WaveformOrb } from '@/components/voice/AudioLevelMeter';
+import { AudioLevelVisualizer } from '@/components/voice/AudioLevelMeter';
 import { TextMessageInput } from '@/components/voice/TextMessageInput';
 import { InputModeSelector } from '@/components/voice/InputModeSelector';
 import { WakeWordIndicator } from '@/components/voice/WakeWordIndicator';
+import { VoiceControlPanel } from '@/components/voice/VoiceControlPanel';
+import { VoiceSettingsPanel } from '@/components/voice/VoiceSettingsPanel';
+import { GuestModeBanner } from '@/components/voice/GuestModeBanner';
+import { ConversationBanner } from '@/components/voice/ConversationBanner';
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
 import { useWakeWordDetection } from '@/hooks/useWakeWordDetection';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCallback } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Slider } from '@/components/ui/slider';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { MessageSquare as MessageIcon } from 'lucide-react';
 
 const VoiceAssistant = () => {
   const navigate = useNavigate();
@@ -88,9 +82,7 @@ const VoiceAssistant = () => {
 
   // Wake word detection - only active in text-only mode when not connected
   const handleWakeWordDetected = useCallback(async () => {
-    // Switch to voice mode and start conversation
     setInputMode('voice');
-    // Small delay to let the mode switch, then start conversation
     setTimeout(() => {
       if (isReady) {
         startConversation();
@@ -110,43 +102,15 @@ const VoiceAssistant = () => {
     enabled: wakeWordEnabled,
   });
 
-  // Shared voice settings component
-  const VoiceSettings = () => (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <h4 className="font-medium text-lg">Voice Settings</h4>
-        <VoiceProviderSelector
-          value={voiceProvider}
-          onChange={setVoiceProvider}
-          grokVoice={grokVoice}
-          onGrokVoiceChange={setGrokVoice}
-          systemPrompt={systemPrompt}
-          onSystemPromptChange={setSystemPrompt}
-          disabled={isConnected || providerLoading}
-          isAuthenticated={isAuthenticated}
-        />
-      </div>
-      
-      {/* Input Mode Selection */}
-      <div className="space-y-3 pt-4 border-t border-border">
-        <h4 className="font-medium text-lg">Input Mode</h4>
-        <p className="text-sm text-muted-foreground">
-          Choose how you want to interact with the assistant
-        </p>
-        <InputModeSelector
-          value={inputMode}
-          onChange={setInputMode}
-          disabled={isConnected}
-          className="w-full justify-center"
-        />
-      </div>
-    </div>
-  );
+  const handleNewConversation = () => {
+    setConversationId(null);
+    setConversationTitle(null);
+  };
 
-  // Shared main voice interface
-  const VoiceInterface = () => (
+  // Main Voice Interface Card
+  const VoiceInterfaceCard = () => (
     <div className="rounded-2xl bg-card border border-border p-4 md:p-8 shadow-xl">
-      {/* Header with Settings */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4 md:mb-6">
         <div className="flex-1 flex justify-start">
           {showVoiceInterface && (
@@ -165,7 +129,7 @@ const VoiceAssistant = () => {
           {isMobile ? (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" disabled={isConnected} className="h-10 w-10">
+                <Button variant="ghost" size="icon" disabled={isConnected} className="h-11 w-11 min-h-[44px]">
                   <Settings className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -175,19 +139,43 @@ const VoiceAssistant = () => {
                   <SheetDescription>Configure your voice assistant preferences</SheetDescription>
                 </SheetHeader>
                 <div className="pt-4 pb-8">
-                  <VoiceSettings />
+                  <VoiceSettingsPanel
+                    voiceProvider={voiceProvider}
+                    onVoiceProviderChange={setVoiceProvider}
+                    grokVoice={grokVoice}
+                    onGrokVoiceChange={setGrokVoice}
+                    systemPrompt={systemPrompt}
+                    onSystemPromptChange={setSystemPrompt}
+                    inputMode={inputMode}
+                    onInputModeChange={setInputMode}
+                    isConnected={isConnected}
+                    providerLoading={providerLoading}
+                    isAuthenticated={isAuthenticated}
+                  />
                 </div>
               </SheetContent>
             </Sheet>
           ) : (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" disabled={isConnected}>
+                <Button variant="ghost" size="icon" disabled={isConnected} className="min-h-[44px] min-w-[44px]">
                   <Settings className="h-5 w-5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80" align="end">
-                <VoiceSettings />
+                <VoiceSettingsPanel
+                  voiceProvider={voiceProvider}
+                  onVoiceProviderChange={setVoiceProvider}
+                  grokVoice={grokVoice}
+                  onGrokVoiceChange={setGrokVoice}
+                  systemPrompt={systemPrompt}
+                  onSystemPromptChange={setSystemPrompt}
+                  inputMode={inputMode}
+                  onInputModeChange={setInputMode}
+                  isConnected={isConnected}
+                  providerLoading={providerLoading}
+                  isAuthenticated={isAuthenticated}
+                />
               </PopoverContent>
             </Popover>
           )}
@@ -203,10 +191,9 @@ const VoiceAssistant = () => {
         />
       </div>
 
-      {/* Voice-only content */}
+      {/* Voice Interface */}
       {showVoiceInterface && (
         <>
-          {/* Microphone Permission Request */}
           {!isReady && (
             <MicrophonePermissionRequest 
               permissionState={permissionState}
@@ -214,44 +201,29 @@ const VoiceAssistant = () => {
             />
           )}
 
-          {/* Microphone Orb */}
-          <div className="flex items-center justify-center mb-6 md:mb-8">
-            <div className={`
-              relative w-24 h-24 md:w-32 md:h-32 rounded-full flex items-center justify-center
-              ${isConnected 
-                ? 'bg-gradient-to-br from-primary to-primary/50' 
-                : isConnecting
-                  ? 'bg-gradient-to-br from-primary/30 to-primary/10'
-                  : connectionError
-                    ? 'bg-gradient-to-br from-destructive/30 to-destructive/10'
-                    : 'bg-gradient-to-br from-muted to-muted-foreground/20'
-              }
-              transition-all duration-300 shadow-lg
-            `}>
-              {/* Waveform visualization */}
-              {isConnected && (
-                <WaveformOrb 
-                  level={isSpeaking ? outputAudioLevel : inputAudioLevel} 
-                  isActive={isConnected}
-                />
-              )}
-              
-              {isConnecting ? (
-                <Loader2 className="w-10 h-10 md:w-12 md:h-12 text-primary animate-spin" />
-              ) : connectionError ? (
-                <AlertCircle className="w-10 h-10 md:w-12 md:h-12 text-destructive" />
-              ) : (
-                <Mic className={`w-10 h-10 md:w-12 md:h-12 ${isConnected ? 'text-primary-foreground' : 'text-primary-foreground/70'}`} />
-              )}
-              {isConnected && !isSpeaking && inputAudioLevel > 0.1 && (
-                <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
-              )}
-            </div>
-          </div>
+          <VoiceControlPanel
+            isConnected={isConnected}
+            isConnecting={isConnecting}
+            connectionError={connectionError}
+            isSpeaking={isSpeaking}
+            inputAudioLevel={inputAudioLevel}
+            outputAudioLevel={outputAudioLevel}
+            isMuted={isMuted}
+            volume={volume}
+            isReady={isReady}
+            providerLoading={providerLoading}
+            isMobile={isMobile}
+            onStartConversation={startConversation}
+            onEndConversation={endConversation}
+            onRetryConnection={retryConnection}
+            onClearError={clearConnectionError}
+            onToggleMute={toggleMute}
+            onVolumeChange={setVolume}
+          />
 
-          {/* Audio Level Meters - Show when connected */}
+          {/* Audio Level Meters - Desktop only */}
           {isConnected && !isMobile && (
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mt-4">
               <AudioLevelVisualizer
                 inputLevel={inputAudioLevel}
                 outputLevel={outputAudioLevel}
@@ -262,7 +234,7 @@ const VoiceAssistant = () => {
           )}
 
           {/* Status Text */}
-          <div className="text-center mb-6 md:mb-8">
+          <div className="text-center mt-4">
             <p className="text-base md:text-lg font-medium">
               {connectionError 
                 ? 'Connection failed'
@@ -288,17 +260,16 @@ const VoiceAssistant = () => {
         </>
       )}
 
-      {/* Text-only content */}
+      {/* Text Mode Content */}
       {inputMode === 'text' && (
         <div className="text-center mb-6 md:mb-8">
           <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-            <MessageSquare className="w-8 h-8 md:w-10 md:h-10 text-primary" />
+            <MessageIcon className="w-8 h-8 md:w-10 md:h-10 text-primary" />
           </div>
           <p className="text-base md:text-lg font-medium">Text Mode</p>
           <p className="text-xs md:text-sm text-muted-foreground mt-1">
             Type your messages below
           </p>
-          {/* Wake Word Indicator */}
           <div className="mt-3 flex justify-center">
             <WakeWordIndicator
               isListening={isWakeWordListening}
@@ -309,115 +280,7 @@ const VoiceAssistant = () => {
         </div>
       )}
 
-      {/* Voice Controls - only show for voice modes */}
-      {showVoiceInterface && (
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center justify-center gap-3 md:gap-4">
-            {connectionError ? (
-              <>
-                <Button
-                  onClick={retryConnection}
-                  size="lg"
-                  className="px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px]"
-                >
-                  <RefreshCw className="mr-2 h-5 w-5" />
-                  Try Again
-                </Button>
-                <Button
-                  onClick={clearConnectionError}
-                  variant="outline"
-                  size="lg"
-                  className="min-h-[48px]"
-                >
-                  Cancel
-                </Button>
-              </>
-            ) : isConnecting ? (
-              <Button
-                disabled
-                size="lg"
-                className="px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px]"
-              >
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Connecting...
-              </Button>
-            ) : !isConnected ? (
-              <Button
-                onClick={startConversation}
-                size="lg"
-                className="px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px]"
-                disabled={!isReady || providerLoading}
-              >
-                <Mic className="mr-2 h-5 w-5" />
-                Start Conversation
-              </Button>
-            ) : (
-              <>
-                <Button
-                  onClick={endConversation}
-                  variant="destructive"
-                  size="lg"
-                  className="min-h-[48px]"
-                >
-                  {isMobile ? 'End' : 'Continue Later'}
-                </Button>
-                
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={toggleMute}
-                      variant="outline"
-                      size="lg"
-                      className="min-h-[48px] min-w-[48px]"
-                      aria-label={isMuted ? 'Unmute' : 'Mute'}
-                    >
-                      {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {isMuted ? 'Unmute microphone' : 'Mute microphone'}
-                  </TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={() => setVolume(volume > 0 ? 0 : 1)}
-                      variant="outline"
-                      size="lg"
-                      className="min-h-[48px] min-w-[48px]"
-                      aria-label={volume > 0 ? 'Mute audio' : 'Unmute audio'}
-                    >
-                      {volume > 0 ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {volume > 0 ? 'Mute audio' : 'Unmute audio'}
-                  </TooltipContent>
-                </Tooltip>
-              </>
-            )}
-          </div>
-
-          {/* Volume Slider - Show when connected */}
-          {isConnected && !isMobile && (
-            <div className="flex items-center gap-3 w-48">
-              <VolumeX className="h-4 w-4 text-muted-foreground" />
-              <Slider
-                value={[volume * 100]}
-                onValueChange={([v]) => setVolume(v / 100)}
-                max={100}
-                step={1}
-                className="flex-1"
-                aria-label="Volume"
-              />
-              <Volume2 className="h-4 w-4 text-muted-foreground" />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Text Input - show for text and combined modes */}
+      {/* Text Input */}
       {showTextInput && (
         <div className="mt-4">
           <TextMessageInput
@@ -440,51 +303,23 @@ const VoiceAssistant = () => {
           image="/og-home.png"
           keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI"]}
         />
-        <div className="flex flex-col min-h-screen bg-background">
+        <div className="flex flex-col min-h-screen bg-background safe-area-inset">
           <Header />
           <div className="flex-1 flex flex-col px-3 pt-2 pb-4">
             {/* Guest Banner */}
-            {!isAuthenticated && (
-              <div className="mb-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">Guest Mode</p>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="h-9 min-h-[44px]"
-                    onClick={() => navigate('/auth')}
-                  >
-                    <LogIn className="h-3 w-3 mr-1" />
-                    Sign In
-                  </Button>
-                </div>
-              </div>
-            )}
+            {!isAuthenticated && <GuestModeBanner variant="compact" className="mb-2" />}
 
-            {/* Current Conversation Banner */}
+            {/* Conversation Banner */}
             {isAuthenticated && conversationTitle && (
-              <div className="mb-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs text-muted-foreground">Continuing:</p>
-                    <p className="text-sm font-medium truncate">{conversationTitle}</p>
-                  </div>
-                  <Button 
-                    size="sm"
-                    variant="outline"
-                    className="h-9 min-h-[44px] shrink-0"
-                    onClick={() => {
-                      setConversationId(null);
-                      setConversationTitle(null);
-                    }}
-                  >
-                    New
-                  </Button>
-                </div>
-              </div>
+              <ConversationBanner 
+                title={conversationTitle} 
+                onNewConversation={handleNewConversation}
+                variant="compact"
+                className="mb-2"
+              />
             )}
             
-            {/* Top Action Buttons */}
+            {/* Action Buttons */}
             {isAuthenticated && (
               <div className="flex justify-end gap-2 mb-2">
                 <Sheet>
@@ -529,9 +364,9 @@ const VoiceAssistant = () => {
             )}
 
             {/* Main Voice Interface */}
-            <VoiceInterface />
+            <VoiceInterfaceCard />
 
-            {/* Live Transcripts - show when connected or has transcripts or in text mode */}
+            {/* Live Transcripts */}
             {(isConnected || liveTranscripts.length > 0 || inputMode === 'text') && (
               <div className="mt-4">
                 <LiveTranscripts 
@@ -589,53 +424,28 @@ const VoiceAssistant = () => {
             <SidebarInset>
               <div className="container mx-auto px-4 py-8">
                 {/* Guest Banner */}
-                {!isAuthenticated && (
-                  <div className="mb-4 p-4 rounded-lg bg-primary/10 border border-primary/20">
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="font-medium">Guest Mode - Conversations won't be saved</p>
-                      <Button 
-                        variant="outline"
-                        onClick={() => navigate('/auth')}
-                      >
-                        <LogIn className="h-4 w-4 mr-2" />
-                        Sign In to Save
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                {!isAuthenticated && <GuestModeBanner className="mb-4" />}
 
-                {/* Current Conversation Banner */}
+                {/* Conversation Banner */}
                 {isAuthenticated && conversationTitle && (
-                  <div className="mb-4 p-4 rounded-lg bg-primary/10 border border-primary/20">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Continuing conversation:</p>
-                        <p className="font-medium">{conversationTitle}</p>
-                      </div>
-                      <Button 
-                        variant="outline"
-                        onClick={() => {
-                          setConversationId(null);
-                          setConversationTitle(null);
-                        }}
-                      >
-                        New Conversation
-                      </Button>
-                    </div>
-                  </div>
+                  <ConversationBanner 
+                    title={conversationTitle} 
+                    onNewConversation={handleNewConversation}
+                    className="mb-4"
+                  />
                 )}
                 
                 {/* Sidebar Trigger */}
                 {isAuthenticated && (
                   <div className="mb-4">
-                    <SidebarTrigger />
+                    <SidebarTrigger className="min-h-[44px]" />
                   </div>
                 )}
 
                 {/* Main Voice Interface */}
-                <VoiceInterface />
+                <VoiceInterfaceCard />
 
-                {/* Live Transcripts - show when connected or has transcripts or in text mode */}
+                {/* Live Transcripts */}
                 {(isConnected || liveTranscripts.length > 0 || inputMode === 'text') && (
                   <div className="mt-6">
                     <LiveTranscripts 
