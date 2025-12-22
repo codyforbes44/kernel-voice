@@ -1,0 +1,273 @@
+import { useState, useCallback, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { CheckCircle, XCircle, Loader2, Wifi, WifiOff, Play, Square } from 'lucide-react';
+
+interface TestResult {
+  phase: string;
+  success: boolean;
+  message: string;
+  timeMs?: number;
+}
+
+interface ConnectionTestPanelProps {
+  className?: string;
+}
+
+export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
+  const [isRunning, setIsRunning] = useState(false);
+  const [results, setResults] = useState<TestResult[]>([]);
+  const [currentPhase, setCurrentPhase] = useState<string | null>(null);
+  const [events, setEvents] = useState<string[]>([]);
+  const wsRef = useRef<WebSocket | null>(null);
+  const startTimeRef = useRef<number>(0);
+
+  const addResult = useCallback((result: TestResult) => {
+    setResults(prev => [...prev, result]);
+  }, []);
+
+  const addEvent = useCallback((event: string) => {
+    setEvents(prev => [...prev, `[${new Date().toISOString().split('T')[1].slice(0, 12)}] ${event}`]);
+  }, []);
+
+  const runTest = useCallback(async () => {
+    setIsRunning(true);
+    setResults([]);
+    setEvents([]);
+    setCurrentPhase('init');
+    startTimeRef.current = Date.now();
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (!supabaseUrl) {
+      addResult({ phase: 'init', success: false, message: 'VITE_SUPABASE_URL not configured' });
+      setIsRunning(false);
+      return;
+    }
+
+    addResult({ phase: 'init', success: true, message: 'Environment configured' });
+    addEvent('Starting connection test...');
+
+    // Build WebSocket URL
+    const wsUrl = `${supabaseUrl.replace('https://', 'wss://')}/functions/v1/grok-voice-relay?voice=Aria&debug=verbose`;
+    addEvent(`Connecting to: ${wsUrl}`);
+    setCurrentPhase('connecting');
+
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      const timeout = setTimeout(() => {
+        if (ws.readyState !== WebSocket.OPEN) {
+          ws.close();
+          addResult({ phase: 'connecting', success: false, message: 'Connection timeout (15s)' });
+          setIsRunning(false);
+        }
+      }, 15000);
+
+      ws.onopen = () => {
+        const elapsed = Date.now() - startTimeRef.current;
+        addResult({ phase: 'connecting', success: true, message: 'WebSocket connected', timeMs: elapsed });
+        addEvent(`Connected in ${elapsed}ms`);
+        setCurrentPhase('waiting_session');
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const elapsed = Date.now() - startTimeRef.current;
+          addEvent(`Event: ${data.type}`);
+
+          if (data.type === 'relay.connected') {
+            addResult({ phase: 'relay', success: true, message: 'Relay connected to xAI', timeMs: elapsed });
+          } else if (data.type === 'session.created') {
+            addResult({ phase: 'session_created', success: true, message: 'Session created by xAI', timeMs: elapsed });
+            setCurrentPhase('configuring');
+          } else if (data.type === 'session.updated') {
+            addResult({ phase: 'session_configured', success: true, message: 'Session configured', timeMs: elapsed });
+            setCurrentPhase('ready');
+            
+            // Test sending a text message
+            addEvent('Sending test message...');
+            ws.send(JSON.stringify({
+              type: 'conversation.item.create',
+              item: {
+                type: 'message',
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello, this is a connection test.' }],
+              },
+            }));
+            ws.send(JSON.stringify({ type: 'response.create' }));
+            setCurrentPhase('awaiting_response');
+          } else if (data.type === 'response.audio.delta' || data.type === 'response.text.delta') {
+            addResult({ phase: 'response', success: true, message: 'Received AI response', timeMs: elapsed });
+            setCurrentPhase('complete');
+            clearTimeout(timeout);
+            
+            // Close after successful response
+            setTimeout(() => {
+              ws.close(1000, 'Test complete');
+              setIsRunning(false);
+            }, 500);
+          } else if (data.type === 'response.done') {
+            if (currentPhase !== 'complete') {
+              addResult({ phase: 'response', success: true, message: 'Response completed', timeMs: elapsed });
+              setCurrentPhase('complete');
+              clearTimeout(timeout);
+              setTimeout(() => {
+                ws.close(1000, 'Test complete');
+                setIsRunning(false);
+              }, 500);
+            }
+          } else if (data.type === 'error') {
+            addResult({ phase: 'error', success: false, message: `API error: ${JSON.stringify(data.error || data)}` });
+            clearTimeout(timeout);
+            ws.close();
+            setIsRunning(false);
+          } else if (data.type === 'fallback_active') {
+            addResult({ phase: 'fallback', success: true, message: 'Using ElevenLabs fallback' });
+          }
+        } catch (e) {
+          addEvent(`Parse error: ${e}`);
+        }
+      };
+
+      ws.onerror = (error) => {
+        addResult({ phase: 'error', success: false, message: 'WebSocket error occurred' });
+        addEvent(`Error: ${error}`);
+        clearTimeout(timeout);
+        setIsRunning(false);
+      };
+
+      ws.onclose = (event) => {
+        addEvent(`Connection closed: ${event.code} ${event.reason || ''}`);
+        if (event.code !== 1000 && isRunning) {
+          addResult({ phase: 'closed', success: false, message: `Unexpected close: ${event.code}` });
+        }
+        setIsRunning(false);
+        wsRef.current = null;
+      };
+
+    } catch (error) {
+      addResult({ phase: 'error', success: false, message: error instanceof Error ? error.message : 'Unknown error' });
+      setIsRunning(false);
+    }
+  }, [addResult, addEvent, currentPhase]);
+
+  const stopTest = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close(1000, 'User cancelled');
+      wsRef.current = null;
+    }
+    setIsRunning(false);
+    setCurrentPhase(null);
+  }, []);
+
+  const overallSuccess = results.length > 0 && results.every(r => r.success);
+  const hasErrors = results.some(r => !r.success);
+
+  return (
+    <Card className={className}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              {isRunning ? (
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              ) : overallSuccess ? (
+                <Wifi className="h-5 w-5 text-green-500" />
+              ) : hasErrors ? (
+                <WifiOff className="h-5 w-5 text-destructive" />
+              ) : (
+                <Wifi className="h-5 w-5 text-muted-foreground" />
+              )}
+              Connection Test
+            </CardTitle>
+            <CardDescription>
+              Test WebSocket connectivity to the voice relay
+            </CardDescription>
+          </div>
+          <Button
+            size="sm"
+            variant={isRunning ? "destructive" : "default"}
+            onClick={isRunning ? stopTest : runTest}
+          >
+            {isRunning ? (
+              <>
+                <Square className="h-4 w-4 mr-1" />
+                Stop
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4 mr-1" />
+                Run Test
+              </>
+            )}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Current Phase */}
+        {currentPhase && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Phase:</span>
+            <Badge variant="outline" className="capitalize">
+              {currentPhase.replace(/_/g, ' ')}
+            </Badge>
+          </div>
+        )}
+
+        {/* Results */}
+        {results.length > 0 && (
+          <div className="space-y-2">
+            <span className="text-sm font-medium">Results</span>
+            <div className="space-y-1">
+              {results.map((result, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  {result.success ? (
+                    <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-destructive shrink-0" />
+                  )}
+                  <span className="text-muted-foreground capitalize">{result.phase.replace(/_/g, ' ')}:</span>
+                  <span className={result.success ? 'text-foreground' : 'text-destructive'}>
+                    {result.message}
+                  </span>
+                  {result.timeMs && (
+                    <Badge variant="secondary" className="ml-auto text-xs">
+                      {result.timeMs}ms
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Event Log */}
+        {events.length > 0 && (
+          <div className="space-y-2">
+            <span className="text-sm font-medium">Event Log</span>
+            <ScrollArea className="h-32 rounded border bg-muted/50 p-2">
+              <div className="space-y-0.5 font-mono text-xs">
+                {events.map((event, i) => (
+                  <div key={i} className="text-muted-foreground">
+                    {event}
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {results.length === 0 && !isRunning && (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            Click "Run Test" to verify the voice relay connection
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

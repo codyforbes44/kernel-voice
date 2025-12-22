@@ -1,5 +1,7 @@
 import { VoiceProviderSelector, type VoiceProvider, type GrokVoice } from './VoiceProviderSelector';
 import { InputModeSelector, type InputMode } from './InputModeSelector';
+import { ConnectionTestPanel } from './ConnectionTestPanel';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface VoiceSettingsPanelProps {
   voiceProvider: VoiceProvider;
@@ -56,6 +58,20 @@ export const VoiceSettingsPanel = ({
           className="w-full justify-center"
         />
       </div>
+
+      {/* Diagnostics Section */}
+      {voiceProvider === 'grok' && (
+        <Accordion type="single" collapsible className="pt-4 border-t border-border">
+          <AccordionItem value="diagnostics" className="border-none">
+            <AccordionTrigger className="py-2 text-sm font-medium hover:no-underline">
+              Diagnostics
+            </AccordionTrigger>
+            <AccordionContent>
+              <ConnectionTestPanel className="border-0 shadow-none p-0" />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      )}
     </div>
   );
 };
