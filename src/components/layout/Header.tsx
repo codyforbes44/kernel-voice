@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { UserMenu } from './UserMenu';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { ThemePreview } from '@/components/ThemePreview';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Mic, Download, LayoutDashboard, Menu } from 'lucide-react';
 import {
@@ -119,7 +119,7 @@ export const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <ThemeToggle />
+            <ThemePreview />
             
             {user ? (
               <UserMenu user={user} />
