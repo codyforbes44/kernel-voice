@@ -7,6 +7,7 @@ import { useVoiceProviderPreference, type VoiceProvider, type GrokVoice } from '
 import { useGrokConversation } from '@/hooks/useGrokConversation';
 import { type LiveTranscript } from '@/components/voice/LiveTranscripts';
 import { type InputMode } from '@/components/voice/InputModeSelector';
+import { useInputModePreference } from '@/hooks/useInputModePreference';
 interface UseVoiceAssistantReturn {
   // Auth state
   isAuthenticated: boolean;
@@ -77,7 +78,6 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   // Controls
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [inputMode, setInputMode] = useState<InputMode>('combined');
   
   // Guest mode
   const [guestMessages, setGuestMessages] = useState<Array<{ role: string; content: string }>>([]);
@@ -85,6 +85,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   
   // Microphone permission
   const { permissionState, requestPermission, isReady } = useMicrophonePermission();
+  
+  // Input mode preference (persisted)
+  const { inputMode, setInputMode, loading: inputModeLoading } = useInputModePreference(isAuthenticated);
   
   // Voice provider state
   const { 
