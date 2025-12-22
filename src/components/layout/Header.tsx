@@ -41,7 +41,7 @@ export const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
             <Mic className="h-5 w-5 sm:h-6 sm:w-6 text-primary group-hover:text-primary/80 transition-colors" />
-            <span className="font-bold text-base sm:text-lg hidden sm:inline-block">AI Intelligence</span>
+            <span className="font-bold text-base sm:text-lg hidden sm:inline-block">Kernel</span>
           </Link>
 
           {/* Auth Section */}

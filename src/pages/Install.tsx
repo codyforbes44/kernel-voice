@@ -49,8 +49,8 @@ const Install = () => {
   return (
     <>
       <SEO 
-        title="Install App - AI Intelligence"
-        description="Install AI Intelligence as a native app on your device. Works offline with faster performance, native notifications, and seamless experience across all platforms."
+        title="Install App - Kernel"
+        description="Install Kernel as a native app on your device. Works offline with faster performance, native notifications, and seamless experience across all platforms."
         image="/og-install.png"
         keywords={["install PWA", "voice assistant app", "offline AI", "progressive web app", "native app experience"]}
       />
@@ -64,7 +64,7 @@ const Install = () => {
           </div>
           <div>
             <CardTitle className="text-3xl font-display mb-2">
-              Install Voice AI
+              Install Kernel
             </CardTitle>
             <CardDescription className="text-base">
               Get the full app experience with offline support

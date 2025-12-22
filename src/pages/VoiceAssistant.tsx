@@ -105,7 +105,7 @@ const VoiceAssistant = () => {
     isSupported: isWakeWordSupported,
     lastHeard: wakeWordLastHeard,
   } = useWakeWordDetection({
-    wakeWords: ['hey assistant', 'hey ai', 'ok assistant', 'hello assistant'],
+    wakeWords: ['hey kernel', 'ok kernel', 'kernel'],
     onWakeWordDetected: handleWakeWordDetected,
     enabled: wakeWordEnabled,
   });
@@ -159,7 +159,7 @@ const VoiceAssistant = () => {
           )}
         </div>
         <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          AI Intelligence
+          Kernel
         </h1>
         <div className="flex-1 flex justify-end">
           {isMobile ? (
@@ -435,7 +435,7 @@ const VoiceAssistant = () => {
     return (
       <>
         <SEO 
-          title="AI Intelligence - Voice Assistant"
+          title="Kernel - Voice Assistant"
           description="Experience the future of AI interaction with real-time voice conversations, intelligent web search, and advanced document analysis."
           image="/og-home.png"
           keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI"]}

@@ -29,7 +29,7 @@ serve(async (req) => {
     }
 
     // Default system instructions for the AI assistant
-    const defaultInstructions = `You are a helpful, friendly AI voice assistant. 
+    const defaultInstructions = `You are Kernel, a helpful, friendly AI voice assistant. 
 
 Your capabilities:
 - Answer questions clearly and concisely

@@ -57,7 +57,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 4096,
-        system: 'You are a helpful, intelligent AI assistant. You provide accurate, thoughtful responses and can help with a wide variety of tasks. When you need current information, you can use the web_search tool. When asked about documents, you can use the query_document tool.',
+        system: 'You are Kernel, a helpful, intelligent AI assistant. You provide accurate, thoughtful responses and can help with a wide variety of tasks. When you need current information, you can use the web_search tool. When asked about documents, you can use the query_document tool.',
         messages: allMessages.map(msg => ({
           role: msg.role === 'assistant' ? 'assistant' : 'user',
           content: msg.content
