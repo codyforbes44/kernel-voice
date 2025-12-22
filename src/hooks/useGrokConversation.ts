@@ -178,6 +178,29 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           setStatus('connected');
           setRetryCount(0);
           options.onConnect?.();
+          
+          // Send session.update with voice config AFTER session.created
+          const voiceSetting = options.voice || 'Charon';
+          const sessionUpdate = {
+            type: 'session.update',
+            session: {
+              voice: voiceSetting,
+              instructions: options.instructions || 'You are a helpful voice assistant. Be concise and conversational.',
+              audio: {
+                input: { format: { type: 'audio/pcm', rate: 24000 } },
+                output: { format: { type: 'audio/pcm', rate: 24000 } }
+              },
+              turn_detection: {
+                type: 'server_vad',
+                threshold: 0.5,
+                prefix_padding_ms: 300,
+                silence_duration_ms: 200
+              }
+            }
+          };
+          log.verbose('Sending session.update:', sessionUpdate);
+          safeSend(JSON.stringify(sessionUpdate));
+          
           // Start recording after session is ready
           setTimeout(() => {
             startRecordingRef.current?.(audioConfigRef.current.inputRate);
