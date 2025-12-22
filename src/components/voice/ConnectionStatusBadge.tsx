@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Wifi, WifiOff, Loader2, AlertCircle } from 'lucide-react';
+import { Wifi, WifiOff, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ConnectionStatusBadgeProps {
@@ -10,6 +11,7 @@ interface ConnectionStatusBadgeProps {
   errorMessage?: string;
   provider: 'elevenlabs' | 'grok';
   authMethod?: string;
+  onRetry?: () => void;
   className?: string;
 }
 
@@ -20,6 +22,7 @@ export const ConnectionStatusBadge = ({
   errorMessage,
   provider,
   authMethod,
+  onRetry,
   className,
 }: ConnectionStatusBadgeProps) => {
   const getStatus = () => {
@@ -85,9 +88,27 @@ export const ConnectionStatusBadge = ({
           Trying different authentication methods...
         </div>
       )}
-      {hasError && errorMessage && (
-        <div className="text-destructive mt-1 pt-1 border-t border-destructive/20">
-          <span className="font-medium">Error:</span> {errorMessage}
+      {hasError && (
+        <div className="mt-2 pt-2 border-t border-destructive/20 space-y-2">
+          {errorMessage && (
+            <div className="text-destructive">
+              <span className="font-medium">Error:</span> {errorMessage}
+            </div>
+          )}
+          {onRetry && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="w-full h-7 text-xs gap-1.5"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRetry();
+              }}
+            >
+              <RefreshCw className="h-3 w-3" />
+              Retry Connection
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -95,7 +116,7 @@ export const ConnectionStatusBadge = ({
 
   return (
     <TooltipProvider>
-      <Tooltip>
+      <Tooltip delayDuration={0}>
         <TooltipTrigger asChild>
           <Badge
             variant={status.variant}
