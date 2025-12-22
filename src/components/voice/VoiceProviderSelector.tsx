@@ -13,6 +13,17 @@ import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { SystemPromptEditor, useSystemPromptPreference, DEFAULT_PROMPT } from './SystemPromptEditor';
 
 export interface OpenAIVoiceSettings {
@@ -457,16 +468,33 @@ export function VoiceProviderSelector({
                   </p>
                 </div>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetGrokSettings}
-                  disabled={disabled}
-                  className="w-full mt-2 text-muted-foreground hover:text-foreground"
-                >
-                  <RotateCcw className="h-3 w-3 mr-2" />
-                  Reset to Defaults
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={disabled}
+                      className="w-full mt-2 text-muted-foreground hover:text-foreground"
+                    >
+                      <RotateCcw className="h-3 w-3 mr-2" />
+                      Reset to Defaults
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Reset Grok Settings?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will reset your voice and all settings to their default values. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleResetGrokSettings}>
+                        Reset
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CollapsibleContent>
             </Collapsible>
           </div>
@@ -621,16 +649,33 @@ export function VoiceProviderSelector({
                   </p>
                 </div>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetOpenAISettings}
-                  disabled={disabled}
-                  className="w-full mt-2 text-muted-foreground hover:text-foreground"
-                >
-                  <RotateCcw className="h-3 w-3 mr-2" />
-                  Reset to Defaults
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={disabled}
+                      className="w-full mt-2 text-muted-foreground hover:text-foreground"
+                    >
+                      <RotateCcw className="h-3 w-3 mr-2" />
+                      Reset to Defaults
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Reset OpenAI Settings?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will reset your voice and all settings to their default values. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleResetOpenAISettings}>
+                        Reset
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CollapsibleContent>
             </Collapsible>
           </div>
