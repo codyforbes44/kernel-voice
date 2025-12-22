@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import SEO from '@/components/SEO';
 import { Header } from '@/components/layout/Header';
+import { OAuthButtons } from '@/components/auth/OAuthButtons';
 
 const REMEMBERED_EMAIL_KEY = 'remembered_email';
 
@@ -326,7 +327,8 @@ const Auth = () => {
                     <TabsTrigger value="signup">Sign Up</TabsTrigger>
                   </TabsList>
                   
-                  <TabsContent value="signin">
+                  <TabsContent value="signin" className="space-y-4">
+                    <OAuthButtons />
                     <form onSubmit={handleSignIn} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="signin-email">Email</Label>
@@ -391,7 +393,8 @@ const Auth = () => {
                     </form>
                   </TabsContent>
                   
-                  <TabsContent value="signup">
+                  <TabsContent value="signup" className="space-y-4">
+                    <OAuthButtons />
                     <form onSubmit={handleSignUp} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="signup-displayname">Display Name (Optional)</Label>
