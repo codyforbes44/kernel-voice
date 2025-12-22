@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { type OpenAIVoiceSettings, DEFAULT_OPENAI_SETTINGS } from '@/components/voice/VoiceProviderSelector';
+import { type OpenAIVoiceSettings, DEFAULT_OPENAI_SETTINGS, type OpenAIVoice } from '@/components/voice/voiceTypes';
+import { getVoiceToolsConfig } from '@/lib/voiceToolDefinitions';
 
-export type OpenAIVoice = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse';
+export type { OpenAIVoice } from '@/components/voice/voiceTypes';
 
 interface OpenAIConversationOptions {
   onConnect?: () => void;
@@ -314,57 +315,7 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
         setConnectionPhase('configuring');
         
         // Send session update with tools
-        const toolsConfig = options.clientTools ? [
-          {
-            type: 'function',
-            name: 'chat',
-            description: 'Have a conversation with the AI. Use this when the user wants to chat, ask questions, or discuss any topic.',
-            parameters: {
-              type: 'object',
-              properties: {
-                message: { type: 'string', description: 'The message or question to send to the AI' }
-              },
-              required: ['message']
-            }
-          },
-          {
-            type: 'function',
-            name: 'search',
-            description: 'Search the web for information. Use this when the user asks about current events or needs to look something up.',
-            parameters: {
-              type: 'object',
-              properties: {
-                query: { type: 'string', description: 'The search query' }
-              },
-              required: ['query']
-            }
-          },
-          {
-            type: 'function',
-            name: 'query_document',
-            description: 'Query an uploaded document for specific information.',
-            parameters: {
-              type: 'object',
-              properties: {
-                documentId: { type: 'string', description: 'The ID of the document' },
-                query: { type: 'string', description: 'The question about the document' }
-              },
-              required: ['documentId', 'query']
-            }
-          },
-          {
-            type: 'function',
-            name: 'kb_search',
-            description: 'Search the knowledge base for information from uploaded documents.',
-            parameters: {
-              type: 'object',
-              properties: {
-                query: { type: 'string', description: 'The search query for the knowledge base' }
-              },
-              required: ['query']
-            }
-          }
-        ] : undefined;
+        const toolsConfig = getVoiceToolsConfig(options.clientTools, false);
         
         const sessionUpdate = {
           type: 'session.update',
