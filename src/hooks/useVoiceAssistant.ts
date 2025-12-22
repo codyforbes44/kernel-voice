@@ -28,6 +28,8 @@ interface UseVoiceAssistantReturn {
   
   // Connection state
   isConnected: boolean;
+  isConnecting: boolean;
+  connectionError: string | null;
   isSpeaking: boolean;
   
   // Controls
@@ -39,6 +41,8 @@ interface UseVoiceAssistantReturn {
   // Actions
   startConversation: () => Promise<void>;
   endConversation: () => Promise<void>;
+  retryConnection: () => Promise<void>;
+  clearConnectionError: () => void;
   
   // Transcripts
   liveTranscripts: LiveTranscript[];
@@ -361,6 +365,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   // Use the selected provider's conversation
   const conversation = voiceProvider === 'elevenlabs' ? elevenlabsConversation : grokConversation;
   const isConnected = conversation.status === 'connected';
+  const isConnecting = voiceProvider === 'grok' ? grokConversation.status === 'connecting' : false;
+  const connectionError = voiceProvider === 'grok' ? grokConversation.connectionError : null;
 
   const startConversation = async () => {
     try {
@@ -384,7 +390,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     } catch (error) {
       console.error('Error starting conversation:', error);
       toast({
-        title: 'Error',
+        title: 'Connection Failed',
         description: error instanceof Error ? error.message : 'Failed to start conversation',
         variant: 'destructive',
       });
@@ -400,6 +406,19 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     
     if (!isAuthenticated && guestMessages.length > 0) {
       setShowRegistrationPrompt(true);
+    }
+  };
+
+  const retryConnection = async () => {
+    if (voiceProvider === 'grok') {
+      grokConversation.clearError();
+    }
+    await startConversation();
+  };
+
+  const clearConnectionError = () => {
+    if (voiceProvider === 'grok') {
+      grokConversation.clearError();
     }
   };
 
@@ -428,6 +447,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     
     // Connection state
     isConnected,
+    isConnecting,
+    connectionError,
     isSpeaking: conversation.isSpeaking,
     
     // Controls
@@ -439,6 +460,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     // Actions
     startConversation,
     endConversation,
+    retryConnection,
+    clearConnectionError,
     
     // Transcripts
     liveTranscripts,

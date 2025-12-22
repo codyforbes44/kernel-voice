@@ -32,8 +32,9 @@ interface GrokSessionConfig {
 }
 
 export function useGrokConversation(options: GrokConversationOptions = {}) {
-  const [status, setStatus] = useState<'connected' | 'disconnected'>('disconnected');
+  const [status, setStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -44,6 +45,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const configRef = useRef<GrokSessionConfig | null>(null);
   const sessionCreatedRef = useRef(false);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const playNextAudio = useCallback(async () => {
     if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
@@ -283,7 +285,25 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const startSession = useCallback(async () => {
     try {
       console.log('Starting Grok session...');
+      setConnectionError(null);
+      setStatus('connecting');
       sessionCreatedRef.current = false;
+      
+      // Set connection timeout (15 seconds)
+      connectionTimeoutRef.current = setTimeout(() => {
+        if (status === 'connecting') {
+          const error = new Error('Connection timeout - please try again');
+          setConnectionError(error.message);
+          setStatus('disconnected');
+          options.onError?.(error);
+          // Clean up WebSocket if exists
+          if (wsRef.current) {
+            wsRef.current.close();
+            wsRef.current = null;
+          }
+          stopRecording();
+        }
+      }, 15000);
       
       // Get session config from edge function (includes ephemeral token in URL)
       const { data, error } = await supabase.functions.invoke('grok-voice-session', {
@@ -295,12 +315,18 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       
       if (error) {
         console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to get Grok session config');
+        const errorMsg = error.message || 'Failed to get Grok session config';
+        setConnectionError(errorMsg);
+        setStatus('disconnected');
+        throw new Error(errorMsg);
       }
       
       if (!data?.wsUrl) {
         console.error('Invalid session config:', data);
-        throw new Error('Failed to get Grok session config: missing wsUrl');
+        const errorMsg = 'Failed to get Grok session config: missing wsUrl';
+        setConnectionError(errorMsg);
+        setStatus('disconnected');
+        throw new Error(errorMsg);
       }
       
       console.log('Got session config, connecting to WebSocket...');
@@ -314,6 +340,11 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       
       ws.onopen = () => {
         console.log('Grok WebSocket connected, waiting for session.created...');
+        // Clear timeout on successful connection
+        if (connectionTimeoutRef.current) {
+          clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
         // Don't send anything here - wait for session.created event
       };
       
@@ -322,11 +353,36 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       ws.onerror = (error) => {
         console.error('Grok WebSocket error:', error);
         console.error('WebSocket readyState:', ws.readyState);
-        options.onError?.(new Error('WebSocket connection error'));
+        const errorMsg = 'WebSocket connection error - check your network';
+        setConnectionError(errorMsg);
+        setStatus('disconnected');
+        options.onError?.(new Error(errorMsg));
       };
       
       ws.onclose = (event) => {
         console.log('Grok WebSocket closed - code:', event.code, 'reason:', event.reason, 'wasClean:', event.wasClean);
+        
+        // Clear timeout
+        if (connectionTimeoutRef.current) {
+          clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
+        
+        // Provide helpful error messages based on close code
+        if (event.code !== 1000 && event.code !== 1005) {
+          let errorMsg = `Connection closed unexpectedly (code: ${event.code})`;
+          if (event.code === 1006) {
+            errorMsg = 'Connection lost - please check your network and try again';
+          } else if (event.code === 1008) {
+            errorMsg = 'Policy violation - please try again';
+          } else if (event.code === 1011) {
+            errorMsg = 'Server error - please try again later';
+          } else if (event.reason) {
+            errorMsg = event.reason;
+          }
+          setConnectionError(errorMsg);
+        }
+        
         stopRecording();
         setStatus('disconnected');
         options.onDisconnect?.();
@@ -334,11 +390,22 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       
     } catch (error) {
       console.error('Error starting Grok session:', error);
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
+      setStatus('disconnected');
       throw error;
     }
-  }, [options, handleWebSocketMessage, stopRecording]);
+  }, [options, handleWebSocketMessage, stopRecording, status]);
 
   const endSession = useCallback(async () => {
+    // Clear connection timeout
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
+    
     stopRecording();
     
     if (currentAudioRef.current) {
@@ -360,9 +427,16 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     setStatus('disconnected');
   }, [stopRecording]);
 
+  const clearError = useCallback(() => {
+    setConnectionError(null);
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+      }
       endSession();
     };
   }, [endSession]);
@@ -370,7 +444,9 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   return {
     status,
     isSpeaking,
+    connectionError,
     startSession,
     endSession,
+    clearError,
   };
 }
