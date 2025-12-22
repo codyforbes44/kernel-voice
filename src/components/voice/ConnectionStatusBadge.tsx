@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Wifi, WifiOff, Loader2, AlertCircle, RefreshCw, Server, Zap, CheckCircle2 } from 'lucide-react';
+import { Wifi, WifiOff, Loader2, AlertCircle, RefreshCw, CheckCircle2, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConnectionPhase } from '@/hooks/useGrokConversation';
 
@@ -13,6 +13,7 @@ interface ConnectionStatusBadgeProps {
   provider: 'elevenlabs' | 'grok';
   authMethod?: string;
   connectionPhase?: ConnectionPhase;
+  isFallbackMode?: boolean;
   onRetry?: () => void;
   className?: string;
 }
@@ -25,6 +26,7 @@ export const ConnectionStatusBadge = ({
   provider,
   authMethod,
   connectionPhase,
+  isFallbackMode,
   onRetry,
   className,
 }: ConnectionStatusBadgeProps) => {
@@ -41,6 +43,8 @@ export const ConnectionStatusBadge = ({
         return { label: 'Configuring session...', step: 3 };
       case 'ready':
         return { label: 'Ready', step: 4 };
+      case 'fallback':
+        return { label: 'TTS Fallback', step: 4 };
       case 'error':
         return { label: 'Connection failed', step: 0 };
       default:
@@ -50,12 +54,21 @@ export const ConnectionStatusBadge = ({
   
   const phaseInfo = getPhaseInfo();
   const getStatus = () => {
-    if (hasError) {
+    if (hasError && !isFallbackMode) {
       return {
         label: 'Error',
         icon: AlertCircle,
         variant: 'destructive' as const,
         dotColor: 'bg-destructive',
+        animate: false,
+      };
+    }
+    if (isFallbackMode) {
+      return {
+        label: 'Fallback',
+        icon: Volume2,
+        variant: 'secondary' as const,
+        dotColor: 'bg-orange-500',
         animate: false,
       };
     }
@@ -140,7 +153,17 @@ export const ConnectionStatusBadge = ({
           Connecting to ElevenLabs...
         </div>
       )}
-      {hasError && (
+      {isFallbackMode && (
+        <div className="mt-2 pt-2 border-t border-orange-500/20 space-y-1">
+          <div className="font-medium text-orange-600 dark:text-orange-400">
+            TTS Fallback Active
+          </div>
+          <div className="text-muted-foreground text-[11px]">
+            Using ElevenLabs for text-to-speech. Voice input is disabled - use text input instead.
+          </div>
+        </div>
+      )}
+      {hasError && !isFallbackMode && (
         <div className="mt-2 pt-2 border-t border-destructive/20 space-y-2">
           {errorMessage && (
             <div className="text-destructive">
