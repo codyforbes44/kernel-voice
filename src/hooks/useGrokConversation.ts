@@ -26,13 +26,8 @@ interface GrokSessionConfig {
   language: string | null;
   instructions: string;
   audioFormat: {
-    input: string;
-    output: string;
-    sampleRate: number;
-  };
-  vad?: {
-    enabled: boolean;
-    silenceThresholdMs: number;
+    input: { format: { type: string; rate: number } };
+    output: { format: { type: string; rate: number } };
   };
 }
 
@@ -104,23 +99,17 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     const config = configRef.current;
     console.log('Sending session.update with config:', config.voice);
 
+    // Use xAI-compatible session.update format
     wsRef.current.send(JSON.stringify({
       type: 'session.update',
       session: {
-        modalities: ['text', 'audio'],
-        instructions: config.instructions,
         voice: config.voice,
-        input_audio_format: config.audioFormat.input,
-        output_audio_format: config.audioFormat.output,
-        input_audio_transcription: {
-          model: 'whisper-1',
+        instructions: config.instructions,
+        audio: {
+          input: config.audioFormat.input,
+          output: config.audioFormat.output,
         },
-        turn_detection: {
-          type: 'server_vad',
-          threshold: 0.5,
-          prefix_padding_ms: 300,
-          silence_duration_ms: config.vad?.silenceThresholdMs || 500,
-        },
+        turn_detection: { type: 'server_vad' },
         tools: options.clientTools ? Object.keys(options.clientTools).map(name => ({
           type: 'function',
           name,
@@ -154,7 +143,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           options.onConnect?.();
           // Start recording after session is fully configured
           if (configRef.current) {
-            startRecording(configRef.current.audioFormat.sampleRate);
+            startRecording(configRef.current.audioFormat.input.format.rate);
           }
           break;
           
@@ -179,7 +168,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         case 'response.audio.delta':
           // Received audio chunk from Grok
           if (message.delta) {
-            const wavBlob = pcm16ToWavBlob(message.delta, configRef.current?.audioFormat.sampleRate || 24000);
+            const wavBlob = pcm16ToWavBlob(message.delta, configRef.current?.audioFormat.output.format.rate || 24000);
             audioQueueRef.current.push(wavBlob);
             playNextAudio();
           }
