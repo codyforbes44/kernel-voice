@@ -77,6 +77,12 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const [isFallbackMode] = useState(false);
   const [activeToolCall, setActiveToolCall] = useState<ToolExecution | null>(null);
   
+  // Use refs to stabilize options and prevent callback churn
+  const optionsRef = useRef(options);
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+  
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -178,7 +184,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       const message: GrokMessage = JSON.parse(event.data);
       log.basic(`Message received: ${message.type}`);
       log.verbose('Message data:', message);
-      options.onMessage?.(message);
+      optionsRef.current.onMessage?.(message);
       
       switch (message.type) {
         case 'session.created':
@@ -187,13 +193,13 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           setConnectionPhase('configuring');
           setStatus('connected');
           setRetryCount(0);
-          options.onConnect?.();
+          optionsRef.current.onConnect?.();
           
           // Send session.update with voice config and tools AFTER session.created
-          const voiceSetting = options.voice || 'Charon';
+          const voiceSetting = optionsRef.current.voice || 'Charon';
           
           // Build tools array if clientTools are provided
-          const toolsConfig = options.clientTools ? [
+          const toolsConfig = optionsRef.current.clientTools ? [
             {
               type: 'function',
               name: 'chat',
@@ -264,16 +270,16 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
             type: 'session.update',
             session: {
               voice: voiceSetting,
-              instructions: options.instructions || 'You are a helpful voice assistant. Be concise and conversational. You have access to tools for chatting, searching the web, and querying documents. Use them when appropriate.',
+              instructions: optionsRef.current.instructions || 'You are a helpful voice assistant. Be concise and conversational. You have access to tools for chatting, searching the web, and querying documents. Use them when appropriate.',
               audio: {
                 input: { format: { type: 'audio/pcm', rate: 24000 } },
                 output: { format: { type: 'audio/pcm', rate: 24000 } }
               },
               turn_detection: {
                 type: 'server_vad',
-                threshold: options.settings?.vadThreshold ?? DEFAULT_GROK_SETTINGS.vadThreshold,
-                prefix_padding_ms: options.settings?.prefixPadding ?? DEFAULT_GROK_SETTINGS.prefixPadding,
-                silence_duration_ms: options.settings?.silenceDuration ?? DEFAULT_GROK_SETTINGS.silenceDuration
+                threshold: optionsRef.current.settings?.vadThreshold ?? DEFAULT_GROK_SETTINGS.vadThreshold,
+                prefix_padding_ms: optionsRef.current.settings?.prefixPadding ?? DEFAULT_GROK_SETTINGS.prefixPadding,
+                silence_duration_ms: optionsRef.current.settings?.silenceDuration ?? DEFAULT_GROK_SETTINGS.silenceDuration
               },
               ...(toolsConfig && { 
                 tools: toolsConfig,
@@ -310,7 +316,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         case 'conversation.item.input_audio_transcription.completed':
           if (message.transcript) {
             log.verbose(`User transcript: ${message.transcript}`);
-            options.onTranscript?.({ role: 'user', text: message.transcript });
+            optionsRef.current.onTranscript?.({ role: 'user', text: message.transcript });
           }
           break;
           
@@ -326,26 +332,26 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         case 'response.text.delta':
           if (message.delta) {
             log.verbose(`Text delta: ${message.delta}`);
-            options.onTranscript?.({ role: 'assistant', text: message.delta });
+            optionsRef.current.onTranscript?.({ role: 'assistant', text: message.delta });
           }
           break;
           
         case 'response.audio_transcript.delta':
           if (message.delta) {
             log.verbose(`Audio transcript delta: ${message.delta}`);
-            options.onTranscript?.({ role: 'assistant', text: message.delta });
+            optionsRef.current.onTranscript?.({ role: 'assistant', text: message.delta });
           }
           break;
           
         case 'response.function_call_arguments.done':
-          if (message.name && options.clientTools?.[message.name]) {
+          if (message.name && optionsRef.current.clientTools?.[message.name]) {
             log.basic(`Executing tool: ${message.name}`);
             setActiveToolCall({ name: message.name, status: 'executing', startedAt: new Date() });
             
             try {
               const args = JSON.parse(message.arguments || '{}');
               log.verbose('Tool arguments:', args);
-              const result = await options.clientTools[message.name](args);
+              const result = await optionsRef.current.clientTools![message.name](args);
               log.verbose('Tool result:', result);
               
               setActiveToolCall(prev => prev ? { ...prev, status: 'completed' } : null);
@@ -375,13 +381,13 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           
         case 'error':
           log.error('Error from xAI:', message);
-          options.onError?.(new Error(message.message || message.error?.message || 'xAI error'));
+          optionsRef.current.onError?.(new Error(message.message || message.error?.message || 'xAI error'));
           break;
       }
     } catch (error) {
       log.error('Error parsing WebSocket message:', error);
     }
-  }, [options, playNextAudio, safeSend]);
+  }, [playNextAudio, safeSend]);
 
   const startRecording = useCallback(async (targetSampleRate: number) => {
     try {
@@ -562,7 +568,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           setConnectionError(error.message);
           setConnectionPhase('error');
           setStatus('disconnected');
-          options.onError?.(error);
+          optionsRef.current.onError?.(error);
           if (wsRef.current) {
             wsRef.current.close();
             wsRef.current = null;
@@ -574,16 +580,16 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         }
       }, 30000);
       
-      const voiceSetting = options.voice || 'Charon';
+      const voiceSetting = optionsRef.current.voice || 'Charon';
       console.log('[Grok] Voice setting:', voiceSetting);
-      console.log('[Grok] Has custom instructions:', !!options.instructions);
+      console.log('[Grok] Has custom instructions:', !!optionsRef.current.instructions);
       
       // Step 1: Get ephemeral token from edge function
       console.log('[Grok] Step 1: Requesting ephemeral token from xai-session-token...');
       const { data: tokenData, error: tokenError } = await supabase.functions.invoke('xai-session-token', {
         body: {
           voice: voiceSetting,
-          instructions: options.instructions,
+          instructions: optionsRef.current.instructions,
         },
       });
 
@@ -640,7 +646,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         setConnectionError(errorMsg);
         setConnectionPhase('error');
         setStatus('disconnected');
-        options.onError?.(new Error(errorMsg));
+        optionsRef.current.onError?.(new Error(errorMsg));
       };
       
       ws.onclose = (event) => {
@@ -675,7 +681,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         }
         
         setStatus('disconnected');
-        options.onDisconnect?.();
+        optionsRef.current.onDisconnect?.();
       };
       
     } catch (error) {
@@ -692,18 +698,39 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         scheduleRetry();
       }
     }
-  }, [options, handleWebSocketMessage, stopRecording, status, scheduleRetry]);
+  }, [handleWebSocketMessage, stopRecording, status, scheduleRetry]);
 
+  // Ref to track if a start is in progress
+  const isStartingRef = useRef(false);
+  
   const startSession = useCallback(async () => {
-    if (retryTimerRef.current) {
-      clearTimeout(retryTimerRef.current);
-      retryTimerRef.current = null;
+    // Guard: prevent re-entry if already connecting or connected
+    if (status === 'connecting' || status === 'connected') {
+      log.basic(`startSession blocked - already ${status}`);
+      return;
     }
-    isRetryingRef.current = false;
-    setRetryCount(0);
     
-    await startSessionInternal();
-  }, [startSessionInternal]);
+    // Guard: prevent concurrent start attempts
+    if (isStartingRef.current) {
+      log.basic('startSession blocked - start already in progress');
+      return;
+    }
+    
+    isStartingRef.current = true;
+    
+    try {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+      isRetryingRef.current = false;
+      setRetryCount(0);
+      
+      await startSessionInternal();
+    } finally {
+      isStartingRef.current = false;
+    }
+  }, [startSessionInternal, status]);
 
   const endSession = useCallback(async () => {
     if (connectionTimeoutRef.current) {
