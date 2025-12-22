@@ -83,8 +83,6 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "grok-2-public",
-            voice: voice,
             expires_after: { seconds: 300 },
           }),
         });
@@ -132,11 +130,10 @@ serve(async (req) => {
         
         // Step 2: Connect to xAI WebSocket with ephemeral token using 'key' parameter
         const encodedToken = encodeURIComponent(ephemeralToken);
-        const xaiWsUrl = `wss://api.x.ai/v1/realtime?model=grok-2-public&key=${encodedToken}`;
+        const xaiWsUrl = `wss://api.x.ai/v1/realtime?key=${encodedToken}`;
         
         console.log('[grok-relay] ====== Connecting to xAI WebSocket ======');
         console.log('[grok-relay] Using ephemeral token authentication');
-        console.log('[grok-relay] Model: grok-2-public');
         
         const connectStartTime = Date.now();
         
@@ -174,6 +171,7 @@ serve(async (req) => {
               const sessionUpdate = {
                 type: 'session.update',
                 session: {
+                  model: 'grok-2-public',
                   voice: voice,
                   instructions: instructions,
                   input_audio_format: 'pcm16',
