@@ -122,6 +122,7 @@ const VoiceAssistant = () => {
               errorMessage={connectionError || undefined}
               provider={voiceProvider}
               authMethod={connectionAuthMethod}
+              onRetry={retryConnection}
             />
           )}
         </div>
