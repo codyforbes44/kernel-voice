@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 import { useVoiceProviderPreference, type VoiceProvider, type GrokVoice } from '@/components/voice/VoiceProviderSelector';
-import { useGrokConversation, type ConnectionPhase } from '@/hooks/useGrokConversation';
+import { useGrokConversation, type ConnectionPhase, type ToolExecution } from '@/hooks/useGrokConversation';
 import { type LiveTranscript } from '@/components/voice/LiveTranscripts';
 import { type InputMode } from '@/components/voice/InputModeSelector';
 import { useInputModePreference } from '@/hooks/useInputModePreference';
@@ -54,6 +54,9 @@ interface UseVoiceAssistantReturn {
   clearConnectionError: () => void;
   sendTextMessage: (text: string) => Promise<void>;
   isProcessingText: boolean;
+  
+  // Tool execution
+  activeToolCall: ToolExecution | null;
   
   // Transcripts
   liveTranscripts: LiveTranscript[];
@@ -532,6 +535,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     clearConnectionError,
     sendTextMessage,
     isProcessingText,
+    
+    // Tool execution
+    activeToolCall: voiceProvider === 'grok' ? grokConversation.activeToolCall : null,
     
     // Transcripts
     liveTranscripts,
