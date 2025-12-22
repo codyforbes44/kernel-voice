@@ -296,6 +296,32 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         return JSON.stringify({ error: 'Failed to query document' });
       }
     },
+
+    kb_search: async (parameters: { query: string }) => {
+      try {
+        const { data, error } = await supabase.functions.invoke('kb-search', {
+          body: { query: parameters.query, limit: 5 },
+        });
+
+        if (error) throw error;
+
+        // Return the summary for voice response, with full results available
+        return JSON.stringify({
+          summary: data.summary,
+          resultCount: data.resultCount,
+          results: data.results?.map((r: any) => ({
+            documentName: r.documentName,
+            snippet: r.content?.substring(0, 200) + '...',
+          })),
+        });
+      } catch (error) {
+        console.error('Error in kb_search:', error);
+        return JSON.stringify({ 
+          error: 'Failed to search knowledge base',
+          summary: 'I was unable to search the knowledge base. Please try again.'
+        });
+      }
+    },
   };
 
   // ElevenLabs conversation hook

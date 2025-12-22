@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MessageSquare, FileText, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Search, MessageSquare, FileText, BookOpen, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +29,11 @@ const toolInfo: Record<string, { icon: typeof Search; label: string; color: stri
     icon: FileText,
     label: 'Analyzing document',
     color: 'text-amber-500',
+  },
+  kb_search: {
+    icon: BookOpen,
+    label: 'Searching knowledge base',
+    color: 'text-emerald-500',
   },
 };
 

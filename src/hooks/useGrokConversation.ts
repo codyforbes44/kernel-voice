@@ -239,6 +239,21 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
                 },
                 required: ['documentId', 'query']
               }
+            },
+            {
+              type: 'function',
+              name: 'kb_search',
+              description: 'Search the knowledge base for information from uploaded documents. Use this when the user asks questions that might be answered by documents in the knowledge base, such as company policies, procedures, FAQs, or any other stored knowledge.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: { 
+                    type: 'string',
+                    description: 'The search query to find relevant information in the knowledge base'
+                  }
+                },
+                required: ['query']
+              }
             }
           ] : undefined;
           
