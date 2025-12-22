@@ -35,17 +35,21 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const [status, setStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [inputAudioLevel, setInputAudioLevel] = useState(0);
+  const [outputAudioLevel, setOutputAudioLevel] = useState(0);
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const audioQueueRef = useRef<Blob[]>([]);
   const isPlayingRef = useRef(false);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const configRef = useRef<GrokSessionConfig | null>(null);
   const sessionCreatedRef = useRef(false);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const levelIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const playNextAudio = useCallback(async () => {
     if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
@@ -57,6 +61,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     if (!blob) {
       isPlayingRef.current = false;
       setIsSpeaking(false);
+      setOutputAudioLevel(0);
       return;
     }
     
@@ -64,10 +69,20 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     const audio = new Audio(url);
     currentAudioRef.current = audio;
     
+    // Simulate output level while speaking
+    const outputLevelInterval = setInterval(() => {
+      if (isPlayingRef.current) {
+        // Create natural-looking level variations
+        setOutputAudioLevel(0.4 + Math.random() * 0.5);
+      }
+    }, 100);
+    
     audio.onended = () => {
+      clearInterval(outputLevelInterval);
       URL.revokeObjectURL(url);
       isPlayingRef.current = false;
       currentAudioRef.current = null;
+      setOutputAudioLevel(0);
       
       if (audioQueueRef.current.length > 0) {
         playNextAudio();
@@ -77,18 +92,22 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     };
     
     audio.onerror = () => {
+      clearInterval(outputLevelInterval);
       URL.revokeObjectURL(url);
       isPlayingRef.current = false;
       currentAudioRef.current = null;
       setIsSpeaking(false);
+      setOutputAudioLevel(0);
     };
     
     try {
       await audio.play();
     } catch (error) {
+      clearInterval(outputLevelInterval);
       console.error('Error playing audio:', error);
       isPlayingRef.current = false;
       setIsSpeaking(false);
+      setOutputAudioLevel(0);
     }
   }, []);
 
@@ -235,6 +254,28 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       audioContextRef.current = new AudioContext({ sampleRate: 48000 });
       const source = audioContextRef.current.createMediaStreamSource(stream);
       
+      // Create analyser for audio level visualization
+      const analyser = audioContextRef.current.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      analyserRef.current = analyser;
+      source.connect(analyser);
+      
+      // Start level monitoring
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      levelIntervalRef.current = setInterval(() => {
+        if (analyserRef.current) {
+          analyserRef.current.getByteFrequencyData(dataArray);
+          // Calculate RMS level
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i] * dataArray[i];
+          }
+          const rms = Math.sqrt(sum / dataArray.length) / 255;
+          setInputAudioLevel(Math.min(1, rms * 2)); // Amplify for better visualization
+        }
+      }, 50);
+      
       // Use ScriptProcessorNode for audio processing
       const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
       processorRef.current = processor;
@@ -266,6 +307,19 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   }, []);
 
   const stopRecording = useCallback(() => {
+    // Stop level monitoring
+    if (levelIntervalRef.current) {
+      clearInterval(levelIntervalRef.current);
+      levelIntervalRef.current = null;
+    }
+    setInputAudioLevel(0);
+    setOutputAudioLevel(0);
+    
+    if (analyserRef.current) {
+      analyserRef.current.disconnect();
+      analyserRef.current = null;
+    }
+    
     if (processorRef.current) {
       processorRef.current.disconnect();
       processorRef.current = null;
@@ -445,6 +499,8 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     status,
     isSpeaking,
     connectionError,
+    inputAudioLevel,
+    outputAudioLevel,
     startSession,
     endSession,
     clearError,

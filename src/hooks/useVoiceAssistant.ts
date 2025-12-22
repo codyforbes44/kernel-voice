@@ -31,6 +31,8 @@ interface UseVoiceAssistantReturn {
   isConnecting: boolean;
   connectionError: string | null;
   isSpeaking: boolean;
+  inputAudioLevel: number;
+  outputAudioLevel: number;
   
   // Controls
   isMuted: boolean;
@@ -367,6 +369,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const isConnected = conversation.status === 'connected';
   const isConnecting = voiceProvider === 'grok' ? grokConversation.status === 'connecting' : false;
   const connectionError = voiceProvider === 'grok' ? grokConversation.connectionError : null;
+  const inputAudioLevel = voiceProvider === 'grok' ? grokConversation.inputAudioLevel : 0;
+  const outputAudioLevel = voiceProvider === 'grok' ? grokConversation.outputAudioLevel : 0;
 
   const startConversation = async () => {
     try {
@@ -450,6 +454,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     isConnecting,
     connectionError,
     isSpeaking: conversation.isSpeaking,
+    inputAudioLevel,
+    outputAudioLevel,
     
     // Controls
     isMuted,
