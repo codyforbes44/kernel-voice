@@ -132,7 +132,12 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         voice: config.voice,
         instructions: config.instructions,
         audio: config.audio,
-        turn_detection: { type: 'server_vad' },
+        turn_detection: {
+          type: 'server_vad',
+          threshold: 0.5,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 200,
+        },
         tools: options.clientTools ? Object.keys(options.clientTools).map(name => ({
           type: 'function',
           name,
