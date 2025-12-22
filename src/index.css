@@ -66,54 +66,57 @@ All colors MUST be HSL.
   }
 
   .dark {
-    /* OLED-Optimized Dark Theme - Kernel Cyan Brand */
+    /* OLED-Optimized Dark Theme - True Black for OLED displays */
     --background: 0 0% 0%;
-    --foreground: 213 31% 91%;
+    --foreground: 210 20% 92%;
 
-    --card: 0 0% 3%;
-    --card-foreground: 213 31% 91%;
+    --card: 0 0% 2%;
+    --card-foreground: 210 20% 92%;
 
-    --popover: 0 0% 3%;
-    --popover-foreground: 213 31% 91%;
+    --popover: 0 0% 2%;
+    --popover-foreground: 210 20% 92%;
 
     --primary: 180 100% 50%;
     --primary-foreground: 0 0% 0%;
-    --primary-glow: 180 100% 60%;
+    --primary-glow: 180 100% 65%;
 
     --secondary: 195 100% 60%;
     --secondary-foreground: 0 0% 0%;
 
-    --muted: 0 0% 6%;
-    --muted-foreground: 213 20% 60%;
+    --muted: 0 0% 5%;
+    --muted-foreground: 210 15% 55%;
 
-    --accent: 195 100% 60%;
+    --accent: 195 100% 55%;
     --accent-foreground: 0 0% 0%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 213 31% 91%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 20% 92%;
 
-    --border: 0 0% 10%;
-    --input: 0 0% 8%;
+    --border: 0 0% 8%;
+    --input: 0 0% 6%;
     --ring: 180 100% 50%;
 
-    --sidebar-background: 0 0% 2%;
-    --sidebar-foreground: 213 31% 91%;
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 210 20% 92%;
     --sidebar-primary: 180 100% 50%;
     --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 6%;
-    --sidebar-accent-foreground: 213 31% 91%;
-    --sidebar-border: 0 0% 10%;
+    --sidebar-accent: 0 0% 5%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 0 0% 8%;
     --sidebar-ring: 180 100% 50%;
 
-    /* Custom gradients */
+    /* OLED-optimized gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
     --gradient-accent: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
-    --gradient-hero: linear-gradient(180deg, hsl(0 0% 0%) 0%, hsl(180 10% 4%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 0%) 0%, hsl(180 15% 3%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 3%) 0%, hsl(0 0% 1%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(var(--primary) / 0.15) 0%, transparent 70%);
 
-    /* Shadows with glow */
-    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.35);
-    --shadow-accent-glow: 0 0 40px hsl(var(--secondary) / 0.3);
-    --shadow-card: 0 20px 50px -10px hsl(var(--primary) / 0.2);
+    /* Enhanced glow shadows for OLED */
+    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.4), 0 0 60px hsl(var(--primary) / 0.2);
+    --shadow-accent-glow: 0 0 30px hsl(var(--secondary) / 0.35), 0 0 60px hsl(var(--secondary) / 0.15);
+    --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.5), 0 0 40px hsl(var(--primary) / 0.08);
+    --shadow-border-glow: inset 0 0 0 1px hsl(var(--primary) / 0.1);
   }
 }
 
@@ -143,6 +146,39 @@ All colors MUST be HSL.
   
   .glow-accent {
     box-shadow: var(--shadow-accent-glow);
+  }
+
+  /* OLED-optimized glow effects */
+  .glow-border {
+    box-shadow: var(--shadow-border-glow);
+  }
+
+  .glow-subtle {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.15);
+  }
+
+  .glow-hover:hover {
+    box-shadow: 0 0 25px hsl(var(--primary) / 0.25), 0 0 50px hsl(var(--primary) / 0.1);
+  }
+
+  /* Ambient glow background */
+  .ambient-glow {
+    position: relative;
+  }
+  
+  .ambient-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-glow);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* Card glow effect for dark mode */
+  .dark .card-glow {
+    background: var(--gradient-card);
+    box-shadow: var(--shadow-card), var(--shadow-border-glow);
   }
 
   /* Hide scrollbars while keeping scroll functionality */
