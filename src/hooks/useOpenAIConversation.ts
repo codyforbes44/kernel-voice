@@ -19,7 +19,7 @@ interface OpenAIMessage {
   [key: string]: any;
 }
 
-export type ConnectionPhase = 'idle' | 'getting_token' | 'connecting_webrtc' | 'configuring' | 'ready' | 'error';
+import { type ConnectionPhase } from '@/hooks/useGrokConversation';
 
 const BUILD_VERSION = '2024-12-22-v1';
 

@@ -20,7 +20,7 @@ interface GrokMessage {
   [key: string]: any;
 }
 
-export type ConnectionPhase = 'idle' | 'getting_token' | 'connecting_xai' | 'configuring' | 'ready' | 'error';
+export type ConnectionPhase = 'idle' | 'getting_token' | 'connecting_xai' | 'connecting_webrtc' | 'configuring' | 'ready' | 'error';
 
 // Retry configuration
 const MAX_RETRIES = 3;
