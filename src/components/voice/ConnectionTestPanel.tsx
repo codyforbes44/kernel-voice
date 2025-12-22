@@ -77,6 +77,7 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
     }
   }, [addEvent]);
 
+  // Test direct xAI connection with ephemeral token
   const runTest = useCallback(async () => {
     setIsRunning(true);
     setResults([]);
@@ -85,23 +86,40 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
     setConnectionMethod(null);
     startTimeRef.current = Date.now();
 
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    if (!supabaseUrl) {
-      addResult({ phase: 'init', success: false, message: 'VITE_SUPABASE_URL not configured' });
-      setIsRunning(false);
-      return;
-    }
-
-    addResult({ phase: 'init', success: true, message: 'Environment configured' });
+    addResult({ phase: 'init', success: true, message: 'Starting direct xAI connection test' });
     addEvent('Starting connection test...');
 
-    // Build WebSocket URL
-    const wsUrl = `${supabaseUrl.replace('https://', 'wss://')}/functions/v1/grok-voice-relay?voice=Ara&debug=verbose`;
-    addEvent(`Connecting to: ${wsUrl}`);
-    setCurrentPhase('connecting');
-
     try {
-      const ws = new WebSocket(wsUrl);
+      // Step 1: Get ephemeral token
+      setCurrentPhase('fetching_token');
+      addEvent('Fetching ephemeral token from edge function...');
+      
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('xai-session-token', {
+        body: {}
+      });
+
+      if (tokenError || !tokenData?.client_secret?.value) {
+        const errorMsg = tokenError?.message || tokenData?.error || 'Failed to get session token';
+        addResult({ phase: 'token', success: false, message: errorMsg });
+        addEvent(`Token error: ${errorMsg}`);
+        setIsRunning(false);
+        return;
+      }
+
+      const token = tokenData.client_secret.value;
+      const elapsed = Date.now() - startTimeRef.current;
+      addResult({ phase: 'token', success: true, message: 'Ephemeral token received', timeMs: elapsed });
+      addEvent(`Token fetched in ${elapsed}ms`);
+
+      // Step 2: Connect directly to xAI WebSocket
+      setCurrentPhase('connecting');
+      const xaiUrl = 'wss://api.x.ai/v1/realtime?model=grok-2-public';
+      addEvent(`Connecting to xAI: ${xaiUrl}`);
+
+      const ws = new WebSocket(xaiUrl, [
+        'realtime',
+        `openai-insecure-api-key.${token}`,
+      ]);
       wsRef.current = ws;
 
       const timeout = setTimeout(() => {
@@ -114,9 +132,10 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
 
       ws.onopen = () => {
         const elapsed = Date.now() - startTimeRef.current;
-        addResult({ phase: 'connecting', success: true, message: 'WebSocket connected', timeMs: elapsed });
-        addEvent(`Connected in ${elapsed}ms`);
+        addResult({ phase: 'connecting', success: true, message: 'WebSocket connected to xAI', timeMs: elapsed });
+        addEvent(`Connected to xAI in ${elapsed}ms`);
         setCurrentPhase('waiting_session');
+        setConnectionMethod('direct_xai');
       };
 
       ws.onmessage = (event) => {
@@ -125,15 +144,30 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
           const elapsed = Date.now() - startTimeRef.current;
           addEvent(`Event: ${data.type}`);
 
-          if (data.type === 'relay.connected') {
-            addResult({ phase: 'relay', success: true, message: 'Relay connected to xAI', timeMs: elapsed });
-            // Check if we have connection method info
-            if (data.connectionMethod) {
-              setConnectionMethod(data.connectionMethod);
-            }
-          } else if (data.type === 'session.created') {
+          if (data.type === 'session.created') {
             addResult({ phase: 'session_created', success: true, message: 'Session created by xAI', timeMs: elapsed });
             setCurrentPhase('configuring');
+            
+            // Send session.update with voice config
+            ws.send(JSON.stringify({
+              type: 'session.update',
+              session: {
+                voice: 'Charon',
+                instructions: 'You are a helpful assistant.',
+                audio: {
+                  input: { format: { type: 'audio/pcm', rate: 24000 } },
+                  output: { format: { type: 'audio/pcm', rate: 24000 } }
+                },
+                turn_detection: {
+                  type: 'server_vad',
+                  threshold: 0.5,
+                  prefix_padding_ms: 300,
+                  silence_duration_ms: 200
+                }
+              }
+            }));
+            addEvent('Sent session.update with voice config');
+            
           } else if (data.type === 'session.updated') {
             addResult({ phase: 'session_configured', success: true, message: 'Session configured', timeMs: elapsed });
             setCurrentPhase('ready');
@@ -145,12 +179,13 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
               item: {
                 type: 'message',
                 role: 'user',
-                content: [{ type: 'input_text', text: 'Hello, this is a connection test.' }],
+                content: [{ type: 'input_text', text: 'Hello, this is a connection test. Reply with a single word.' }],
               },
             }));
             ws.send(JSON.stringify({ type: 'response.create' }));
             setCurrentPhase('awaiting_response');
-          } else if (data.type === 'response.audio.delta' || data.type === 'response.text.delta') {
+            
+          } else if (data.type === 'response.audio.delta' || data.type === 'response.text.delta' || data.type === 'response.audio_transcript.delta') {
             addResult({ phase: 'response', success: true, message: 'Received AI response', timeMs: elapsed });
             setCurrentPhase('complete');
             clearTimeout(timeout);
@@ -160,6 +195,7 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
               ws.close(1000, 'Test complete');
               setIsRunning(false);
             }, 500);
+            
           } else if (data.type === 'response.done') {
             if (currentPhase !== 'complete') {
               addResult({ phase: 'response', success: true, message: 'Response completed', timeMs: elapsed });
@@ -171,13 +207,10 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
               }, 500);
             }
           } else if (data.type === 'error') {
-            addResult({ phase: 'error', success: false, message: `API error: ${JSON.stringify(data.error || data)}` });
+            addResult({ phase: 'error', success: false, message: `xAI error: ${JSON.stringify(data.error || data)}` });
             clearTimeout(timeout);
             ws.close();
             setIsRunning(false);
-          } else if (data.type === 'fallback_active') {
-            addResult({ phase: 'fallback', success: true, message: 'Using ElevenLabs fallback' });
-            setConnectionMethod('elevenlabs_fallback');
           }
         } catch (e) {
           addEvent(`Parse error: ${e}`);
@@ -233,10 +266,10 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
               ) : (
                 <Wifi className="h-5 w-5 text-muted-foreground" />
               )}
-              Connection Test
+              xAI Direct Connection Test
             </CardTitle>
             <CardDescription>
-              Test WebSocket connectivity to the voice relay
+              Test ephemeral token + direct browser-to-xAI WebSocket
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -362,7 +395,7 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
         {/* Empty State */}
         {results.length === 0 && !isRunning && !keyValidation && (
           <p className="text-sm text-muted-foreground text-center py-4">
-            Click <Key className="inline h-3 w-3 mx-1" /> to validate API key, or "Run Test" to test the full connection
+            Click <Key className="inline h-3 w-3 mx-1" /> to validate API key, or "Run Test" to test direct xAI connection
           </p>
         )}
       </CardContent>

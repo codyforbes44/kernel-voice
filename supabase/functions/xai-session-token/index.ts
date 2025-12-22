@@ -5,74 +5,42 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface SessionTokenRequest {
-  voice?: string;
-  instructions?: string;
-}
-
-interface XAISessionResponse {
-  client_secret: {
-    value: string;
-    expires_at: number;
-  };
-  modalities?: string[];
-  model?: string;
-}
-
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Only accept POST
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
+  const XAI_API_KEY = Deno.env.get('XAI_API_KEY');
+  if (!XAI_API_KEY) {
+    console.error('[xai-session-token] XAI_API_KEY not configured');
+    return new Response(
+      JSON.stringify({ error: 'xAI API key not configured' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
-    const XAI_API_KEY = Deno.env.get('XAI_API_KEY');
-    if (!XAI_API_KEY) {
-      console.error('[xai-session-token] XAI_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ error: 'xAI API key not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Parse request body
-    let body: SessionTokenRequest = {};
-    try {
-      body = await req.json();
-    } catch {
-      // Empty body is fine, use defaults
-    }
-
-    const voice = body.voice || 'Charon';
-    const instructions = body.instructions || 'You are a helpful voice assistant. Be concise and conversational.';
-
     console.log('[xai-session-token] Requesting ephemeral token from xAI...');
-    console.log('[xai-session-token] Voice:', voice);
-    console.log('[xai-session-token] Has custom instructions:', !!body.instructions);
 
-    // Request ephemeral session token from xAI
-    const response = await fetch('https://api.x.ai/v1/realtime/sessions', {
+    // Request ephemeral client secret from xAI
+    // Endpoint: POST https://api.x.ai/v1/realtime/client_secrets
+    const response = await fetch('https://api.x.ai/v1/realtime/client_secrets', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${XAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'grok-2-public',
-        voice: voice,
-        instructions: instructions,
-        modalities: ['text', 'audio'],
-        input_audio_format: 'pcm16',
-        output_audio_format: 'pcm16',
-        input_audio_transcription: {
-          model: 'whisper-large-v3-turbo',
-        },
-        turn_detection: {
-          type: 'server_vad',
-          threshold: 0.5,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 500,
-        },
+        expires_after: { seconds: 300 }
       }),
     });
 
@@ -95,22 +63,21 @@ serve(async (req) => {
       }
       
       return new Response(
-        JSON.stringify({ error: `xAI API error: ${response.status}` }),
+        JSON.stringify({ error: `xAI API error: ${response.status} - ${errorText}` }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const sessionData: XAISessionResponse = await response.json();
-    console.log('[xai-session-token] Session created successfully');
-    console.log('[xai-session-token] Token expires at:', new Date(sessionData.client_secret.expires_at * 1000).toISOString());
+    const data = await response.json();
+    console.log('[xai-session-token] Token created successfully');
+    
+    if (data.client_secret?.expires_at) {
+      console.log('[xai-session-token] Token expires at:', new Date(data.client_secret.expires_at * 1000).toISOString());
+    }
 
     // Return the ephemeral token to the client
     return new Response(
-      JSON.stringify({
-        client_secret: sessionData.client_secret,
-        model: sessionData.model || 'grok-2-public',
-        modalities: sessionData.modalities || ['text', 'audio'],
-      }),
+      JSON.stringify(data),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
