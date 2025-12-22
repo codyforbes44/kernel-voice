@@ -25,9 +25,10 @@ interface GrokSessionConfig {
   voice: string;
   language: string | null;
   instructions: string;
-  inputAudioFormat: string;
-  outputAudioFormat: string;
-  sampleRate: number;
+  audio: {
+    input: { format: { type: string; rate: number } };
+    output: { format: { type: string; rate: number } };
+  };
 }
 
 export function useGrokConversation(options: GrokConversationOptions = {}) {
@@ -98,15 +99,13 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     const config = configRef.current;
     console.log('Sending session.update with config:', config.voice);
 
-    // xAI Realtime API session.update format
+    // xAI Realtime API session.update format - uses nested audio object
     const sessionUpdate = {
       type: 'session.update',
       session: {
-        modalities: ['text', 'audio'],
         voice: config.voice,
         instructions: config.instructions,
-        input_audio_format: config.inputAudioFormat,
-        output_audio_format: config.outputAudioFormat,
+        audio: config.audio,
         turn_detection: { type: 'server_vad' },
         tools: options.clientTools ? Object.keys(options.clientTools).map(name => ({
           type: 'function',
@@ -144,7 +143,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           options.onConnect?.();
           // Start recording after session is fully configured
           if (configRef.current) {
-            startRecording(configRef.current.sampleRate);
+            startRecording(configRef.current.audio.input.format.rate);
           }
           break;
           
@@ -169,7 +168,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         case 'response.audio.delta':
           // Received audio chunk from Grok
           if (message.delta) {
-            const wavBlob = pcm16ToWavBlob(message.delta, configRef.current?.sampleRate || 24000);
+            const wavBlob = pcm16ToWavBlob(message.delta, configRef.current?.audio.output.format.rate || 24000);
             audioQueueRef.current.push(wavBlob);
             playNextAudio();
           }
