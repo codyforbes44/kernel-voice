@@ -21,14 +21,12 @@ Guidelines:
 - Be helpful, honest, and harmless
 - If you don't know something, say so rather than making things up`;
 
-// Token parameter variations to try
-const TOKEN_PARAM_FORMATS = ['token', 'key', 'api_key', 'access_token'];
-
 // Fetch ephemeral token from xAI
 async function fetchEphemeralToken(apiKey: string): Promise<string> {
   console.log('Fetching ephemeral token from xAI...');
   
-  const response = await fetch('https://api.x.ai/v1/realtime/sessions', {
+  // Use the correct endpoint for client secrets
+  const response = await fetch('https://api.x.ai/v1/realtime/client_secrets', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -101,30 +99,35 @@ serve(async (req) => {
     let isClientConnected = true;
     let isXaiConnected = false;
     let sessionConfigured = false;
-    let currentTokenParamIndex = 0;
     let connectionTimeout: number | null = null;
 
-    // Setup xAI socket event handlers
-    const setupXaiSocketHandlers = (socket: WebSocket, paramName: string, ephemeralToken: string) => {
-      socket.onopen = () => {
+    // Connect to xAI with the ephemeral token
+    const connectToXai = (ephemeralToken: string) => {
+      // Use 'key' parameter as per xAI documentation
+      const xaiWsUrl = `wss://api.x.ai/v1/realtime?model=grok-2-public&key=${ephemeralToken}`;
+      
+      console.log('Connecting to xAI Realtime API...');
+      
+      xaiSocket = new WebSocket(xaiWsUrl);
+      
+      xaiSocket.onopen = () => {
         if (connectionTimeout) {
           clearTimeout(connectionTimeout);
           connectionTimeout = null;
         }
-        console.log(`Connected to xAI Realtime API using param '${paramName}'`);
+        console.log('Connected to xAI Realtime API');
         isXaiConnected = true;
         
         // Notify client that connection is ready
         if (clientSocket.readyState === WebSocket.OPEN) {
           clientSocket.send(JSON.stringify({
             type: 'relay.connected',
-            message: 'Connected to Grok voice service',
-            tokenParam: paramName
+            message: 'Connected to Grok voice service'
           }));
         }
       };
 
-      socket.onmessage = (event) => {
+      xaiSocket.onmessage = (event) => {
         const data = event.data;
         console.log('xAI message received:', typeof data === 'string' ? data.substring(0, 100) : 'binary');
         
@@ -147,7 +150,7 @@ serve(async (req) => {
               },
             };
             
-            socket.send(JSON.stringify(sessionUpdate));
+            xaiSocket?.send(JSON.stringify(sessionUpdate));
           }
           
           // Forward all messages to client
@@ -162,37 +165,20 @@ serve(async (req) => {
         }
       };
 
-      socket.onerror = (error) => {
-        console.error(`xAI WebSocket error with param '${paramName}':`, error);
+      xaiSocket.onerror = (error) => {
+        console.error('xAI WebSocket error:', error);
         
-        // If not connected yet, try next param format
-        if (!isXaiConnected && currentTokenParamIndex < TOKEN_PARAM_FORMATS.length - 1) {
-          console.log(`Trying next token param format...`);
-          currentTokenParamIndex++;
-          tryConnectWithParam(ephemeralToken);
-        } else if (!isXaiConnected) {
-          // All formats failed
-          if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
-            clientSocket.send(JSON.stringify({
-              type: 'error',
-              error: { message: 'All connection attempts to Grok service failed' }
-            }));
-            clientSocket.close(1011, 'Failed to connect to xAI');
-          }
+        if (!isXaiConnected && isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
+          clientSocket.send(JSON.stringify({
+            type: 'error',
+            error: { message: 'Failed to connect to Grok service' }
+          }));
+          clientSocket.close(1011, 'Failed to connect to xAI');
         }
       };
 
-      socket.onclose = (event) => {
-        console.log(`xAI WebSocket closed (param '${paramName}'):`, event.code, event.reason);
-        
-        // If closed before connection was established, try next format
-        if (!isXaiConnected && currentTokenParamIndex < TOKEN_PARAM_FORMATS.length - 1) {
-          console.log(`Connection closed before established, trying next format...`);
-          currentTokenParamIndex++;
-          tryConnectWithParam(ephemeralToken);
-          return;
-        }
-        
+      xaiSocket.onclose = (event) => {
+        console.log('xAI WebSocket closed:', event.code, event.reason);
         isXaiConnected = false;
         
         if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
@@ -204,27 +190,12 @@ serve(async (req) => {
           clientSocket.close(1000, 'xAI connection closed');
         }
       };
-    };
-
-    // Try to connect with a specific token parameter format
-    const tryConnectWithParam = (ephemeralToken: string) => {
-      const paramName = TOKEN_PARAM_FORMATS[currentTokenParamIndex];
-      const xaiWsUrl = `wss://api.x.ai/v1/realtime?model=grok-2-public&${paramName}=${ephemeralToken}`;
       
-      console.log(`Attempting connection ${currentTokenParamIndex + 1}/${TOKEN_PARAM_FORMATS.length} with param '${paramName}'`);
-      
-      xaiSocket = new WebSocket(xaiWsUrl);
-      setupXaiSocketHandlers(xaiSocket, paramName, ephemeralToken);
-      
-      // Set timeout to try next format if connection doesn't establish
+      // Set connection timeout
       connectionTimeout = setTimeout(() => {
-        if (!isXaiConnected && currentTokenParamIndex < TOKEN_PARAM_FORMATS.length - 1) {
-          console.log(`Connection with '${paramName}' timed out after 5s, trying next format...`);
+        if (!isXaiConnected) {
+          console.log('Connection to xAI timed out');
           xaiSocket?.close();
-          currentTokenParamIndex++;
-          tryConnectWithParam(ephemeralToken);
-        } else if (!isXaiConnected) {
-          console.log('All connection attempts timed out');
           if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
             clientSocket.send(JSON.stringify({
               type: 'error',
@@ -233,7 +204,7 @@ serve(async (req) => {
             clientSocket.close(1011, 'Connection timeout');
           }
         }
-      }, 5000) as unknown as number;
+      }, 10000) as unknown as number;
     };
 
     // Handle client connection open
@@ -244,8 +215,8 @@ serve(async (req) => {
         // Fetch ephemeral token first
         const ephemeralToken = await fetchEphemeralToken(XAI_API_KEY);
         
-        // Start trying connection with different param formats
-        tryConnectWithParam(ephemeralToken);
+        // Connect to xAI with the token
+        connectToXai(ephemeralToken);
         
       } catch (error) {
         console.error('Error getting ephemeral token:', error);
