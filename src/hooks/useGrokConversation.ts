@@ -304,10 +304,12 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       }
       
       console.log('Got session config, connecting to WebSocket...');
+      console.log('WebSocket URL:', data.wsUrl);
       configRef.current = data;
       
       // Connect to Grok WebSocket - URL already includes the ephemeral token
-      const ws = new WebSocket(data.wsUrl);
+      // Use 'realtime' subprotocol as required by xAI
+      const ws = new WebSocket(data.wsUrl, ['realtime']);
       wsRef.current = ws;
       
       ws.onopen = () => {
