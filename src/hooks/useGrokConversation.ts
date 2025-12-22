@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { floatTo16BitPCM, pcm16ToWavBlob, arrayBufferToBase64, resampleAudio } from '@/lib/audioUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { getVoiceToolsConfig } from '@/lib/voiceToolDefinitions';
+import { type GrokVoiceSettings, DEFAULT_GROK_SETTINGS, type GrokVoice } from '@/components/voice/voiceTypes';
 
-export type GrokVoice = 'Charon' | 'Celeste' | 'Clio' | 'Zephyr' | 'Sol';
-
-import { type GrokVoiceSettings, DEFAULT_GROK_SETTINGS } from '@/components/voice/VoiceProviderSelector';
+export type { GrokVoice } from '@/components/voice/voiceTypes';
 
 interface GrokConversationOptions {
   onConnect?: () => void;
@@ -199,72 +199,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           const voiceSetting = optionsRef.current.voice || 'Charon';
           
           // Build tools array if clientTools are provided
-          const toolsConfig = optionsRef.current.clientTools ? [
-            {
-              type: 'function',
-              name: 'chat',
-              description: 'Have a conversation with the AI. Use this when the user wants to chat, ask questions, or discuss any topic. Always tell the user you are processing their request.',
-              parameters: {
-                type: 'object',
-                properties: {
-                  message: { 
-                    type: 'string',
-                    description: 'The message or question to send to the AI'
-                  }
-                },
-                required: ['message']
-              }
-            },
-            {
-              type: 'function',
-              name: 'search',
-              description: 'Search the web for information. Use this when the user asks about current events, needs to look something up, or wants real-time information. Tell the user you are searching.',
-              parameters: {
-                type: 'object',
-                properties: {
-                  query: { 
-                    type: 'string',
-                    description: 'The search query to look up on the web'
-                  }
-                },
-                required: ['query']
-              }
-            },
-            {
-              type: 'function',
-              name: 'query_document',
-              description: 'Query an uploaded document for specific information. Use this when the user asks about content in a document they have uploaded.',
-              parameters: {
-                type: 'object',
-                properties: {
-                  documentId: { 
-                    type: 'string',
-                    description: 'The ID of the document to query'
-                  },
-                  query: { 
-                    type: 'string',
-                    description: 'The question to ask about the document'
-                  }
-                },
-                required: ['documentId', 'query']
-              }
-            },
-            {
-              type: 'function',
-              name: 'kb_search',
-              description: 'Search the knowledge base for information from uploaded documents. Use this when the user asks questions that might be answered by documents in the knowledge base, such as company policies, procedures, FAQs, or any other stored knowledge.',
-              parameters: {
-                type: 'object',
-                properties: {
-                  query: { 
-                    type: 'string',
-                    description: 'The search query to find relevant information in the knowledge base'
-                  }
-                },
-                required: ['query']
-              }
-            }
-          ] : undefined;
+          const toolsConfig = getVoiceToolsConfig(optionsRef.current.clientTools, true);
           
           const sessionUpdate: Record<string, unknown> = {
             type: 'session.update',
