@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
@@ -156,6 +157,7 @@ export function VoiceProviderSelector({
 }: VoiceProviderSelectorProps) {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const withSync = async (fn: () => Promise<void>) => {
     if (!isAuthenticated) {
@@ -165,6 +167,17 @@ export function VoiceProviderSelector({
     setSyncing(true);
     try {
       await fn();
+      
+      // Debounce toast to avoid spam on rapid changes
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+      toastTimeoutRef.current = setTimeout(() => {
+        toast({
+          description: "Settings synced to cloud",
+          duration: 2000,
+        });
+      }, 500);
     } finally {
       setSyncing(false);
     }
@@ -185,7 +198,17 @@ export function VoiceProviderSelector({
         .from('profiles')
         .update({ voice_provider: newProvider })
         .eq('id', user.id);
-        
+      
+      // Debounce toast for provider change too
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+      toastTimeoutRef.current = setTimeout(() => {
+        toast({
+          description: "Settings synced to cloud",
+          duration: 2000,
+        });
+      }, 500);
     } catch (error) {
       console.error('Error saving voice provider preference:', error);
     } finally {
