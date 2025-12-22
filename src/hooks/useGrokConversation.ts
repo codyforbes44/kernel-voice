@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { floatTo16BitPCM, pcm16ToWavBlob, arrayBufferToBase64, resampleAudio } from '@/lib/audioUtils';
+import { supabase } from '@/integrations/supabase/client';
 
-export type GrokVoice = 'Ara' | 'Rex' | 'Sal' | 'Eve' | 'Leo';
+export type GrokVoice = 'Charon' | 'Celeste' | 'Clio' | 'Zephyr' | 'Sol';
 
 interface GrokConversationOptions {
   onConnect?: () => void;
@@ -19,13 +20,13 @@ interface GrokMessage {
   [key: string]: any;
 }
 
-export type ConnectionPhase = 'idle' | 'connecting_relay' | 'connecting_xai' | 'configuring' | 'ready' | 'fallback' | 'error';
+export type ConnectionPhase = 'idle' | 'getting_token' | 'connecting_xai' | 'configuring' | 'ready' | 'error';
 
 // Retry configuration
-const MAX_RETRIES = 5;
+const MAX_RETRIES = 3;
 const BASE_RETRY_DELAY_MS = 1000;
 
-// Debug logging levels: 'off' (default), 'basic', 'verbose'
+// Debug logging levels
 type DebugLevel = 'off' | 'basic' | 'verbose';
 
 function getDebugLevel(): DebugLevel {
@@ -64,7 +65,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const [connectionInfo, setConnectionInfo] = useState<{ tokenParam?: string } | null>(null);
   const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>('idle');
   const [retryCount, setRetryCount] = useState(0);
-  const [isFallbackMode, setIsFallbackMode] = useState(false);
+  const [isFallbackMode] = useState(false);
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -79,7 +80,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const levelIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isRetryingRef = useRef(false);
-  const isFallbackModeRef = useRef(false);
   
   // Audio config - fixed at 24kHz PCM16
   const audioConfigRef = useRef({
@@ -87,10 +87,10 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     outputRate: 24000,
   });
   
-  // Ref for startRecording to avoid callback ordering issues
+  // Ref for startRecording
   const startRecordingRef = useRef<((sampleRate: number) => Promise<void>) | null>(null);
 
-  // Safe send helper with try/catch and readyState check
+  // Safe send helper
   const safeSend = useCallback((data: string) => {
     try {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -123,7 +123,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     const audio = new Audio(url);
     currentAudioRef.current = audio;
     
-    // Simulate output level while speaking
     const outputLevelInterval = setInterval(() => {
       if (isPlayingRef.current) {
         setOutputAudioLevel(0.4 + Math.random() * 0.5);
@@ -172,47 +171,26 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       options.onMessage?.(message);
       
       switch (message.type) {
-        case 'relay.connected':
-          log.basic('Relay connected to xAI');
-          setConnectionPhase('connecting_xai');
-          break;
-          
-        case 'fallback_active':
-          log.basic(`Fallback mode activated: ${message.provider}`);
-          setIsFallbackMode(true);
-          isFallbackModeRef.current = true;
-          setConnectionPhase('fallback');
-          setConnectionError('Using ElevenLabs TTS fallback - text input only');
-          // Don't start audio recording in fallback mode
-          break;
-          
         case 'session.created':
-          log.basic('Session created by xAI');
+          log.always('Session created by xAI');
           sessionCreatedRef.current = true;
           setConnectionPhase('configuring');
-          // Relay handles session.update automatically
+          setStatus('connected');
+          setRetryCount(0);
+          options.onConnect?.();
+          // Start recording after session is ready
+          setTimeout(() => {
+            startRecordingRef.current?.(audioConfigRef.current.inputRate);
+          }, 100);
           break;
 
         case 'session.updated':
           log.basic('Session updated successfully');
-          setStatus('connected');
-          if (!isFallbackModeRef.current) {
-            setConnectionPhase('ready');
-          }
-          setRetryCount(0);
-          options.onConnect?.();
-          // Start recording after session is fully configured (only if not in fallback mode)
-          if (!isFallbackModeRef.current) {
-            // Use setTimeout to ensure startRecording is available
-            setTimeout(() => {
-              startRecordingRef.current?.(audioConfigRef.current.inputRate);
-            }, 0);
-          }
+          setConnectionPhase('ready');
           break;
           
         case 'input_audio_buffer.speech_started':
           log.verbose('User started speaking - stopping playback');
-          // User started speaking - stop any playing audio
           if (currentAudioRef.current) {
             currentAudioRef.current.pause();
             currentAudioRef.current = null;
@@ -245,6 +223,13 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           }
           break;
           
+        case 'response.audio_transcript.delta':
+          if (message.delta) {
+            log.verbose(`Audio transcript delta: ${message.delta}`);
+            options.onTranscript?.({ role: 'assistant', text: message.delta });
+          }
+          break;
+          
         case 'response.function_call_arguments.done':
           if (message.name && options.clientTools?.[message.name]) {
             log.basic(`Executing tool: ${message.name}`);
@@ -255,9 +240,12 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
               log.verbose('Tool result:', result);
               
               safeSend(JSON.stringify({
-                type: 'response.function_call_output',
-                call_id: message.call_id,
-                output: result,
+                type: 'conversation.item.create',
+                item: {
+                  type: 'function_call_output',
+                  call_id: message.call_id,
+                  output: result,
+                },
               }));
               
               safeSend(JSON.stringify({
@@ -269,19 +257,15 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           }
           break;
           
-        case 'relay.disconnected':
-          log.basic(`Relay disconnected: ${message.reason}`);
-          break;
-          
         case 'error':
-          log.error('Error from server:', message);
-          options.onError?.(new Error(message.message || message.error?.message || 'Grok error'));
+          log.error('Error from xAI:', message);
+          options.onError?.(new Error(message.message || message.error?.message || 'xAI error'));
           break;
       }
     } catch (error) {
       log.error('Error parsing WebSocket message:', error);
     }
-  }, [options, playNextAudio]);
+  }, [options, playNextAudio, safeSend]);
 
   const startRecording = useCallback(async (targetSampleRate: number) => {
     try {
@@ -298,14 +282,12 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       audioContextRef.current = new AudioContext({ sampleRate: 48000 });
       const source = audioContextRef.current.createMediaStreamSource(stream);
       
-      // Create analyser for audio level visualization
       const analyser = audioContextRef.current.createAnalyser();
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.8;
       analyserRef.current = analyser;
       source.connect(analyser);
       
-      // Start level monitoring
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
       levelIntervalRef.current = setInterval(() => {
         if (analyserRef.current) {
@@ -319,11 +301,9 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         }
       }, 50);
       
-      // Helper to send audio data (uses safeSend for error handling)
       const sendAudioData = (inputData: Float32Array) => {
         if (wsRef.current?.readyState !== WebSocket.OPEN) return;
         
-        // Resample from 48kHz to target sample rate
         const resampled = resampleAudio(inputData, 48000, targetSampleRate);
         const pcmData = floatTo16BitPCM(resampled);
         const base64Audio = arrayBufferToBase64(pcmData);
@@ -331,14 +311,13 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         try {
           wsRef.current?.send(JSON.stringify({
             type: 'input_audio_buffer.append',
-            audio: { data: base64Audio },
+            audio: base64Audio,
           }));
         } catch (err) {
           log.error('Failed to send audio data', err);
         }
       };
       
-      // Try to use AudioWorklet (modern approach) with fallback to ScriptProcessorNode
       if (audioContextRef.current.audioWorklet) {
         try {
           console.log('[Grok] Using AudioWorklet for audio processing');
@@ -358,7 +337,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           console.log('[Grok] AudioWorklet audio recording started successfully');
         } catch (workletError) {
           console.warn('[Grok] AudioWorklet failed, falling back to ScriptProcessorNode:', workletError);
-          // Fall through to ScriptProcessorNode
           setupScriptProcessor(source, sendAudioData);
         }
       } else {
@@ -386,7 +364,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     }
   }, []);
 
-  // Store startRecording in ref for callback access
   useEffect(() => {
     startRecordingRef.current = startRecording;
   }, [startRecording]);
@@ -405,7 +382,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     }
     
     if (processorRef.current) {
-      // Close port if AudioWorkletNode
       if ('port' in processorRef.current && processorRef.current.port) {
         processorRef.current.port.close();
       }
@@ -424,7 +400,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     }
   }, []);
 
-  // Schedule retry with exponential backoff
   const scheduleRetry = useCallback(() => {
     if (retryCount >= MAX_RETRIES) {
       console.log('[Grok] Max retries reached, giving up');
@@ -433,8 +408,8 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       return;
     }
 
-    const delay = Math.min(BASE_RETRY_DELAY_MS * Math.pow(2, retryCount), 32000);
-    const jitter = Math.random() * 1000;
+    const delay = Math.min(BASE_RETRY_DELAY_MS * Math.pow(2, retryCount), 16000);
+    const jitter = Math.random() * 500;
     const totalDelay = delay + jitter;
 
     console.log(`[Grok] Scheduling retry ${retryCount + 1}/${MAX_RETRIES} in ${Math.round(totalDelay)}ms`);
@@ -448,20 +423,20 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     }, totalDelay);
   }, [retryCount]);
 
-  // Internal session start function
+  // Internal session start - connects directly to xAI using ephemeral token
   const startSessionInternal = useCallback(async () => {
     try {
-      console.log('[Grok] ====== Starting new session via relay ======');
+      console.log('[Grok] ====== Starting direct xAI connection ======');
       console.log('[Grok] Timestamp:', new Date().toISOString());
       setConnectionError(null);
       setStatus('connecting');
       sessionCreatedRef.current = false;
-      setConnectionPhase('connecting_relay');
+      setConnectionPhase('getting_token');
       
-      // Set connection timeout (25 seconds total)
+      // Set connection timeout (30 seconds)
       connectionTimeoutRef.current = setTimeout(() => {
         if (status === 'connecting') {
-          console.log('[Grok] Connection timeout after 25 seconds');
+          console.log('[Grok] Connection timeout after 30 seconds');
           const error = new Error('Connection timeout - please try again');
           setConnectionError(error.message);
           setConnectionPhase('error');
@@ -476,35 +451,46 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
             scheduleRetry();
           }
         }
-      }, 25000);
+      }, 30000);
       
-      const voiceSetting = options.voice || 'Ara';
+      const voiceSetting = options.voice || 'Charon';
       console.log('[Grok] Voice setting:', voiceSetting);
       console.log('[Grok] Has custom instructions:', !!options.instructions);
       
-      // Build relay URL with voice and instructions as query params
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      if (!supabaseUrl) {
-        throw new Error('Supabase URL not configured');
+      // Step 1: Get ephemeral token from edge function
+      console.log('[Grok] Requesting ephemeral token...');
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('xai-session-token', {
+        body: {
+          voice: voiceSetting,
+          instructions: options.instructions,
+        },
+      });
+
+      if (tokenError || !tokenData?.client_secret?.value) {
+        const errorMsg = tokenError?.message || tokenData?.error || 'Failed to get session token';
+        console.error('[Grok] Token error:', errorMsg);
+        throw new Error(errorMsg);
       }
+
+      const ephemeralToken = tokenData.client_secret.value;
+      console.log('[Grok] Got ephemeral token, expires at:', new Date(tokenData.client_secret.expires_at * 1000).toISOString());
       
-      // Convert https:// to wss:// for WebSocket
-      const wsBaseUrl = supabaseUrl.replace('https://', 'wss://');
-      const relayUrl = new URL(`${wsBaseUrl}/functions/v1/grok-voice-relay`);
-      relayUrl.searchParams.set('voice', voiceSetting);
-      if (options.instructions) {
-        relayUrl.searchParams.set('instructions', encodeURIComponent(options.instructions));
-      }
+      setConnectionPhase('connecting_xai');
+      setConnectionInfo({ tokenParam: 'ephemeral' });
       
-      console.log('[Grok] Connecting to relay:', relayUrl.toString().replace(/instructions=[^&]+/, 'instructions=***'));
+      // Step 2: Connect directly to xAI WebSocket
+      const xaiUrl = `wss://api.x.ai/v1/realtime?model=grok-2-public`;
+      console.log('[Grok] Connecting to xAI:', xaiUrl);
       
-      // Connect to relay - no auth needed, relay handles xAI authentication
-      const ws = new WebSocket(relayUrl.toString());
+      // Create WebSocket with authorization in subprotocol (xAI pattern)
+      const ws = new WebSocket(xaiUrl, [
+        'realtime',
+        `openai-insecure-api-key.${ephemeralToken}`,
+      ]);
       wsRef.current = ws;
       
       ws.onopen = () => {
-        console.log('[Grok] WebSocket connected to relay');
-        setConnectionInfo({ tokenParam: 'relay' });
+        console.log('[Grok] WebSocket connected to xAI directly!');
         
         if (connectionTimeoutRef.current) {
           clearTimeout(connectionTimeoutRef.current);
@@ -512,7 +498,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         }
         
         setRetryCount(0);
-        console.log('[Grok] Waiting for relay.connected and session.created...');
+        console.log('[Grok] Waiting for session.created...');
       };
       
       ws.onmessage = (event) => {
@@ -521,7 +507,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       
       ws.onerror = (error) => {
         console.error('[Grok] WebSocket error:', error);
-        const errorMsg = 'Failed to connect to Grok voice service';
+        const errorMsg = 'Failed to connect to xAI voice service';
         setConnectionError(errorMsg);
         setConnectionPhase('error');
         setStatus('disconnected');
@@ -538,7 +524,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         
         stopRecording();
         
-        // Only retry on unexpected closes
         if (event.code !== 1000 && event.code !== 1005) {
           let errorMsg = `Connection closed (code: ${event.code})`;
           if (event.code === 1006) {
@@ -580,7 +565,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     }
   }, [options, handleWebSocketMessage, stopRecording, status, scheduleRetry]);
 
-  // Public startSession function (resets retry count)
   const startSession = useCallback(async () => {
     if (retryTimerRef.current) {
       clearTimeout(retryTimerRef.current);
@@ -615,8 +599,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     audioQueueRef.current = [];
     isPlayingRef.current = false;
     setIsSpeaking(false);
-    setIsFallbackMode(false);
-    isFallbackModeRef.current = false;
     sessionCreatedRef.current = false;
     
     if (wsRef.current) {
@@ -633,7 +615,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     setConnectionError(null);
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (connectionTimeoutRef.current) {
@@ -646,7 +627,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     };
   }, [endSession]);
 
-  // Send a text message via WebSocket (uses safeSend for error handling)
   const sendTextMessage = useCallback((text: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       console.error('Cannot send text message: WebSocket not connected');

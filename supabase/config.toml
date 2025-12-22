@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.validate-xai-key]
 verify_jwt = false
+
+[functions.xai-session-token]
+verify_jwt = false

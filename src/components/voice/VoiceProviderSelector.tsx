@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { SystemPromptEditor, useSystemPromptPreference, DEFAULT_PROMPT } from './SystemPromptEditor';
 
 export type VoiceProvider = 'elevenlabs' | 'grok';
-export type GrokVoice = 'Ara' | 'Rex' | 'Sal' | 'Eve' | 'Leo';
+export type GrokVoice = 'Charon' | 'Celeste' | 'Clio' | 'Zephyr' | 'Sol';
 
 interface VoiceProviderSelectorProps {
   value: VoiceProvider;
@@ -39,11 +39,11 @@ const providerInfo = {
 };
 
 const grokVoices: { id: GrokVoice; name: string; type: string; tone: string; description: string }[] = [
-  { id: 'Ara', name: 'Ara', type: 'Female', tone: 'Warm, friendly', description: 'Default voice, balanced and conversational' },
-  { id: 'Rex', name: 'Rex', type: 'Male', tone: 'Confident, clear', description: 'Professional and articulate, ideal for business' },
-  { id: 'Sal', name: 'Sal', type: 'Neutral', tone: 'Smooth, balanced', description: 'Versatile voice suitable for various contexts' },
-  { id: 'Eve', name: 'Eve', type: 'Female', tone: 'Energetic, upbeat', description: 'Engaging and enthusiastic' },
-  { id: 'Leo', name: 'Leo', type: 'Male', tone: 'Authoritative, strong', description: 'Decisive and commanding' },
+  { id: 'Charon', name: 'Charon', type: 'Male', tone: 'Deep, calming', description: 'Default voice, smooth and articulate' },
+  { id: 'Celeste', name: 'Celeste', type: 'Female', tone: 'Warm, melodic', description: 'Friendly and expressive' },
+  { id: 'Clio', name: 'Clio', type: 'Female', tone: 'Clear, professional', description: 'Articulate and precise' },
+  { id: 'Zephyr', name: 'Zephyr', type: 'Neutral', tone: 'Light, airy', description: 'Gentle and versatile' },
+  { id: 'Sol', name: 'Sol', type: 'Male', tone: 'Energetic, bright', description: 'Dynamic and engaging' },
 ];
 
 export function VoiceProviderSelector({
@@ -179,7 +179,7 @@ export function VoiceProviderSelector({
 // Hook to load saved preferences
 export function useVoiceProviderPreference(isAuthenticated: boolean) {
   const [provider, setProvider] = useState<VoiceProvider>('elevenlabs');
-  const [grokVoice, setGrokVoice] = useState<GrokVoice>('Ara');
+  const [grokVoice, setGrokVoice] = useState<GrokVoice>('Charon');
   const [loading, setLoading] = useState(true);
   const { systemPrompt, setSystemPrompt, loading: promptLoading } = useSystemPromptPreference();
 
@@ -187,7 +187,7 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     const loadPreference = async () => {
       // Load Grok voice from localStorage
       const savedGrokVoice = localStorage.getItem('grok_voice') as GrokVoice | null;
-      if (savedGrokVoice && ['Ara', 'Rex', 'Sal', 'Eve', 'Leo'].includes(savedGrokVoice)) {
+      if (savedGrokVoice && ['Charon', 'Celeste', 'Clio', 'Zephyr', 'Sol'].includes(savedGrokVoice)) {
         setGrokVoice(savedGrokVoice);
       }
 

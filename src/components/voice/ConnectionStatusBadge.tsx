@@ -35,16 +35,14 @@ export const ConnectionStatusBadge = ({
     if (provider !== 'grok' || !connectionPhase) return null;
     
     switch (connectionPhase) {
-      case 'connecting_relay':
-        return { label: 'Connecting to relay...', step: 1 };
+      case 'getting_token':
+        return { label: 'Getting token...', step: 1 };
       case 'connecting_xai':
         return { label: 'Connecting to Grok...', step: 2 };
       case 'configuring':
         return { label: 'Configuring session...', step: 3 };
       case 'ready':
         return { label: 'Ready', step: 4 };
-      case 'fallback':
-        return { label: 'TTS Fallback', step: 4 };
       case 'error':
         return { label: 'Connection failed', step: 0 };
       default:
@@ -125,7 +123,7 @@ export const ConnectionStatusBadge = ({
           <div className="font-medium text-foreground">Connection Progress</div>
           <div className="space-y-1.5">
             {[
-              { step: 1, label: 'Connect to relay' },
+              { step: 1, label: 'Get session token' },
               { step: 2, label: 'Connect to Grok' },
               { step: 3, label: 'Configure session' },
               { step: 4, label: 'Ready to talk' },
