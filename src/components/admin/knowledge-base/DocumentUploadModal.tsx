@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -122,6 +123,7 @@ export const DocumentUploadModal = ({ open, onOpenChange, onSuccess }: DocumentU
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Upload Knowledge Base Document</DialogTitle>
+          <DialogDescription>Upload a new document to the knowledge base</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">

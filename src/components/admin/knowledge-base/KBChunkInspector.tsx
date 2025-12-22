@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Search, Eye, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -177,6 +178,7 @@ export const KBChunkInspector = () => {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chunk Details</DialogTitle>
+            <DialogDescription>View chunk content and metadata</DialogDescription>
           </DialogHeader>
           {selectedChunk && (
             <div className="space-y-4">
