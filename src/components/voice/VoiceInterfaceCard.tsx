@@ -297,8 +297,19 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
               </p>
             ) : (
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : 'Grok'}
+                Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : voiceProvider === 'openai' ? 'OpenAI' : 'Grok'}
               </p>
+            )}
+            
+            {/* Wake Word Indicator - show in voice/combined mode when not connected */}
+            {!isConnected && !isConnecting && (
+              <div className="mt-3 flex justify-center">
+                <WakeWordIndicator
+                  isListening={isWakeWordListening}
+                  isSupported={isWakeWordSupported}
+                  lastHeard={wakeWordLastHeard}
+                />
+              </div>
             )}
           </div>
         </>
