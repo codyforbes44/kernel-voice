@@ -80,16 +80,14 @@ Guidelines:
     console.log('Ephemeral token validated successfully, expires_at:', tokenData.expires_at);
 
     // Return configuration with ephemeral token and full WebSocket URL
-    // xAI Realtime API uses just the key parameter, no model in URL
     const sessionConfig = {
       wsUrl: `wss://api.x.ai/v1/realtime?key=${ephemeralToken}`,
       voice: config.voice || 'Ara',
       language: config.language || null,
       instructions: instructions,
-      audioFormat: {
-        input: { format: { type: 'audio/pcm', rate: 24000 } },
-        output: { format: { type: 'audio/pcm', rate: 24000 } },
-      },
+      inputAudioFormat: 'pcm16',
+      outputAudioFormat: 'pcm16',
+      sampleRate: 24000,
     };
 
     console.log('Grok voice session config generated successfully');
