@@ -54,6 +54,7 @@ const VoiceAssistant = () => {
     isConnecting,
     connectionError,
     connectionAuthMethod,
+    connectionPhase,
     isSpeaking,
     inputAudioLevel,
     outputAudioLevel,
@@ -122,6 +123,7 @@ const VoiceAssistant = () => {
               errorMessage={connectionError || undefined}
               provider={voiceProvider}
               authMethod={connectionAuthMethod}
+              connectionPhase={connectionPhase}
               onRetry={retryConnection}
             />
           )}

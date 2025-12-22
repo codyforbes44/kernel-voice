@@ -30,6 +30,8 @@ interface GrokSessionConfig {
   };
 }
 
+export type ConnectionPhase = 'idle' | 'connecting_relay' | 'connecting_xai' | 'configuring' | 'ready' | 'error';
+
 export function useGrokConversation(options: GrokConversationOptions = {}) {
   const [status, setStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -37,6 +39,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const [inputAudioLevel, setInputAudioLevel] = useState(0);
   const [outputAudioLevel, setOutputAudioLevel] = useState(0);
   const [connectionInfo, setConnectionInfo] = useState<{ tokenParam?: string } | null>(null);
+  const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>('idle');
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -161,6 +164,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         case 'session.updated':
           console.log('Grok session updated successfully');
           setStatus('connected');
+          setConnectionPhase('ready');
           options.onConnect?.();
           // Start recording after session is fully configured
           if (configRef.current) {
@@ -389,6 +393,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       
       console.log('[Grok] Relay URL:', relayUrl.replace(/instructions=.*/, 'instructions=...'));
       console.log('[Grok] Initiating WebSocket connection...');
+      setConnectionPhase('connecting_relay');
       
       const ws = new WebSocket(relayUrl);
       wsRef.current = ws;
@@ -396,6 +401,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       ws.onopen = () => {
         console.log('[Grok] WebSocket connected to relay');
         console.log('[Grok] Waiting for relay to connect to xAI...');
+        setConnectionPhase('connecting_xai');
       };
       
       ws.onmessage = (event) => {
@@ -406,6 +412,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           // Handle relay-specific messages
           if (message.type === 'relay.connected') {
             console.log('Relay connected to xAI:', message.message);
+            setConnectionPhase('configuring');
             if (message.tokenParam) {
               console.log('Successfully connected using token param:', message.tokenParam);
               setConnectionInfo({ tokenParam: message.tokenParam });
@@ -442,6 +449,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         console.error('WebSocket readyState:', ws.readyState);
         const errorMsg = 'Failed to connect to voice service - please try again';
         setConnectionError(errorMsg);
+        setConnectionPhase('error');
         setStatus('disconnected');
         options.onError?.(new Error(errorMsg));
       };
@@ -467,9 +475,11 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
             errorMsg = event.reason;
           }
           setConnectionError(errorMsg);
+          setConnectionPhase('error');
         }
         
         stopRecording();
+        setConnectionPhase('idle');
         setStatus('disconnected');
         options.onDisconnect?.();
       };
@@ -510,6 +520,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     }
     
     configRef.current = null;
+    setConnectionPhase('idle');
     setStatus('disconnected');
   }, [stopRecording]);
 
@@ -557,6 +568,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     isSpeaking,
     connectionError,
     connectionInfo,
+    connectionPhase,
     inputAudioLevel,
     outputAudioLevel,
     startSession,
