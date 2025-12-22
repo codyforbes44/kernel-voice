@@ -56,6 +56,12 @@ const log = {
   }
 };
 
+export interface ToolExecution {
+  name: string;
+  status: 'calling' | 'executing' | 'completed' | 'error';
+  startedAt: Date;
+}
+
 export function useGrokConversation(options: GrokConversationOptions = {}) {
   const [status, setStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -66,6 +72,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>('idle');
   const [retryCount, setRetryCount] = useState(0);
   const [isFallbackMode] = useState(false);
+  const [activeToolCall, setActiveToolCall] = useState<ToolExecution | null>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -315,11 +322,15 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         case 'response.function_call_arguments.done':
           if (message.name && options.clientTools?.[message.name]) {
             log.basic(`Executing tool: ${message.name}`);
+            setActiveToolCall({ name: message.name, status: 'executing', startedAt: new Date() });
+            
             try {
               const args = JSON.parse(message.arguments || '{}');
               log.verbose('Tool arguments:', args);
               const result = await options.clientTools[message.name](args);
               log.verbose('Tool result:', result);
+              
+              setActiveToolCall(prev => prev ? { ...prev, status: 'completed' } : null);
               
               safeSend(JSON.stringify({
                 type: 'conversation.item.create',
@@ -333,8 +344,13 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
               safeSend(JSON.stringify({
                 type: 'response.create',
               }));
+              
+              // Clear tool call after a short delay
+              setTimeout(() => setActiveToolCall(null), 1500);
             } catch (error) {
               log.error('Error executing tool:', error);
+              setActiveToolCall(prev => prev ? { ...prev, status: 'error' } : null);
+              setTimeout(() => setActiveToolCall(null), 2000);
             }
           }
           break;
@@ -743,6 +759,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     outputAudioLevel,
     retryCount,
     isFallbackMode,
+    activeToolCall,
     startSession,
     endSession,
     clearError,

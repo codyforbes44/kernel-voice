@@ -25,6 +25,7 @@ import { VoiceControlPanel } from '@/components/voice/VoiceControlPanel';
 import { VoiceSettingsPanel } from '@/components/voice/VoiceSettingsPanel';
 import { GuestModeBanner } from '@/components/voice/GuestModeBanner';
 import { ConversationBanner } from '@/components/voice/ConversationBanner';
+import { ToolExecutionIndicator } from '@/components/voice/ToolExecutionIndicator';
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
 import { useWakeWordDetection } from '@/hooks/useWakeWordDetection';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -78,6 +79,7 @@ const VoiceAssistant = () => {
     isProcessingText,
     inputMode,
     setInputMode,
+    activeToolCall,
   } = useVoiceAssistant();
 
   const showVoiceInterface = inputMode === 'voice' || inputMode === 'combined';
@@ -241,6 +243,11 @@ const VoiceAssistant = () => {
             </div>
           )}
 
+          {/* Tool Execution Indicator */}
+          {activeToolCall && (
+            <ToolExecutionIndicator toolExecution={activeToolCall} className="mt-4" />
+          )}
+
           {/* Status Text */}
           <div className="text-center mt-4">
             <p className="text-base md:text-lg font-medium">
@@ -249,9 +256,11 @@ const VoiceAssistant = () => {
                 : isConnecting
                   ? 'Connecting...'
                   : isConnected 
-                    ? isSpeaking 
-                      ? '🗣️ Speaking...' 
-                      : '👂 Listening...'
+                    ? activeToolCall
+                      ? '🔧 Using tool...'
+                      : isSpeaking 
+                        ? '🗣️ Speaking...' 
+                        : '👂 Listening...'
                     : 'Ready to connect'
               }
             </p>
