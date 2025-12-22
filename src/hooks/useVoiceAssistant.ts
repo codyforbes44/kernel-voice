@@ -34,6 +34,7 @@ interface UseVoiceAssistantReturn {
   connectionError: string | null;
   connectionAuthMethod: string | undefined;
   connectionPhase: ConnectionPhase | undefined;
+  isFallbackMode: boolean;
   isSpeaking: boolean;
   inputAudioLevel: number;
   outputAudioLevel: number;
@@ -385,6 +386,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const connectionError = voiceProvider === 'grok' ? grokConversation.connectionError : null;
   const connectionAuthMethod = voiceProvider === 'grok' ? grokConversation.connectionInfo?.tokenParam : undefined;
   const connectionPhase = voiceProvider === 'grok' ? grokConversation.connectionPhase : undefined;
+  const isFallbackMode = voiceProvider === 'grok' ? grokConversation.isFallbackMode : false;
   const inputAudioLevel = voiceProvider === 'grok' ? grokConversation.inputAudioLevel : 0;
   const outputAudioLevel = voiceProvider === 'grok' ? grokConversation.outputAudioLevel : 0;
 
@@ -510,6 +512,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     connectionError,
     connectionAuthMethod,
     connectionPhase,
+    isFallbackMode,
     isSpeaking: conversation.isSpeaking,
     inputAudioLevel,
     outputAudioLevel,

@@ -55,6 +55,7 @@ const VoiceAssistant = () => {
     connectionError,
     connectionAuthMethod,
     connectionPhase,
+    isFallbackMode,
     isSpeaking,
     inputAudioLevel,
     outputAudioLevel,
@@ -124,6 +125,7 @@ const VoiceAssistant = () => {
               provider={voiceProvider}
               authMethod={connectionAuthMethod}
               connectionPhase={connectionPhase}
+              isFallbackMode={isFallbackMode}
               onRetry={retryConnection}
             />
           )}
