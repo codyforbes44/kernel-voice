@@ -112,18 +112,34 @@ const VoiceAssistant = () => {
 
   // Shared voice settings component
   const VoiceSettings = () => (
-    <div className="space-y-4">
-      <h4 className="font-medium text-lg">Voice Settings</h4>
-      <VoiceProviderSelector
-        value={voiceProvider}
-        onChange={setVoiceProvider}
-        grokVoice={grokVoice}
-        onGrokVoiceChange={setGrokVoice}
-        systemPrompt={systemPrompt}
-        onSystemPromptChange={setSystemPrompt}
-        disabled={isConnected || providerLoading}
-        isAuthenticated={isAuthenticated}
-      />
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <h4 className="font-medium text-lg">Voice Settings</h4>
+        <VoiceProviderSelector
+          value={voiceProvider}
+          onChange={setVoiceProvider}
+          grokVoice={grokVoice}
+          onGrokVoiceChange={setGrokVoice}
+          systemPrompt={systemPrompt}
+          onSystemPromptChange={setSystemPrompt}
+          disabled={isConnected || providerLoading}
+          isAuthenticated={isAuthenticated}
+        />
+      </div>
+      
+      {/* Input Mode Selection */}
+      <div className="space-y-3 pt-4 border-t border-border">
+        <h4 className="font-medium text-lg">Input Mode</h4>
+        <p className="text-sm text-muted-foreground">
+          Choose how you want to interact with the assistant
+        </p>
+        <InputModeSelector
+          value={inputMode}
+          onChange={setInputMode}
+          disabled={isConnected}
+          className="w-full justify-center"
+        />
+      </div>
     </div>
   );
 

@@ -313,6 +313,7 @@ export type Database = {
           display_name: string | null
           email: string
           id: string
+          input_mode: string | null
           updated_at: string | null
           voice_provider: string | null
         }
@@ -322,6 +323,7 @@ export type Database = {
           display_name?: string | null
           email: string
           id: string
+          input_mode?: string | null
           updated_at?: string | null
           voice_provider?: string | null
         }
@@ -331,6 +333,7 @@ export type Database = {
           display_name?: string | null
           email?: string
           id?: string
+          input_mode?: string | null
           updated_at?: string | null
           voice_provider?: string | null
         }
