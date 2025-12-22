@@ -274,7 +274,19 @@ export function VoiceProviderSelector({
           <div className="space-y-4 pt-3 border-t border-border">
             {/* Preset Selector */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Response Style</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Response Style</Label>
+                <Badge variant="outline" className="text-xs">
+                  {(() => {
+                    const activePreset = (Object.entries(GROK_PRESETS) as [Exclude<GrokSettingsPreset, 'custom'>, typeof GROK_PRESETS['balanced']][]).find(([_, preset]) =>
+                      grokSettings.vadThreshold === preset.settings.vadThreshold &&
+                      grokSettings.silenceDuration === preset.settings.silenceDuration &&
+                      grokSettings.prefixPadding === preset.settings.prefixPadding
+                    );
+                    return activePreset ? activePreset[1].label : 'Custom';
+                  })()}
+                </Badge>
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {(Object.entries(GROK_PRESETS) as [Exclude<GrokSettingsPreset, 'custom'>, typeof GROK_PRESETS['balanced']][]).map(([key, preset]) => {
                   const isActive = 
@@ -415,7 +427,19 @@ export function VoiceProviderSelector({
           <div className="space-y-4 pt-3 border-t border-border">
             {/* Preset Selector */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Response Style</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Response Style</Label>
+                <Badge variant="outline" className="text-xs">
+                  {(() => {
+                    const activePreset = (Object.entries(OPENAI_PRESETS) as [Exclude<OpenAISettingsPreset, 'custom'>, typeof OPENAI_PRESETS['balanced']][]).find(([_, preset]) =>
+                      openaiSettings.temperature === preset.settings.temperature &&
+                      openaiSettings.vadThreshold === preset.settings.vadThreshold &&
+                      openaiSettings.silenceDuration === preset.settings.silenceDuration
+                    );
+                    return activePreset ? activePreset[1].label : 'Custom';
+                  })()}
+                </Badge>
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {(Object.entries(OPENAI_PRESETS) as [Exclude<OpenAISettingsPreset, 'custom'>, typeof OPENAI_PRESETS['balanced']][]).map(([key, preset]) => {
                   const isActive = 
