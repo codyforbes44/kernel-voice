@@ -85,9 +85,10 @@ Guidelines:
       voice: config.voice || 'Ara',
       language: config.language || null,
       instructions: instructions,
-      inputAudioFormat: 'pcm16',
-      outputAudioFormat: 'pcm16',
-      sampleRate: 24000,
+      audio: {
+        input: { format: { type: 'audio/pcm', rate: 24000 } },
+        output: { format: { type: 'audio/pcm', rate: 24000 } },
+      },
     };
 
     console.log('Grok voice session config generated successfully');
