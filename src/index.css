@@ -10,7 +10,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Light Theme */
+    /* Light Theme - Kernel Cyan Brand */
     --background: 0 0% 100%;
     --foreground: 222 47% 11%;
 
@@ -20,53 +20,53 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 198 93% 45%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 198 93% 55%;
+    --primary: 180 100% 45%;
+    --primary-foreground: 0 0% 0%;
+    --primary-glow: 180 100% 55%;
 
-    --secondary: 271 81% 55%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 195 100% 50%;
+    --secondary-foreground: 0 0% 0%;
 
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 271 81% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 195 100% 50%;
+    --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 198 93% 45%;
+    --ring: 180 100% 45%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 198 93% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 180 100% 45%;
+    --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 210 40% 96%;
     --sidebar-accent-foreground: 222 47% 11%;
     --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 198 93% 45%;
+    --sidebar-ring: 180 100% 45%;
 
     /* Custom gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
     --gradient-accent: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
-    --gradient-hero: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(180 30% 98%) 100%);
 
     /* Shadows */
-    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.2);
-    --shadow-accent-glow: 0 0 40px hsl(var(--secondary) / 0.15);
-    --shadow-card: 0 20px 50px -10px hsl(var(--primary) / 0.1);
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.25);
+    --shadow-accent-glow: 0 0 40px hsl(var(--secondary) / 0.2);
+    --shadow-card: 0 20px 50px -10px hsl(var(--primary) / 0.15);
 
     /* Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
-    /* OLED-Optimized Dark Theme - True Black for Battery Savings */
+    /* OLED-Optimized Dark Theme - Kernel Cyan Brand */
     --background: 0 0% 0%;
     --foreground: 213 31% 91%;
 
@@ -76,17 +76,17 @@ All colors MUST be HSL.
     --popover: 0 0% 3%;
     --popover-foreground: 213 31% 91%;
 
-    --primary: 198 93% 60%;
+    --primary: 180 100% 50%;
     --primary-foreground: 0 0% 0%;
-    --primary-glow: 198 93% 70%;
+    --primary-glow: 180 100% 60%;
 
-    --secondary: 271 91% 65%;
+    --secondary: 195 100% 60%;
     --secondary-foreground: 0 0% 0%;
 
     --muted: 0 0% 6%;
     --muted-foreground: 213 20% 60%;
 
-    --accent: 271 91% 65%;
+    --accent: 195 100% 60%;
     --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84% 60%;
@@ -94,26 +94,26 @@ All colors MUST be HSL.
 
     --border: 0 0% 10%;
     --input: 0 0% 8%;
-    --ring: 198 93% 60%;
+    --ring: 180 100% 50%;
 
     --sidebar-background: 0 0% 2%;
     --sidebar-foreground: 213 31% 91%;
-    --sidebar-primary: 198 93% 60%;
+    --sidebar-primary: 180 100% 50%;
     --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 0 0% 6%;
     --sidebar-accent-foreground: 213 31% 91%;
     --sidebar-border: 0 0% 10%;
-    --sidebar-ring: 198 93% 60%;
+    --sidebar-ring: 180 100% 50%;
 
     /* Custom gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
     --gradient-accent: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
-    --gradient-hero: linear-gradient(180deg, hsl(0 0% 0%) 0%, hsl(0 0% 4%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 0%) 0%, hsl(180 10% 4%) 100%);
 
     /* Shadows with glow */
-    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.3);
-    --shadow-accent-glow: 0 0 40px hsl(var(--secondary) / 0.25);
-    --shadow-card: 0 20px 50px -10px hsl(var(--primary) / 0.15);
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.35);
+    --shadow-accent-glow: 0 0 40px hsl(var(--secondary) / 0.3);
+    --shadow-card: 0 20px 50px -10px hsl(var(--primary) / 0.2);
   }
 }
 

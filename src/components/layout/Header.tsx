@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
@@ -40,7 +39,7 @@ export const Header = () => {
         <div className="flex h-12 sm:h-14 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
-            <Mic className="h-5 w-5 sm:h-6 sm:w-6 text-primary group-hover:text-primary/80 transition-colors" />
+            <img src="/logo.png" alt="Kernel" className="h-6 w-6 sm:h-7 sm:w-7" />
             <span className="font-bold text-base sm:text-lg hidden sm:inline-block">Kernel</span>
           </Link>
 
