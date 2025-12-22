@@ -23,6 +23,7 @@ interface GrokSessionConfig {
   wsUrl: string;
   voice: string;
   language: string | null;
+  instructions: string;
   audioFormat: {
     input: string;
     output: string;
@@ -106,6 +107,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       type: 'session.update',
       session: {
         modalities: ['text', 'audio'],
+        instructions: config.instructions,
         voice: config.voice,
         input_audio_format: config.audioFormat.input,
         output_audio_format: config.audioFormat.output,

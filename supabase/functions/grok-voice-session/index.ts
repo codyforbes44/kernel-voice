@@ -20,13 +20,31 @@ serve(async (req) => {
     console.log('Fetching ephemeral token from xAI...');
 
     // Parse request body for optional configuration
-    let config: { voice?: string; language?: string } = {};
+    let config: { voice?: string; language?: string; instructions?: string } = {};
     try {
       const body = await req.json();
       config = body || {};
     } catch {
       // No body provided, use defaults
     }
+
+    // Default system instructions for the AI assistant
+    const defaultInstructions = `You are a helpful, friendly AI voice assistant. 
+
+Your capabilities:
+- Answer questions clearly and concisely
+- Help with research and information lookup
+- Assist with document analysis when documents are provided
+- Engage in natural, conversational dialogue
+
+Guidelines:
+- Keep responses conversational and appropriate for voice interaction
+- Be concise - avoid overly long responses that are hard to follow verbally
+- Ask clarifying questions when needed
+- Be helpful, honest, and harmless
+- If you don't know something, say so rather than making things up`;
+
+    const instructions = config.instructions || defaultInstructions;
 
     // Fetch ephemeral token from xAI's client_secrets endpoint
     const tokenResponse = await fetch('https://api.x.ai/v1/realtime/client_secrets', {
@@ -65,6 +83,7 @@ serve(async (req) => {
       wsUrl: `wss://api.x.ai/v1/realtime?model=grok-2-public&key=${ephemeralToken}`,
       voice: config.voice || 'Ara',
       language: config.language || null,
+      instructions: instructions,
       audioFormat: {
         input: 'pcm16',
         output: 'pcm16',
