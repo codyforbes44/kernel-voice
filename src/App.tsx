@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "next-themes";
+import LandingPage from "./pages/LandingPage";
 import LandingPageArchived from "./pages/LandingPageArchived";
 import VoiceAssistant from "./pages/VoiceAssistant";
 import Auth from "./pages/Auth";
@@ -28,8 +29,8 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<VoiceAssistant />} />
-              <Route path="/assistant" element={<Navigate to="/" replace />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/assistant" element={<VoiceAssistant />} />
               <Route path="/landing" element={<LandingPageArchived />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/install" element={<Install />} />
