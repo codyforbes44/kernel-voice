@@ -36,6 +36,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [inputAudioLevel, setInputAudioLevel] = useState(0);
   const [outputAudioLevel, setOutputAudioLevel] = useState(0);
+  const [connectionInfo, setConnectionInfo] = useState<{ tokenParam?: string } | null>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -396,7 +397,11 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           
           // Handle relay-specific messages
           if (message.type === 'relay.connected') {
-            console.log('Relay connected to xAI, waiting for session.created...');
+            console.log('Relay connected to xAI:', message.message);
+            if (message.tokenParam) {
+              console.log('Successfully connected using token param:', message.tokenParam);
+              setConnectionInfo({ tokenParam: message.tokenParam });
+            }
             // Clear timeout on relay connection
             if (connectionTimeoutRef.current) {
               clearTimeout(connectionTimeoutRef.current);
@@ -543,6 +548,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     status,
     isSpeaking,
     connectionError,
+    connectionInfo,
     inputAudioLevel,
     outputAudioLevel,
     startSession,

@@ -340,9 +340,12 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     onConnect: () => {
       console.log('Connected to Grok voice service');
       setLiveTranscripts([]);
+      const tokenInfo = grokConversation.connectionInfo?.tokenParam 
+        ? ` (auth: ${grokConversation.connectionInfo.tokenParam})`
+        : '';
       toast({
         title: 'Connected',
-        description: 'Voice assistant is ready (Grok)',
+        description: `Voice assistant is ready (Grok)${tokenInfo}`,
       });
     },
     onDisconnect: () => {
