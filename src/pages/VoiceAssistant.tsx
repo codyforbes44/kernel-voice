@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, VolumeX, LogIn, Settings, MessageSquare, Upload } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, LogIn, Settings, MessageSquare, Upload, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import ConversationHistory from '@/components/voice/ConversationHistory';
 import DocumentUpload from '@/components/voice/DocumentUpload';
 import MessageHistory from '@/components/voice/MessageHistory';
@@ -50,6 +50,8 @@ const VoiceAssistant = () => {
     setSystemPrompt,
     providerLoading,
     isConnected,
+    isConnecting,
+    connectionError,
     isSpeaking,
     isMuted,
     toggleMute,
@@ -57,6 +59,8 @@ const VoiceAssistant = () => {
     setVolume,
     startConversation,
     endConversation,
+    retryConnection,
+    clearConnectionError,
     liveTranscripts,
     permissionState,
     requestPermission,
@@ -139,12 +143,23 @@ const VoiceAssistant = () => {
           relative w-24 h-24 md:w-32 md:h-32 rounded-full flex items-center justify-center
           ${isConnected 
             ? 'bg-gradient-to-br from-primary to-primary/50' 
-            : 'bg-gradient-to-br from-muted to-muted-foreground/20'
+            : isConnecting
+              ? 'bg-gradient-to-br from-primary/30 to-primary/10'
+              : connectionError
+                ? 'bg-gradient-to-br from-destructive/30 to-destructive/10'
+                : 'bg-gradient-to-br from-muted to-muted-foreground/20'
           }
           ${isSpeaking ? 'animate-pulse' : ''}
+          ${isConnecting ? 'animate-pulse' : ''}
           transition-all duration-300 shadow-lg
         `}>
-          <Mic className="w-10 h-10 md:w-12 md:h-12 text-primary-foreground" />
+          {isConnecting ? (
+            <Loader2 className="w-10 h-10 md:w-12 md:h-12 text-primary animate-spin" />
+          ) : connectionError ? (
+            <AlertCircle className="w-10 h-10 md:w-12 md:h-12 text-destructive" />
+          ) : (
+            <Mic className="w-10 h-10 md:w-12 md:h-12 text-primary-foreground" />
+          )}
           {isConnected && (
             <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
           )}
@@ -154,22 +169,60 @@ const VoiceAssistant = () => {
       {/* Status Text */}
       <div className="text-center mb-6 md:mb-8">
         <p className="text-base md:text-lg font-medium">
-          {isConnected 
-            ? isSpeaking 
-              ? '🗣️ Speaking...' 
-              : '👂 Listening...'
-            : 'Ready to connect'
+          {connectionError 
+            ? 'Connection failed'
+            : isConnecting
+              ? 'Connecting...'
+              : isConnected 
+                ? isSpeaking 
+                  ? '🗣️ Speaking...' 
+                  : '👂 Listening...'
+                : 'Ready to connect'
           }
         </p>
-        <p className="text-xs md:text-sm text-muted-foreground mt-1">
-          Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : 'Grok'}
-        </p>
+        {connectionError ? (
+          <p className="text-xs md:text-sm text-destructive mt-1 max-w-xs mx-auto">
+            {connectionError}
+          </p>
+        ) : (
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">
+            Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : 'Grok'}
+          </p>
+        )}
       </div>
 
       {/* Controls */}
       <div className="flex flex-col items-center gap-4">
         <div className="flex items-center justify-center gap-3 md:gap-4">
-          {!isConnected ? (
+          {connectionError ? (
+            <>
+              <Button
+                onClick={retryConnection}
+                size="lg"
+                className="px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px]"
+              >
+                <RefreshCw className="mr-2 h-5 w-5" />
+                Try Again
+              </Button>
+              <Button
+                onClick={clearConnectionError}
+                variant="outline"
+                size="lg"
+                className="min-h-[48px]"
+              >
+                Cancel
+              </Button>
+            </>
+          ) : isConnecting ? (
+            <Button
+              disabled
+              size="lg"
+              className="px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px]"
+            >
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Connecting...
+            </Button>
+          ) : !isConnected ? (
             <Button
               onClick={startConversation}
               size="lg"
