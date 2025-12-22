@@ -34,6 +34,10 @@ interface GrokSessionConfig {
 
 export type ConnectionPhase = 'idle' | 'connecting_relay' | 'connecting_xai' | 'configuring' | 'ready' | 'error';
 
+// Retry configuration
+const MAX_RETRIES = 5;
+const BASE_RETRY_DELAY_MS = 1000;
+
 export function useGrokConversation(options: GrokConversationOptions = {}) {
   const [status, setStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -42,6 +46,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const [outputAudioLevel, setOutputAudioLevel] = useState(0);
   const [connectionInfo, setConnectionInfo] = useState<{ tokenParam?: string } | null>(null);
   const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>('idle');
+  const [retryCount, setRetryCount] = useState(0);
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -55,6 +60,9 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const sessionCreatedRef = useRef(false);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const levelIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const tokenRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isRetryingRef = useRef(false);
 
   const playNextAudio = useCallback(async () => {
     if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
@@ -172,6 +180,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           console.log('Grok session updated successfully');
           setStatus('connected');
           setConnectionPhase('ready');
+          setRetryCount(0); // Reset retry count on successful connection
           options.onConnect?.();
           // Start recording after session is fully configured
           if (configRef.current) {
@@ -347,7 +356,32 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     }
   }, []);
 
-  const startSession = useCallback(async () => {
+  // Schedule retry with exponential backoff
+  const scheduleRetry = useCallback(() => {
+    if (retryCount >= MAX_RETRIES) {
+      console.log('[Grok] Max retries reached, giving up');
+      setConnectionError('Max connection retries reached. Please try again.');
+      setConnectionPhase('error');
+      return;
+    }
+
+    const delay = Math.min(BASE_RETRY_DELAY_MS * Math.pow(2, retryCount), 32000);
+    const jitter = Math.random() * 1000;
+    const totalDelay = delay + jitter;
+
+    console.log(`[Grok] Scheduling retry ${retryCount + 1}/${MAX_RETRIES} in ${Math.round(totalDelay)}ms`);
+    setConnectionError(`Reconnecting in ${Math.round(totalDelay / 1000)}s (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+    setRetryCount(prev => prev + 1);
+    isRetryingRef.current = true;
+
+    retryTimerRef.current = setTimeout(() => {
+      isRetryingRef.current = false;
+      startSessionInternal();
+    }, totalDelay);
+  }, [retryCount]);
+
+  // Internal session start function (used by both startSession and retry)
+  const startSessionInternal = useCallback(async () => {
     try {
       console.log('[Grok] ====== Starting new session ======');
       console.log('[Grok] Timestamp:', new Date().toISOString());
@@ -355,6 +389,12 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       setStatus('connecting');
       sessionCreatedRef.current = false;
       setConnectionPhase('connecting_relay');
+      
+      // Clear any existing timers
+      if (tokenRefreshTimerRef.current) {
+        clearTimeout(tokenRefreshTimerRef.current);
+        tokenRefreshTimerRef.current = null;
+      }
       
       // Set connection timeout (20 seconds total)
       connectionTimeoutRef.current = setTimeout(() => {
@@ -370,6 +410,8 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
             wsRef.current = null;
           }
           stopRecording();
+          // Schedule retry on timeout
+          scheduleRetry();
         }
       }, 20000);
       
@@ -417,10 +459,33 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         },
       };
       
-      // Step 2: Connect directly to xAI from browser using ephemeral token
-      const wsUrl = `wss://api.x.ai/v1/realtime?model=grok-2-public`;
+      // Set up token refresh timer (30 seconds before expiration)
+      if (sessionData.expiresAt) {
+        const expireTime = new Date(sessionData.expiresAt).getTime();
+        const refreshIn = expireTime - Date.now() - 30000; // 30s before expiry
+        
+        if (refreshIn > 0) {
+          console.log(`[Grok] Scheduling token refresh in ${Math.round(refreshIn / 1000)}s`);
+          tokenRefreshTimerRef.current = setTimeout(() => {
+            console.log('[Grok] Token expiring soon, refreshing session...');
+            // Close current session and start a new one
+            if (wsRef.current) {
+              wsRef.current.close(1000, 'Token refresh');
+            }
+            stopRecording();
+            startSessionInternal();
+          }, refreshIn);
+        }
+      }
+      
+      // Step 2: Connect to xAI WebSocket using standard WebSocket
+      // Note: Browser WebSocket doesn't support custom headers, but xAI accepts
+      // the token via subprotocols (OpenAI-compatible pattern)
+      const wsUrl = 'wss://api.x.ai/v1/realtime';
       console.log('[Grok] Connecting to xAI WebSocket...');
       
+      // Use subprotocol-based authentication (OpenAI-compatible pattern)
+      // This is the browser-compatible approach since fetch+upgrade isn't widely supported
       const ws = new WebSocket(wsUrl, [
         'realtime',
         `openai-insecure-api-key.${sessionData.token}`,
@@ -437,6 +502,9 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           clearTimeout(connectionTimeoutRef.current);
           connectionTimeoutRef.current = null;
         }
+        
+        // Reset retry count on successful connection
+        setRetryCount(0);
         
         // Wait for session.created before sending session.update
         console.log('[Grok] Waiting for session.created from xAI...');
@@ -463,7 +531,16 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           connectionTimeoutRef.current = null;
         }
         
+        // Clear token refresh timer
+        if (tokenRefreshTimerRef.current) {
+          clearTimeout(tokenRefreshTimerRef.current);
+          tokenRefreshTimerRef.current = null;
+        }
+        
+        stopRecording();
+        
         // Provide helpful error messages based on close code
+        // Only retry on unexpected closes (not clean closes or intentional token refresh)
         if (event.code !== 1000 && event.code !== 1005) {
           let errorMsg = `Connection closed (code: ${event.code})`;
           if (event.code === 1006) {
@@ -477,10 +554,15 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           }
           setConnectionError(errorMsg);
           setConnectionPhase('error');
+          
+          // Schedule retry for unexpected disconnects
+          if (!isRetryingRef.current) {
+            scheduleRetry();
+          }
+        } else {
+          setConnectionPhase('idle');
         }
         
-        stopRecording();
-        setConnectionPhase('idle');
         setStatus('disconnected');
         options.onDisconnect?.();
       };
@@ -492,16 +574,46 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         connectionTimeoutRef.current = null;
       }
       setStatus('disconnected');
-      throw error;
+      setConnectionPhase('error');
+      setConnectionError((error as Error).message);
+      
+      // Schedule retry on error
+      if (!isRetryingRef.current) {
+        scheduleRetry();
+      }
     }
-  }, [options, handleWebSocketMessage, stopRecording, status]);
+  }, [options, handleWebSocketMessage, stopRecording, status, scheduleRetry]);
+
+  // Public startSession function (resets retry count)
+  const startSession = useCallback(async () => {
+    // Clear any pending retries
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    isRetryingRef.current = false;
+    setRetryCount(0);
+    
+    await startSessionInternal();
+  }, [startSessionInternal]);
 
   const endSession = useCallback(async () => {
-    // Clear connection timeout
+    // Clear all timers
     if (connectionTimeoutRef.current) {
       clearTimeout(connectionTimeoutRef.current);
       connectionTimeoutRef.current = null;
     }
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    if (tokenRefreshTimerRef.current) {
+      clearTimeout(tokenRefreshTimerRef.current);
+      tokenRefreshTimerRef.current = null;
+    }
+    
+    isRetryingRef.current = false;
+    setRetryCount(0);
     
     stopRecording();
     
@@ -516,13 +628,14 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     sessionCreatedRef.current = false;
     
     if (wsRef.current) {
-      wsRef.current.close();
+      wsRef.current.close(1000, 'User ended session');
       wsRef.current = null;
     }
     
     configRef.current = null;
     setConnectionPhase('idle');
     setStatus('disconnected');
+    setConnectionError(null);
   }, [stopRecording]);
 
   const clearError = useCallback(() => {
@@ -534,6 +647,12 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     return () => {
       if (connectionTimeoutRef.current) {
         clearTimeout(connectionTimeoutRef.current);
+      }
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+      }
+      if (tokenRefreshTimerRef.current) {
+        clearTimeout(tokenRefreshTimerRef.current);
       }
       endSession();
     };
@@ -572,6 +691,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     connectionPhase,
     inputAudioLevel,
     outputAudioLevel,
+    retryCount,
     startSession,
     endSession,
     clearError,
