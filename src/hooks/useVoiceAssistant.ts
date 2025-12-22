@@ -3,7 +3,7 @@ import { useConversation } from '@11labs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
-import { useVoiceProviderPreference, type VoiceProvider, type GrokVoice, type OpenAIVoice } from '@/components/voice/VoiceProviderSelector';
+import { useVoiceProviderPreference, type VoiceProvider, type GrokVoice, type OpenAIVoice, type OpenAIVoiceSettings } from '@/components/voice/VoiceProviderSelector';
 import { useGrokConversation, type ConnectionPhase, type ToolExecution } from '@/hooks/useGrokConversation';
 import { useOpenAIConversation } from '@/hooks/useOpenAIConversation';
 import { type LiveTranscript } from '@/components/voice/LiveTranscripts';
@@ -27,6 +27,8 @@ interface UseVoiceAssistantReturn {
   setGrokVoice: (voice: GrokVoice) => void;
   openaiVoice: OpenAIVoice;
   setOpenAIVoice: (voice: OpenAIVoice) => void;
+  openaiSettings: OpenAIVoiceSettings;
+  setOpenAISettings: (settings: OpenAIVoiceSettings) => void;
   systemPrompt: string;
   setSystemPrompt: (prompt: string) => void;
   providerLoading: boolean;
@@ -107,6 +109,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setGrokVoice,
     openaiVoice,
     setOpenAIVoice,
+    openaiSettings,
+    setOpenAISettings,
     systemPrompt,
     setSystemPrompt,
     loading: providerLoading 
@@ -486,6 +490,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     clientTools,
     voice: openaiVoice,
     instructions: systemPrompt,
+    settings: openaiSettings,
   });
 
   // Use the selected provider's conversation
@@ -648,6 +653,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setGrokVoice,
     openaiVoice,
     setOpenAIVoice,
+    openaiSettings,
+    setOpenAISettings,
     systemPrompt,
     setSystemPrompt,
     providerLoading,

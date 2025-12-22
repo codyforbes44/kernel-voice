@@ -9,11 +9,24 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 import { SystemPromptEditor, useSystemPromptPreference, DEFAULT_PROMPT } from './SystemPromptEditor';
+
+export interface OpenAIVoiceSettings {
+  temperature: number;      // 0.6-1.2, controls response creativity
+  vadThreshold: number;     // 0.0-1.0, voice activity detection sensitivity
+  silenceDuration: number;  // 200-2000ms, silence before response
+}
 
 export type VoiceProvider = 'elevenlabs' | 'grok' | 'openai';
 export type GrokVoice = 'Charon' | 'Celeste' | 'Clio' | 'Zephyr' | 'Sol';
 export type OpenAIVoice = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse';
+
+export const DEFAULT_OPENAI_SETTINGS: OpenAIVoiceSettings = {
+  temperature: 0.8,
+  vadThreshold: 0.5,
+  silenceDuration: 500,
+};
 
 interface VoiceProviderSelectorProps {
   value: VoiceProvider;
@@ -22,6 +35,8 @@ interface VoiceProviderSelectorProps {
   onGrokVoiceChange: (voice: GrokVoice) => void;
   openaiVoice: OpenAIVoice;
   onOpenAIVoiceChange: (voice: OpenAIVoice) => void;
+  openaiSettings: OpenAIVoiceSettings;
+  onOpenAISettingsChange: (settings: OpenAIVoiceSettings) => void;
   systemPrompt: string;
   onSystemPromptChange: (prompt: string) => void;
   disabled?: boolean;
@@ -72,6 +87,8 @@ export function VoiceProviderSelector({
   onGrokVoiceChange,
   openaiVoice,
   onOpenAIVoiceChange,
+  openaiSettings,
+  onOpenAISettingsChange,
   systemPrompt,
   onSystemPromptChange,
   disabled = false,
@@ -109,6 +126,15 @@ export function VoiceProviderSelector({
   const handleOpenAIVoiceChange = (newVoice: OpenAIVoice) => {
     onOpenAIVoiceChange(newVoice);
     localStorage.setItem('openai_voice', newVoice);
+  };
+
+  const handleOpenAISettingChange = <K extends keyof OpenAIVoiceSettings>(
+    key: K,
+    value: OpenAIVoiceSettings[K]
+  ) => {
+    const newSettings = { ...openaiSettings, [key]: value };
+    onOpenAISettingsChange(newSettings);
+    localStorage.setItem('openai_settings', JSON.stringify(newSettings));
   };
 
   const selectedGrokVoiceInfo = grokVoices.find(v => v.id === grokVoice);
@@ -231,6 +257,66 @@ export function VoiceProviderSelector({
             </p>
           )}
 
+          {/* Voice Settings Controls */}
+          <div className="space-y-4 pt-3 border-t border-border">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Temperature</Label>
+                <span className="text-xs text-muted-foreground">{openaiSettings.temperature.toFixed(1)}</span>
+              </div>
+              <Slider
+                value={[openaiSettings.temperature]}
+                onValueChange={([v]) => handleOpenAISettingChange('temperature', v)}
+                min={0.6}
+                max={1.2}
+                step={0.1}
+                disabled={disabled}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Lower = more focused, Higher = more creative
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">VAD Sensitivity</Label>
+                <span className="text-xs text-muted-foreground">{(openaiSettings.vadThreshold * 100).toFixed(0)}%</span>
+              </div>
+              <Slider
+                value={[openaiSettings.vadThreshold]}
+                onValueChange={([v]) => handleOpenAISettingChange('vadThreshold', v)}
+                min={0.1}
+                max={0.9}
+                step={0.05}
+                disabled={disabled}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Voice detection threshold (lower = more sensitive)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Response Delay</Label>
+                <span className="text-xs text-muted-foreground">{openaiSettings.silenceDuration}ms</span>
+              </div>
+              <Slider
+                value={[openaiSettings.silenceDuration]}
+                onValueChange={([v]) => handleOpenAISettingChange('silenceDuration', v)}
+                min={200}
+                max={2000}
+                step={100}
+                disabled={disabled}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Silence before AI responds (shorter = faster, may interrupt)
+              </p>
+            </div>
+          </div>
+
           <div className="pt-3 border-t border-border">
             <SystemPromptEditor
               value={systemPrompt}
@@ -249,6 +335,7 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
   const [provider, setProvider] = useState<VoiceProvider>('elevenlabs');
   const [grokVoice, setGrokVoice] = useState<GrokVoice>('Charon');
   const [openaiVoice, setOpenAIVoice] = useState<OpenAIVoice>('alloy');
+  const [openaiSettings, setOpenAISettings] = useState<OpenAIVoiceSettings>(DEFAULT_OPENAI_SETTINGS);
   const [loading, setLoading] = useState(true);
   const { systemPrompt, setSystemPrompt, loading: promptLoading } = useSystemPromptPreference();
 
@@ -264,6 +351,17 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
       const savedOpenAIVoice = localStorage.getItem('openai_voice') as OpenAIVoice | null;
       if (savedOpenAIVoice && ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'].includes(savedOpenAIVoice)) {
         setOpenAIVoice(savedOpenAIVoice);
+      }
+
+      // Load OpenAI settings from localStorage
+      const savedOpenAISettings = localStorage.getItem('openai_settings');
+      if (savedOpenAISettings) {
+        try {
+          const parsed = JSON.parse(savedOpenAISettings);
+          setOpenAISettings({ ...DEFAULT_OPENAI_SETTINGS, ...parsed });
+        } catch (e) {
+          console.error('Error parsing OpenAI settings:', e);
+        }
       }
 
       if (!isAuthenticated) {
@@ -318,13 +416,20 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     localStorage.setItem('openai_voice', newVoice);
   };
 
-  return { 
+  const updateOpenAISettings = (newSettings: OpenAIVoiceSettings) => {
+    setOpenAISettings(newSettings);
+    localStorage.setItem('openai_settings', JSON.stringify(newSettings));
+  };
+
+  return {
     provider, 
     setProvider: updateProvider, 
     grokVoice, 
     setGrokVoice: updateGrokVoice,
     openaiVoice,
     setOpenAIVoice: updateOpenAIVoice,
+    openaiSettings,
+    setOpenAISettings: updateOpenAISettings,
     systemPrompt,
     setSystemPrompt,
     loading: loading || promptLoading,
