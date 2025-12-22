@@ -49,12 +49,16 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const levelIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isRetryingRef = useRef(false);
+  const isFallbackModeRef = useRef(false);
   
   // Audio config - fixed at 24kHz PCM16
   const audioConfigRef = useRef({
     inputRate: 24000,
     outputRate: 24000,
   });
+  
+  // Ref for startRecording to avoid callback ordering issues
+  const startRecordingRef = useRef<((sampleRate: number) => Promise<void>) | null>(null);
 
   const playNextAudio = useCallback(async () => {
     if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
@@ -130,6 +134,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         case 'fallback_active':
           console.log('[Grok] Fallback mode activated:', message.provider);
           setIsFallbackMode(true);
+          isFallbackModeRef.current = true;
           setConnectionPhase('fallback');
           setConnectionError('Using ElevenLabs TTS fallback - text input only');
           // Don't start audio recording in fallback mode
@@ -145,14 +150,17 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         case 'session.updated':
           console.log('[Grok] Session updated successfully');
           setStatus('connected');
-          if (!isFallbackMode) {
+          if (!isFallbackModeRef.current) {
             setConnectionPhase('ready');
           }
           setRetryCount(0);
           options.onConnect?.();
           // Start recording after session is fully configured (only if not in fallback mode)
-          if (!isFallbackMode) {
-            startRecording(audioConfigRef.current.inputRate);
+          if (!isFallbackModeRef.current) {
+            // Use setTimeout to ensure startRecording is available
+            setTimeout(() => {
+              startRecordingRef.current?.(audioConfigRef.current.inputRate);
+            }, 0);
           }
           break;
           
@@ -290,6 +298,11 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       throw error;
     }
   }, []);
+
+  // Store startRecording in ref for callback access
+  useEffect(() => {
+    startRecordingRef.current = startRecording;
+  }, [startRecording]);
 
   const stopRecording = useCallback(() => {
     if (levelIntervalRef.current) {
@@ -511,6 +524,8 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     audioQueueRef.current = [];
     isPlayingRef.current = false;
     setIsSpeaking(false);
+    setIsFallbackMode(false);
+    isFallbackModeRef.current = false;
     sessionCreatedRef.current = false;
     
     if (wsRef.current) {

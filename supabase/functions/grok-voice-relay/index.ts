@@ -207,6 +207,18 @@ serve(async (req) => {
           const errorText = await xaiResponse.text().catch(() => 'Unknown error');
           console.error('[grok-relay] WebSocket upgrade failed:', xaiResponse.status, errorText);
           
+          // Provide user-friendly error messages
+          let userMessage = 'Failed to connect to voice service';
+          if (xaiResponse.status === 401 || xaiResponse.status === 403) {
+            userMessage = 'Authentication failed - please check API configuration';
+          } else if (xaiResponse.status === 429) {
+            userMessage = 'Too many requests - please wait a moment and try again';
+          } else if (xaiResponse.status === 402) {
+            userMessage = 'Service quota exceeded - please check your xAI billing';
+          } else if (xaiResponse.status >= 500) {
+            userMessage = 'Voice service is temporarily unavailable';
+          }
+          
           // Try ElevenLabs fallback
           if (ELEVENLABS_API_KEY) {
             console.log('[grok-relay] Attempting ElevenLabs TTS fallback...');
@@ -216,7 +228,7 @@ serve(async (req) => {
             }
           }
           
-          throw new Error(`WebSocket upgrade failed: ${xaiResponse.status} - ${errorText}`);
+          throw new Error(userMessage);
         }
         
         // Get the WebSocket from the response (Deno-specific)
