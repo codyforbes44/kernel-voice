@@ -208,8 +208,18 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     loadLastConversation();
   }, [isAuthenticated]);
 
-  // Client tools shared by both providers
-  const clientTools = {
+  // Use refs for mutable state that clientTools needs access to
+  const guestMessagesRef = useRef(guestMessages);
+  const conversationIdRef = useRef(conversationId);
+  useEffect(() => {
+    guestMessagesRef.current = guestMessages;
+  }, [guestMessages]);
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
+
+  // Memoized client tools - stable reference that won't cause hook re-renders
+  const clientTools = useMemo(() => ({
     chat: async (parameters: { message: string }) => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -219,7 +229,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
           
           const { data, error } = await supabase.functions.invoke('chat', {
             body: {
-              messages: [...guestMessages, { role: 'user', content: parameters.message }],
+              messages: [...guestMessagesRef.current, { role: 'user', content: parameters.message }],
             },
           });
 
@@ -248,7 +258,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
           return JSON.stringify({ response: data.message });
         }
 
-        let currentConvId = conversationId;
+        let currentConvId = conversationIdRef.current;
         if (!currentConvId) {
           const { data: newConv } = await supabase
             .from('conversations')
@@ -373,7 +383,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         });
       }
     },
-  };
+  }), [toast, setConversationId, setGuestMessages]);
 
   // ElevenLabs conversation hook
   const elevenlabsConversation = useConversation({
@@ -531,11 +541,35 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
 
   // Use refs to stabilize the startConversation callback
   const voiceProviderRef = useRef(voiceProvider);
+  const elevenlabsConversationRef = useRef(elevenlabsConversation);
+  const openaiConversationRef = useRef(openaiConversation);
+  const grokConversationRef = useRef(grokConversation);
+  
   useEffect(() => {
     voiceProviderRef.current = voiceProvider;
   }, [voiceProvider]);
+  useEffect(() => {
+    elevenlabsConversationRef.current = elevenlabsConversation;
+  }, [elevenlabsConversation]);
+  useEffect(() => {
+    openaiConversationRef.current = openaiConversation;
+  }, [openaiConversation]);
+  useEffect(() => {
+    grokConversationRef.current = grokConversation;
+  }, [grokConversation]);
+
+  // Ref to track if a start is in progress
+  const isStartingConversationRef = useRef(false);
 
   const startConversation = useCallback(async () => {
+    // Guard: prevent concurrent start attempts
+    if (isStartingConversationRef.current) {
+      console.log('[VoiceAssistant] startConversation blocked - already starting');
+      return;
+    }
+    
+    isStartingConversationRef.current = true;
+    
     try {
       setLiveTranscripts([]);
       
@@ -547,15 +581,15 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         }
 
         console.log('Starting ElevenLabs voice session');
-        await elevenlabsConversation.startSession({ 
+        await elevenlabsConversationRef.current.startSession({ 
           signedUrl: data.signedUrl 
         });
       } else if (voiceProviderRef.current === 'openai') {
         console.log('Starting OpenAI Realtime voice session');
-        await openaiConversation.startSession();
+        await openaiConversationRef.current.startSession();
       } else {
         console.log('Starting Grok voice session');
-        await grokConversation.startSession();
+        await grokConversationRef.current.startSession();
       }
     } catch (error) {
       console.error('Error starting conversation:', error);
@@ -564,8 +598,10 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         description: error instanceof Error ? error.message : 'Failed to start conversation',
         variant: 'destructive',
       });
+    } finally {
+      isStartingConversationRef.current = false;
     }
-  }, [elevenlabsConversation, openaiConversation, grokConversation, toast]);
+  }, [toast]);
 
   const endConversation = async () => {
     if (voiceProvider === 'elevenlabs') {
