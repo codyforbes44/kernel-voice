@@ -19,6 +19,7 @@ import { VoiceProviderSelector } from '@/components/voice/VoiceProviderSelector'
 import { LiveTranscripts } from '@/components/voice/LiveTranscripts';
 import { ConnectionStatusBadge } from '@/components/voice/ConnectionStatusBadge';
 import { AudioLevelVisualizer, WaveformOrb } from '@/components/voice/AudioLevelMeter';
+import { TextMessageInput } from '@/components/voice/TextMessageInput';
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -72,6 +73,8 @@ const VoiceAssistant = () => {
     guestMessages,
     showRegistrationPrompt,
     setShowRegistrationPrompt,
+    sendTextMessage,
+    isProcessingText,
   } = useVoiceAssistant();
 
   // Shared voice settings component
@@ -431,11 +434,17 @@ const VoiceAssistant = () => {
 
             {/* Live Transcripts */}
             {(isConnected || liveTranscripts.length > 0) && (
-              <div className="mt-4">
+              <div className="mt-4 space-y-3">
                 <LiveTranscripts 
                   transcripts={liveTranscripts}
                   isConnected={isConnected}
                   isSpeaking={isSpeaking}
+                />
+                {/* Text Input */}
+                <TextMessageInput
+                  onSend={sendTextMessage}
+                  isLoading={isProcessingText}
+                  placeholder={isConnected ? "Type or speak..." : "Type a message..."}
                 />
               </div>
             )}
@@ -535,11 +544,17 @@ const VoiceAssistant = () => {
 
                 {/* Live Transcripts */}
                 {(isConnected || liveTranscripts.length > 0) && (
-                  <div className="mt-6">
+                  <div className="mt-6 space-y-4">
                     <LiveTranscripts 
                       transcripts={liveTranscripts}
                       isConnected={isConnected}
                       isSpeaking={isSpeaking}
+                    />
+                    {/* Text Input */}
+                    <TextMessageInput
+                      onSend={sendTextMessage}
+                      isLoading={isProcessingText}
+                      placeholder={isConnected ? "Type or speak your message..." : "Type a message..."}
                     />
                   </div>
                 )}

@@ -45,6 +45,8 @@ interface UseVoiceAssistantReturn {
   endConversation: () => Promise<void>;
   retryConnection: () => Promise<void>;
   clearConnectionError: () => void;
+  sendTextMessage: (text: string) => Promise<void>;
+  isProcessingText: boolean;
   
   // Transcripts
   liveTranscripts: LiveTranscript[];
@@ -430,6 +432,45 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setIsMuted(!isMuted);
   };
 
+  // Text message state
+  const [isProcessingText, setIsProcessingText] = useState(false);
+
+  // Send text message function
+  const sendTextMessage = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    
+    // Add user message to transcripts immediately
+    addTranscript('user', text);
+    setIsProcessingText(true);
+    
+    try {
+      // If connected to Grok and it's the active provider, send via WebSocket
+      if (voiceProvider === 'grok' && isConnected && grokConversation.sendTextMessage) {
+        const sent = grokConversation.sendTextMessage(text);
+        if (sent) {
+          // Message sent via WebSocket, response will come through onTranscript
+          setIsProcessingText(false);
+          return;
+        }
+      }
+      
+      // Otherwise, use the chat function
+      const response = await clientTools.chat({ message: text });
+      const parsed = JSON.parse(response);
+      
+      if (parsed.response) {
+        addTranscript('assistant', parsed.response);
+      } else if (parsed.error) {
+        addTranscript('assistant', 'Sorry, I encountered an error processing your message.');
+      }
+    } catch (error) {
+      console.error('Error sending text message:', error);
+      addTranscript('assistant', 'Sorry, something went wrong. Please try again.');
+    } finally {
+      setIsProcessingText(false);
+    }
+  }, [voiceProvider, isConnected, grokConversation, addTranscript, clientTools]);
+
   return {
     // Auth state
     isAuthenticated,
@@ -468,6 +509,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     endConversation,
     retryConnection,
     clearConnectionError,
+    sendTextMessage,
+    isProcessingText,
     
     // Transcripts
     liveTranscripts,
