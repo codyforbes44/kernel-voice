@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.test-xai-connection]
 verify_jwt = false
+
+[functions.validate-xai-key]
+verify_jwt = false

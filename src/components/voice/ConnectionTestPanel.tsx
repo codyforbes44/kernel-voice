@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { CheckCircle, XCircle, Loader2, Wifi, WifiOff, Play, Square } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Wifi, WifiOff, Play, Square, Key, Zap } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TestResult {
   phase: string;
@@ -12,14 +13,24 @@ interface TestResult {
   timeMs?: number;
 }
 
+interface ApiKeyValidationResult {
+  success: boolean;
+  message: string;
+  model?: string;
+  responseTimeMs: number;
+}
+
 interface ConnectionTestPanelProps {
   className?: string;
 }
 
 export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
   const [isRunning, setIsRunning] = useState(false);
+  const [isValidatingKey, setIsValidatingKey] = useState(false);
+  const [keyValidation, setKeyValidation] = useState<ApiKeyValidationResult | null>(null);
   const [results, setResults] = useState<TestResult[]>([]);
   const [currentPhase, setCurrentPhase] = useState<string | null>(null);
+  const [connectionMethod, setConnectionMethod] = useState<string | null>(null);
   const [events, setEvents] = useState<string[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -32,11 +43,46 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
     setEvents(prev => [...prev, `[${new Date().toISOString().split('T')[1].slice(0, 12)}] ${event}`]);
   }, []);
 
+  // Validate API key separately before WebSocket test
+  const validateApiKey = useCallback(async () => {
+    setIsValidatingKey(true);
+    setKeyValidation(null);
+    addEvent('Validating xAI API key...');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-xai-key');
+      
+      if (error) {
+        const result: ApiKeyValidationResult = {
+          success: false,
+          message: `Validation error: ${error.message}`,
+          responseTimeMs: 0
+        };
+        setKeyValidation(result);
+        addEvent(`API key validation failed: ${error.message}`);
+      } else {
+        setKeyValidation(data as ApiKeyValidationResult);
+        addEvent(`API key validation: ${data.success ? 'Valid' : 'Invalid'} (${data.responseTimeMs}ms)`);
+      }
+    } catch (err) {
+      const result: ApiKeyValidationResult = {
+        success: false,
+        message: err instanceof Error ? err.message : 'Unknown error',
+        responseTimeMs: 0
+      };
+      setKeyValidation(result);
+      addEvent(`API key validation error: ${result.message}`);
+    } finally {
+      setIsValidatingKey(false);
+    }
+  }, [addEvent]);
+
   const runTest = useCallback(async () => {
     setIsRunning(true);
     setResults([]);
     setEvents([]);
     setCurrentPhase('init');
+    setConnectionMethod(null);
     startTimeRef.current = Date.now();
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -50,7 +96,7 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
     addEvent('Starting connection test...');
 
     // Build WebSocket URL
-    const wsUrl = `${supabaseUrl.replace('https://', 'wss://')}/functions/v1/grok-voice-relay?voice=Aria&debug=verbose`;
+    const wsUrl = `${supabaseUrl.replace('https://', 'wss://')}/functions/v1/grok-voice-relay?voice=Ara&debug=verbose`;
     addEvent(`Connecting to: ${wsUrl}`);
     setCurrentPhase('connecting');
 
@@ -81,6 +127,10 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
 
           if (data.type === 'relay.connected') {
             addResult({ phase: 'relay', success: true, message: 'Relay connected to xAI', timeMs: elapsed });
+            // Check if we have connection method info
+            if (data.connectionMethod) {
+              setConnectionMethod(data.connectionMethod);
+            }
           } else if (data.type === 'session.created') {
             addResult({ phase: 'session_created', success: true, message: 'Session created by xAI', timeMs: elapsed });
             setCurrentPhase('configuring');
@@ -127,6 +177,7 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
             setIsRunning(false);
           } else if (data.type === 'fallback_active') {
             addResult({ phase: 'fallback', success: true, message: 'Using ElevenLabs fallback' });
+            setConnectionMethod('elevenlabs_fallback');
           }
         } catch (e) {
           addEvent(`Parse error: ${e}`);
@@ -188,33 +239,80 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
               Test WebSocket connectivity to the voice relay
             </CardDescription>
           </div>
-          <Button
-            size="sm"
-            variant={isRunning ? "destructive" : "default"}
-            onClick={isRunning ? stopTest : runTest}
-          >
-            {isRunning ? (
-              <>
-                <Square className="h-4 w-4 mr-1" />
-                Stop
-              </>
-            ) : (
-              <>
-                <Play className="h-4 w-4 mr-1" />
-                Run Test
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={validateApiKey}
+              disabled={isValidatingKey || isRunning}
+            >
+              {isValidatingKey ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Key className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant={isRunning ? "destructive" : "default"}
+              onClick={isRunning ? stopTest : runTest}
+            >
+              {isRunning ? (
+                <>
+                  <Square className="h-4 w-4 mr-1" />
+                  Stop
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-1" />
+                  Run Test
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Current Phase */}
-        {currentPhase && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Phase:</span>
-            <Badge variant="outline" className="capitalize">
-              {currentPhase.replace(/_/g, ' ')}
+        {/* API Key Validation Result */}
+        {keyValidation && (
+          <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+            {keyValidation.success ? (
+              <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+            ) : (
+              <XCircle className="h-4 w-4 text-destructive shrink-0" />
+            )}
+            <div className="flex-1 text-sm">
+              <span className="font-medium">API Key:</span>{' '}
+              <span className={keyValidation.success ? 'text-green-600' : 'text-destructive'}>
+                {keyValidation.message}
+              </span>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              {keyValidation.responseTimeMs}ms
             </Badge>
+          </div>
+        )}
+
+        {/* Current Phase & Connection Method */}
+        {(currentPhase || connectionMethod) && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {currentPhase && (
+              <>
+                <span className="text-sm text-muted-foreground">Phase:</span>
+                <Badge variant="outline" className="capitalize">
+                  {currentPhase.replace(/_/g, ' ')}
+                </Badge>
+              </>
+            )}
+            {connectionMethod && (
+              <>
+                <span className="text-sm text-muted-foreground ml-2">Method:</span>
+                <Badge variant="secondary" className="capitalize flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  {connectionMethod.replace(/_/g, ' ')}
+                </Badge>
+              </>
+            )}
           </div>
         )}
 
@@ -262,9 +360,9 @@ export function ConnectionTestPanel({ className }: ConnectionTestPanelProps) {
         )}
 
         {/* Empty State */}
-        {results.length === 0 && !isRunning && (
+        {results.length === 0 && !isRunning && !keyValidation && (
           <p className="text-sm text-muted-foreground text-center py-4">
-            Click "Run Test" to verify the voice relay connection
+            Click <Key className="inline h-3 w-3 mx-1" /> to validate API key, or "Run Test" to test the full connection
           </p>
         )}
       </CardContent>

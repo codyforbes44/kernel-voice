@@ -227,16 +227,52 @@ serve(async (req) => {
       }
     };
 
-    // Connect to xAI using fetch with upgrade headers (proper Authorization header)
-    const connectToXai = async () => {
-      log.basic('====== Connecting to xAI WebSocket ======');
-      log.basic('Using fetch with upgrade headers for proper Authorization');
+    // Try to connect to xAI using subprotocol authentication (OpenAI-style)
+    const connectToXaiWithSubprotocol = async (): Promise<WebSocket | null> => {
+      log.basic('Trying subprotocol authentication...');
       
       try {
-        const connectStartTime = Date.now();
+        const ws = new WebSocket('wss://api.x.ai/v1/realtime', [
+          'realtime',
+          `xai-api-key.${XAI_API_KEY}`,
+        ]);
         
-        // Use fetch with upgrade headers to properly set Authorization
-        log.verbose('Initiating fetch to https://api.x.ai/v1/realtime');
+        // Wait for connection with timeout
+        return await new Promise<WebSocket | null>((resolve) => {
+          const timeout = setTimeout(() => {
+            log.verbose('Subprotocol connection timeout');
+            ws.close();
+            resolve(null);
+          }, 5000);
+          
+          ws.onopen = () => {
+            log.basic('✓ Subprotocol connection successful');
+            clearTimeout(timeout);
+            resolve(ws);
+          };
+          
+          ws.onerror = () => {
+            log.verbose('Subprotocol connection error');
+            clearTimeout(timeout);
+            resolve(null);
+          };
+          
+          ws.onclose = () => {
+            clearTimeout(timeout);
+            resolve(null);
+          };
+        });
+      } catch (error) {
+        log.verbose(`Subprotocol attempt failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+        return null;
+      }
+    };
+
+    // Connect to xAI using fetch with upgrade headers (fallback method)
+    const connectToXaiWithFetch = async (): Promise<WebSocket | null> => {
+      log.basic('Trying fetch upgrade authentication...');
+      
+      try {
         const xaiResponse = await fetch("https://api.x.ai/v1/realtime", {
           method: "GET",
           headers: {
@@ -247,48 +283,70 @@ serve(async (req) => {
         });
         
         log.basic(`Fetch response status: ${xaiResponse.status}`);
-        log.verbose(`Response headers: ${JSON.stringify(Object.fromEntries(xaiResponse.headers.entries()))}`);
         
-        // Check if upgrade was successful
         if (xaiResponse.status !== 101) {
           const errorText = await xaiResponse.text().catch(() => 'Unknown error');
           log.error(`WebSocket upgrade failed: ${xaiResponse.status}`, errorText);
+          return null;
+        }
+        
+        const ws = (xaiResponse as any).webSocket;
+        if (!ws) {
+          log.error('No WebSocket in upgrade response');
+          return null;
+        }
+        
+        ws.accept();
+        log.basic('✓ Fetch upgrade connection successful');
+        return ws;
+      } catch (error) {
+        log.error(`Fetch upgrade failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+        return null;
+      }
+    };
+
+    // Main connection function - tries subprotocol first, then fetch upgrade, then fallback
+    const connectToXai = async () => {
+      log.basic('====== Connecting to xAI WebSocket ======');
+      
+      try {
+        const connectStartTime = Date.now();
+        let connectionMethod = '';
+        
+        // Strategy 1: Try subprotocol authentication first (if xAI supports it like OpenAI)
+        log.verbose('Strategy 1: Attempting subprotocol authentication');
+        let ws = await connectToXaiWithSubprotocol();
+        
+        if (ws) {
+          connectionMethod = 'subprotocol';
+        } else {
+          // Strategy 2: Fall back to fetch upgrade with Authorization header
+          log.verbose('Strategy 2: Falling back to fetch upgrade');
+          ws = await connectToXaiWithFetch();
           
-          // Provide user-friendly error messages
-          let userMessage = 'Failed to connect to voice service';
-          if (xaiResponse.status === 401 || xaiResponse.status === 403) {
-            userMessage = 'Authentication failed - please check API configuration';
-          } else if (xaiResponse.status === 429) {
-            userMessage = 'Too many requests - please wait a moment and try again';
-          } else if (xaiResponse.status === 402) {
-            userMessage = 'Service quota exceeded - please check your xAI billing';
-          } else if (xaiResponse.status >= 500) {
-            userMessage = 'Voice service is temporarily unavailable';
+          if (ws) {
+            connectionMethod = 'fetch_upgrade';
           }
+        }
+        
+        if (!ws) {
+          log.error('Both connection strategies failed');
           
-          // Try ElevenLabs fallback
+          // Strategy 3: Try ElevenLabs fallback
           if (ELEVENLABS_API_KEY) {
-            log.basic('Attempting ElevenLabs TTS fallback...');
+            log.basic('Strategy 3: Attempting ElevenLabs TTS fallback...');
             const fallbackSuccess = await connectToElevenLabs();
             if (fallbackSuccess) {
               return; // Fallback successful
             }
           }
           
-          throw new Error(userMessage);
+          throw new Error('Failed to connect to voice service');
         }
         
-        // Get the WebSocket from the response (Deno-specific)
-        const ws = (xaiResponse as any).webSocket;
-        if (!ws) {
-          throw new Error('No WebSocket in upgrade response');
-        }
-        
-        ws.accept();
         xaiSocket = ws;
-        
         const elapsed = Date.now() - connectStartTime;
-        log.basic(`✓ Connected to xAI Realtime API via fetch upgrade (${elapsed}ms)`);
+        log.basic(`✓ Connected to xAI Realtime API via ${connectionMethod} (${elapsed}ms)`);
         isXaiConnected = true;
         
         if (connectionTimeout) {
@@ -296,11 +354,12 @@ serve(async (req) => {
           connectionTimeout = null;
         }
         
-        // Notify client that connection is ready
+        // Notify client that connection is ready (include connection method for diagnostics)
         if (clientSocket.readyState === WebSocket.OPEN) {
           clientSocket.send(JSON.stringify({
             type: 'relay.connected',
-            message: 'Connected to Grok voice service'
+            message: 'Connected to Grok voice service',
+            connectionMethod: connectionMethod
           }));
         }
 
