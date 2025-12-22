@@ -7,6 +7,7 @@ interface ConnectionStatusBadgeProps {
   isConnecting: boolean;
   hasError: boolean;
   provider: 'elevenlabs' | 'grok';
+  authMethod?: string;
   className?: string;
 }
 
@@ -15,6 +16,7 @@ export const ConnectionStatusBadge = ({
   isConnecting,
   hasError,
   provider,
+  authMethod,
   className,
 }: ConnectionStatusBadgeProps) => {
   const getStatus = () => {
@@ -57,6 +59,9 @@ export const ConnectionStatusBadge = ({
   const status = getStatus();
   const Icon = status.icon;
 
+  const providerLabel = provider === 'elevenlabs' ? 'EL' : 'Grok';
+  const authLabel = isConnected && authMethod ? `:${authMethod}` : '';
+
   return (
     <Badge
       variant={status.variant}
@@ -83,7 +88,7 @@ export const ConnectionStatusBadge = ({
       <Icon className={cn('h-3 w-3', status.animate && 'animate-spin')} />
       <span>{status.label}</span>
       <span className="text-[10px] opacity-70">
-        ({provider === 'elevenlabs' ? 'EL' : 'Grok'})
+        ({providerLabel}{authLabel})
       </span>
     </Badge>
   );

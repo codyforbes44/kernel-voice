@@ -53,6 +53,7 @@ const VoiceAssistant = () => {
     isConnected,
     isConnecting,
     connectionError,
+    connectionAuthMethod,
     isSpeaking,
     inputAudioLevel,
     outputAudioLevel,
@@ -119,6 +120,7 @@ const VoiceAssistant = () => {
               isConnecting={isConnecting}
               hasError={!!connectionError}
               provider={voiceProvider}
+              authMethod={connectionAuthMethod}
             />
           )}
         </div>
