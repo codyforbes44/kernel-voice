@@ -113,7 +113,14 @@ export const ThemePreview = () => {
   const [open, setOpen] = useState(false);
   
   const handleSelectTheme = (newTheme: 'light' | 'dark') => {
+    // Add transition class for smooth animation
+    document.documentElement.classList.add('theme-transition');
     setTheme(newTheme);
+    
+    // Remove transition class after animation completes
+    setTimeout(() => {
+      document.documentElement.classList.remove('theme-transition');
+    }, 400);
   };
 
   return (
