@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { floatTo16BitPCM, pcm16ToWavBlob, arrayBufferToBase64, resampleAudio } from '@/lib/audioUtils';
 
 export type GrokVoice = 'Ara' | 'Rex' | 'Sal' | 'Eve' | 'Leo';
@@ -338,86 +337,105 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
 
   const startSession = useCallback(async () => {
     try {
-      console.log('Starting Grok session...');
+      console.log('Starting Grok session via WebSocket relay...');
       setConnectionError(null);
       setStatus('connecting');
       sessionCreatedRef.current = false;
       
-      // Set connection timeout (15 seconds)
+      // Set connection timeout (20 seconds for relay connection)
       connectionTimeoutRef.current = setTimeout(() => {
         if (status === 'connecting') {
           const error = new Error('Connection timeout - please try again');
           setConnectionError(error.message);
           setStatus('disconnected');
           options.onError?.(error);
-          // Clean up WebSocket if exists
           if (wsRef.current) {
             wsRef.current.close();
             wsRef.current = null;
           }
           stopRecording();
         }
-      }, 15000);
+      }, 20000);
       
-      // Get session config from edge function (includes ephemeral token in URL)
-      const { data, error } = await supabase.functions.invoke('grok-voice-session', {
-        body: { 
-          voice: options.voice || 'Ara',
-          instructions: options.instructions,
+      // Store config for audio settings
+      configRef.current = {
+        wsUrl: '', // Will be set by relay
+        voice: options.voice || 'Ara',
+        language: null,
+        instructions: options.instructions || '',
+        audio: {
+          input: { format: { type: 'audio/pcm', rate: 24000 } },
+          output: { format: { type: 'audio/pcm', rate: 24000 } },
         },
-      });
+      };
       
-      if (error) {
-        console.error('Edge function error:', error);
-        const errorMsg = error.message || 'Failed to get Grok session config';
-        setConnectionError(errorMsg);
-        setStatus('disconnected');
-        throw new Error(errorMsg);
-      }
+      // Connect to our WebSocket relay edge function
+      // The relay handles xAI authentication server-side
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const wsProtocol = supabaseUrl.startsWith('https') ? 'wss' : 'ws';
+      const wsHost = supabaseUrl.replace(/^https?:\/\//, '');
       
-      if (!data?.wsUrl) {
-        console.error('Invalid session config:', data);
-        const errorMsg = 'Failed to get Grok session config: missing wsUrl';
-        setConnectionError(errorMsg);
-        setStatus('disconnected');
-        throw new Error(errorMsg);
-      }
+      const voice = encodeURIComponent(options.voice || 'Ara');
+      const instructions = options.instructions ? encodeURIComponent(options.instructions) : '';
       
-      console.log('Got session config, connecting to WebSocket...');
-      console.log('WebSocket URL:', data.wsUrl);
-      configRef.current = data;
+      const relayUrl = `${wsProtocol}://${wsHost}/functions/v1/grok-voice-relay?voice=${voice}${instructions ? `&instructions=${instructions}` : ''}`;
       
-      // Connect to Grok WebSocket - URL already includes the ephemeral token
-      // Note: xAI realtime API uses standard WebSocket without subprotocol
-      // The 'realtime' subprotocol was causing connection failures (1006 errors)
-      const ws = new WebSocket(data.wsUrl);
+      console.log('Connecting to relay:', relayUrl.substring(0, 100) + '...');
+      
+      const ws = new WebSocket(relayUrl);
       wsRef.current = ws;
       
       ws.onopen = () => {
-        console.log('Grok WebSocket connected, waiting for session.created...');
-        // Clear timeout on successful connection
-        if (connectionTimeoutRef.current) {
-          clearTimeout(connectionTimeoutRef.current);
-          connectionTimeoutRef.current = null;
-        }
-        // Don't send anything here - wait for session.created event
+        console.log('Connected to Grok voice relay, waiting for xAI connection...');
       };
       
-      ws.onmessage = handleWebSocketMessage;
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          console.log('Relay message:', message.type);
+          
+          // Handle relay-specific messages
+          if (message.type === 'relay.connected') {
+            console.log('Relay connected to xAI, waiting for session.created...');
+            // Clear timeout on relay connection
+            if (connectionTimeoutRef.current) {
+              clearTimeout(connectionTimeoutRef.current);
+              connectionTimeoutRef.current = null;
+            }
+            return;
+          }
+          
+          if (message.type === 'relay.disconnected') {
+            console.log('Relay disconnected from xAI:', message.reason);
+            const errorMsg = message.reason || 'Disconnected from Grok service';
+            setConnectionError(errorMsg);
+            setStatus('disconnected');
+            stopRecording();
+            options.onDisconnect?.();
+            return;
+          }
+          
+          // Forward all other messages to the normal handler
+          handleWebSocketMessage(event);
+          
+        } catch (error) {
+          // Non-JSON message, pass to handler
+          handleWebSocketMessage(event);
+        }
+      };
       
       ws.onerror = (error) => {
-        console.error('Grok WebSocket error:', error);
+        console.error('Relay WebSocket error:', error);
         console.error('WebSocket readyState:', ws.readyState);
-        const errorMsg = 'WebSocket connection error - check your network';
+        const errorMsg = 'Failed to connect to voice service - please try again';
         setConnectionError(errorMsg);
         setStatus('disconnected');
         options.onError?.(new Error(errorMsg));
       };
       
       ws.onclose = (event) => {
-        console.log('Grok WebSocket closed - code:', event.code, 'reason:', event.reason, 'wasClean:', event.wasClean);
+        console.log('Relay WebSocket closed - code:', event.code, 'reason:', event.reason, 'wasClean:', event.wasClean);
         
-        // Clear timeout
         if (connectionTimeoutRef.current) {
           clearTimeout(connectionTimeoutRef.current);
           connectionTimeoutRef.current = null;
@@ -427,9 +445,9 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         if (event.code !== 1000 && event.code !== 1005) {
           let errorMsg = `Connection closed unexpectedly (code: ${event.code})`;
           if (event.code === 1006) {
-            errorMsg = 'Connection lost - please check your network and try again';
+            errorMsg = 'Connection lost - the voice service may be unavailable';
           } else if (event.code === 1008) {
-            errorMsg = 'Policy violation - please try again';
+            errorMsg = 'Authentication error - please try again';
           } else if (event.code === 1011) {
             errorMsg = 'Server error - please try again later';
           } else if (event.reason) {
