@@ -10,6 +10,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 import { SystemPromptEditor, useSystemPromptPreference, DEFAULT_PROMPT } from './SystemPromptEditor';
 
 export interface OpenAIVoiceSettings {
@@ -304,62 +306,70 @@ export function VoiceProviderSelector({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Temperature</Label>
-                <span className="text-xs text-muted-foreground">{openaiSettings.temperature.toFixed(1)}</span>
-              </div>
-              <Slider
-                value={[openaiSettings.temperature]}
-                onValueChange={([v]) => handleOpenAISettingChange('temperature', v)}
-                min={0.6}
-                max={1.2}
-                step={0.1}
-                disabled={disabled}
-                className="w-full"
-              />
-              <p className="text-xs text-muted-foreground">
-                Lower = more focused, Higher = more creative
-              </p>
-            </div>
+            <Collapsible>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group">
+                <span>Advanced Settings</span>
+                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Temperature</Label>
+                    <span className="text-xs text-muted-foreground">{openaiSettings.temperature.toFixed(1)}</span>
+                  </div>
+                  <Slider
+                    value={[openaiSettings.temperature]}
+                    onValueChange={([v]) => handleOpenAISettingChange('temperature', v)}
+                    min={0.6}
+                    max={1.2}
+                    step={0.1}
+                    disabled={disabled}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Lower = more focused, Higher = more creative
+                  </p>
+                </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">VAD Sensitivity</Label>
-                <span className="text-xs text-muted-foreground">{(openaiSettings.vadThreshold * 100).toFixed(0)}%</span>
-              </div>
-              <Slider
-                value={[openaiSettings.vadThreshold]}
-                onValueChange={([v]) => handleOpenAISettingChange('vadThreshold', v)}
-                min={0.1}
-                max={0.9}
-                step={0.05}
-                disabled={disabled}
-                className="w-full"
-              />
-              <p className="text-xs text-muted-foreground">
-                Voice detection threshold (lower = more sensitive)
-              </p>
-            </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">VAD Sensitivity</Label>
+                    <span className="text-xs text-muted-foreground">{(openaiSettings.vadThreshold * 100).toFixed(0)}%</span>
+                  </div>
+                  <Slider
+                    value={[openaiSettings.vadThreshold]}
+                    onValueChange={([v]) => handleOpenAISettingChange('vadThreshold', v)}
+                    min={0.1}
+                    max={0.9}
+                    step={0.05}
+                    disabled={disabled}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Voice detection threshold (lower = more sensitive)
+                  </p>
+                </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Response Delay</Label>
-                <span className="text-xs text-muted-foreground">{openaiSettings.silenceDuration}ms</span>
-              </div>
-              <Slider
-                value={[openaiSettings.silenceDuration]}
-                onValueChange={([v]) => handleOpenAISettingChange('silenceDuration', v)}
-                min={200}
-                max={2000}
-                step={100}
-                disabled={disabled}
-                className="w-full"
-              />
-              <p className="text-xs text-muted-foreground">
-                Silence before AI responds (shorter = faster, may interrupt)
-              </p>
-            </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Response Delay</Label>
+                    <span className="text-xs text-muted-foreground">{openaiSettings.silenceDuration}ms</span>
+                  </div>
+                  <Slider
+                    value={[openaiSettings.silenceDuration]}
+                    onValueChange={([v]) => handleOpenAISettingChange('silenceDuration', v)}
+                    min={200}
+                    max={2000}
+                    step={100}
+                    disabled={disabled}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Silence before AI responds (shorter = faster, may interrupt)
+                  </p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
 
           <div className="pt-3 border-t border-border">
