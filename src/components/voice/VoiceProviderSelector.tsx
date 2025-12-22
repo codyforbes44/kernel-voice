@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { SystemPromptEditor, useSystemPromptPreference, DEFAULT_PROMPT } from './SystemPromptEditor';
 
 export type VoiceProvider = 'elevenlabs' | 'grok';
 export type GrokVoice = 'Ara' | 'Rex' | 'Sal' | 'Eve' | 'Leo';
@@ -18,6 +19,8 @@ interface VoiceProviderSelectorProps {
   onChange: (provider: VoiceProvider) => void;
   grokVoice: GrokVoice;
   onGrokVoiceChange: (voice: GrokVoice) => void;
+  systemPrompt: string;
+  onSystemPromptChange: (prompt: string) => void;
   disabled?: boolean;
   isAuthenticated?: boolean;
 }
@@ -48,6 +51,8 @@ export function VoiceProviderSelector({
   onChange,
   grokVoice,
   onGrokVoiceChange,
+  systemPrompt,
+  onSystemPromptChange,
   disabled = false,
   isAuthenticated = false,
 }: VoiceProviderSelectorProps) {
@@ -156,6 +161,15 @@ export function VoiceProviderSelector({
               {selectedVoiceInfo.description}
             </p>
           )}
+
+          {/* System Prompt Editor - Only for Grok */}
+          <div className="pt-3 border-t border-border">
+            <SystemPromptEditor
+              value={systemPrompt}
+              onChange={onSystemPromptChange}
+              disabled={disabled}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -167,6 +181,7 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
   const [provider, setProvider] = useState<VoiceProvider>('elevenlabs');
   const [grokVoice, setGrokVoice] = useState<GrokVoice>('Ara');
   const [loading, setLoading] = useState(true);
+  const { systemPrompt, setSystemPrompt, loading: promptLoading } = useSystemPromptPreference();
 
   useEffect(() => {
     const loadPreference = async () => {
@@ -228,6 +243,8 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     setProvider: updateProvider, 
     grokVoice, 
     setGrokVoice: updateGrokVoice,
-    loading 
+    systemPrompt,
+    setSystemPrompt,
+    loading: loading || promptLoading,
   };
 }

@@ -46,6 +46,8 @@ const VoiceAssistant = () => {
     setVoiceProvider,
     grokVoice,
     setGrokVoice,
+    systemPrompt,
+    setSystemPrompt,
     providerLoading,
     isConnected,
     isSpeaking,
@@ -73,6 +75,8 @@ const VoiceAssistant = () => {
         onChange={setVoiceProvider}
         grokVoice={grokVoice}
         onGrokVoiceChange={setGrokVoice}
+        systemPrompt={systemPrompt}
+        onSystemPromptChange={setSystemPrompt}
         disabled={isConnected || providerLoading}
         isAuthenticated={isAuthenticated}
       />

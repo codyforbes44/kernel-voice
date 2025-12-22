@@ -22,6 +22,8 @@ interface UseVoiceAssistantReturn {
   setVoiceProvider: (provider: VoiceProvider) => void;
   grokVoice: GrokVoice;
   setGrokVoice: (voice: GrokVoice) => void;
+  systemPrompt: string;
+  setSystemPrompt: (prompt: string) => void;
   providerLoading: boolean;
   
   // Connection state
@@ -78,7 +80,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     provider: voiceProvider, 
     setProvider: setVoiceProvider, 
     grokVoice, 
-    setGrokVoice, 
+    setGrokVoice,
+    systemPrompt,
+    setSystemPrompt,
     loading: providerLoading 
   } = useVoiceProviderPreference(isAuthenticated);
 
@@ -351,6 +355,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     },
     clientTools,
     voice: grokVoice,
+    instructions: systemPrompt,
   });
 
   // Use the selected provider's conversation
@@ -417,6 +422,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setVoiceProvider,
     grokVoice,
     setGrokVoice,
+    systemPrompt,
+    setSystemPrompt,
     providerLoading,
     
     // Connection state

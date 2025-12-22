@@ -12,6 +12,7 @@ interface GrokConversationOptions {
   onTranscript?: (transcript: { role: 'user' | 'assistant'; text: string }) => void;
   clientTools?: Record<string, (params: any) => Promise<string>>;
   voice?: GrokVoice;
+  instructions?: string;
 }
 
 interface GrokMessage {
@@ -296,7 +297,10 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       
       // Get session config from edge function (includes ephemeral token in URL)
       const { data, error } = await supabase.functions.invoke('grok-voice-session', {
-        body: { voice: options.voice || 'Ara' },
+        body: { 
+          voice: options.voice || 'Ara',
+          instructions: options.instructions,
+        },
       });
       
       if (error) {
