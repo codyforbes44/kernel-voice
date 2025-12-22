@@ -312,8 +312,12 @@ export type Database = {
           created_at: string | null
           display_name: string | null
           email: string
+          grok_settings: Json | null
+          grok_voice: string | null
           id: string
           input_mode: string | null
+          openai_settings: Json | null
+          openai_voice: string | null
           updated_at: string | null
           voice_provider: string | null
         }
@@ -322,8 +326,12 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           email: string
+          grok_settings?: Json | null
+          grok_voice?: string | null
           id: string
           input_mode?: string | null
+          openai_settings?: Json | null
+          openai_voice?: string | null
           updated_at?: string | null
           voice_provider?: string | null
         }
@@ -332,8 +340,12 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           email?: string
+          grok_settings?: Json | null
+          grok_voice?: string | null
           id?: string
           input_mode?: string | null
+          openai_settings?: Json | null
+          openai_voice?: string | null
           updated_at?: string | null
           voice_provider?: string | null
         }
