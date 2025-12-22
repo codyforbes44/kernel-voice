@@ -38,7 +38,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
-  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const audioQueueRef = useRef<Blob[]>([]);
   const isPlayingRef = useRef(false);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -234,7 +233,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       
       audioContextRef.current = new AudioContext({ sampleRate: 48000 });
       const source = audioContextRef.current.createMediaStreamSource(stream);
-      sourceRef.current = source;
       
       // Use ScriptProcessorNode for audio processing
       const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
@@ -267,11 +265,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   }, []);
 
   const stopRecording = useCallback(() => {
-    if (sourceRef.current) {
-      sourceRef.current.disconnect();
-      sourceRef.current = null;
-    }
-    
     if (processorRef.current) {
       processorRef.current.disconnect();
       processorRef.current = null;
