@@ -18,10 +18,13 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY is not set');
     }
 
-    const { voice, instructions } = await req.json();
+    const { voice, instructions, temperature, vadThreshold, silenceDuration } = await req.json();
     
     console.log('Creating OpenAI Realtime session...');
     console.log('Voice:', voice || 'alloy');
+    console.log('Temperature:', temperature ?? 0.8);
+    console.log('VAD Threshold:', vadThreshold ?? 0.5);
+    console.log('Silence Duration:', silenceDuration ?? 500);
     console.log('Has instructions:', !!instructions);
 
     // Request an ephemeral token from OpenAI
@@ -37,11 +40,12 @@ serve(async (req) => {
         instructions: instructions || "You are a helpful voice assistant. Be concise and conversational.",
         input_audio_format: "pcm16",
         output_audio_format: "pcm16",
+        temperature: temperature ?? 0.8,
         turn_detection: {
           type: "server_vad",
-          threshold: 0.5,
+          threshold: vadThreshold ?? 0.5,
           prefix_padding_ms: 300,
-          silence_duration_ms: 500,
+          silence_duration_ms: silenceDuration ?? 500,
         },
       }),
     });

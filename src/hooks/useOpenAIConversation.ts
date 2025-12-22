@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { type OpenAIVoiceSettings, DEFAULT_OPENAI_SETTINGS } from '@/components/voice/VoiceProviderSelector';
 
 export type OpenAIVoice = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse';
 
@@ -12,6 +13,7 @@ interface OpenAIConversationOptions {
   clientTools?: Record<string, (params: any) => Promise<string>>;
   voice?: OpenAIVoice;
   instructions?: string;
+  settings?: OpenAIVoiceSettings;
 }
 
 interface OpenAIMessage {
@@ -221,7 +223,9 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
       setConnectionPhase('getting_token');
       
       const voiceSetting = options.voice || 'alloy';
+      const voiceSettings = options.settings || DEFAULT_OPENAI_SETTINGS;
       console.log('[OpenAI] Voice:', voiceSetting);
+      console.log('[OpenAI] Settings:', voiceSettings);
       console.log('[OpenAI] Has instructions:', !!options.instructions);
       
       // Step 1: Get ephemeral token
@@ -230,6 +234,9 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
         body: {
           voice: voiceSetting,
           instructions: options.instructions,
+          temperature: voiceSettings.temperature,
+          vadThreshold: voiceSettings.vadThreshold,
+          silenceDuration: voiceSettings.silenceDuration,
         },
       });
 
