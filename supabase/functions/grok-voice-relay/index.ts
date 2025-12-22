@@ -69,73 +69,20 @@ serve(async (req) => {
     let sessionConfigured = false;
     let connectionTimeout: number | null = null;
 
-    // Fetch ephemeral token and connect to xAI
+    // Connect to xAI using API key via query parameter (server-side auth)
     const connectToXai = async () => {
-      console.log('[grok-relay] ====== Fetching ephemeral token ======');
-      const tokenStartTime = Date.now();
+      console.log('[grok-relay] ====== Connecting to xAI WebSocket ======');
+      console.log('[grok-relay] Using API key authentication via query parameter');
       
       try {
-        // Step 1: Fetch ephemeral token from xAI using client_secrets endpoint
-        const tokenResponse = await fetch("https://api.x.ai/v1/realtime/client_secrets", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${XAI_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            expires_after: { seconds: 300 },
-          }),
-        });
-        
-        const tokenElapsed = Date.now() - tokenStartTime;
-        console.log(`[grok-relay] Token response status: ${tokenResponse.status} (${tokenElapsed}ms)`);
-        
-        if (!tokenResponse.ok) {
-          const errorText = await tokenResponse.text();
-          console.error('[grok-relay] Token fetch failed:', errorText);
-          
-          if (clientSocket.readyState === WebSocket.OPEN) {
-            clientSocket.send(JSON.stringify({
-              type: 'error',
-              error: { 
-                message: 'Failed to authenticate with Grok service',
-                details: `Status ${tokenResponse.status}: ${errorText}`
-              }
-            }));
-            clientSocket.close(1011, 'Token fetch failed');
-          }
-          return;
-        }
-        
-        const tokenData = await tokenResponse.json();
-        console.log('[grok-relay] Token response keys:', Object.keys(tokenData));
-        
-        // Extract the ephemeral token - xAI returns { value: "token", expires_at: ... } directly
-        const ephemeralToken = tokenData.value || tokenData.client_secret?.value;
-        
-        if (!ephemeralToken) {
-          console.error('[grok-relay] No ephemeral token in response:', JSON.stringify(tokenData));
-          if (clientSocket.readyState === WebSocket.OPEN) {
-            clientSocket.send(JSON.stringify({
-              type: 'error',
-              error: { message: 'Invalid token response from Grok service' }
-            }));
-            clientSocket.close(1011, 'Invalid token response');
-          }
-          return;
-        }
-        
-        console.log('[grok-relay] ✓ Ephemeral token obtained');
-        console.log('[grok-relay] Token expires:', tokenData.client_secret?.expires_at || 'unknown');
-        
-        // Step 2: Connect to xAI WebSocket with ephemeral token using 'key' parameter
-        const encodedToken = encodeURIComponent(ephemeralToken);
-        const xaiWsUrl = `wss://api.x.ai/v1/realtime?key=${encodedToken}`;
-        
-        console.log('[grok-relay] ====== Connecting to xAI WebSocket ======');
-        console.log('[grok-relay] Using ephemeral token authentication');
-        
         const connectStartTime = Date.now();
+        
+        // For server-side relay, use api_key query parameter
+        // Deno WebSocket doesn't support custom headers, so we pass the key in the URL
+        const encodedApiKey = encodeURIComponent(XAI_API_KEY);
+        const xaiWsUrl = `wss://api.x.ai/v1/realtime?api_key=${encodedApiKey}`;
+        
+        console.log('[grok-relay] WebSocket URL: wss://api.x.ai/v1/realtime?api_key=***');
         
         xaiSocket = new WebSocket(xaiWsUrl);
         
