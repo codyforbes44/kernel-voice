@@ -19,7 +19,7 @@ interface GrokMessage {
   [key: string]: any;
 }
 
-export type ConnectionPhase = 'idle' | 'connecting_relay' | 'connecting_xai' | 'configuring' | 'ready' | 'error';
+export type ConnectionPhase = 'idle' | 'connecting_relay' | 'connecting_xai' | 'configuring' | 'ready' | 'fallback' | 'error';
 
 // Retry configuration
 const MAX_RETRIES = 5;
@@ -34,6 +34,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const [connectionInfo, setConnectionInfo] = useState<{ tokenParam?: string } | null>(null);
   const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>('idle');
   const [retryCount, setRetryCount] = useState(0);
+  const [isFallbackMode, setIsFallbackMode] = useState(false);
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -126,6 +127,14 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           setConnectionPhase('connecting_xai');
           break;
           
+        case 'fallback_active':
+          console.log('[Grok] Fallback mode activated:', message.provider);
+          setIsFallbackMode(true);
+          setConnectionPhase('fallback');
+          setConnectionError('Using ElevenLabs TTS fallback - text input only');
+          // Don't start audio recording in fallback mode
+          break;
+          
         case 'session.created':
           console.log('[Grok] Session created by xAI');
           sessionCreatedRef.current = true;
@@ -136,11 +145,15 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         case 'session.updated':
           console.log('[Grok] Session updated successfully');
           setStatus('connected');
-          setConnectionPhase('ready');
+          if (!isFallbackMode) {
+            setConnectionPhase('ready');
+          }
           setRetryCount(0);
           options.onConnect?.();
-          // Start recording after session is fully configured
-          startRecording(audioConfigRef.current.inputRate);
+          // Start recording after session is fully configured (only if not in fallback mode)
+          if (!isFallbackMode) {
+            startRecording(audioConfigRef.current.inputRate);
+          }
           break;
           
         case 'input_audio_buffer.speech_started':
@@ -559,6 +572,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     inputAudioLevel,
     outputAudioLevel,
     retryCount,
+    isFallbackMode,
     startSession,
     endSession,
     clearError,
