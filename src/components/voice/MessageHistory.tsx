@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare } from 'lucide-react';
+import { SkeletonList } from '@/components/ui/skeleton-list';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface Message {
   id: string;
@@ -84,17 +86,25 @@ const MessageHistory = ({ conversationId }: MessageHistoryProps) => {
 
   if (!conversationId) {
     return (
-      <div className="rounded-xl bg-card border border-border p-8 text-center">
-        <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-        <p className="text-muted-foreground">Select a conversation to view message history</p>
+      <div className="rounded-xl bg-card border border-border">
+        <EmptyState
+          icon={MessageSquare}
+          title="No conversation selected"
+          description="Select a conversation to view message history"
+          className="py-8"
+        />
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="rounded-xl bg-card border border-border p-8 text-center">
-        <p className="text-muted-foreground">Loading messages...</p>
+      <div className="rounded-xl bg-card border border-border p-4">
+        <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm">
+          <MessageSquare className="h-4 w-4" />
+          Conversation History
+        </h3>
+        <SkeletonList count={4} variant="message" />
       </div>
     );
   }
