@@ -21,6 +21,41 @@ Guidelines:
 - Be helpful, honest, and harmless
 - If you don't know something, say so rather than making things up`;
 
+// Fetch ephemeral token from xAI
+async function fetchEphemeralToken(apiKey: string): Promise<string> {
+  console.log('Fetching ephemeral token from xAI...');
+  
+  const response = await fetch('https://api.x.ai/v1/realtime/sessions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'grok-2-public',
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to get ephemeral token:', response.status, errorText);
+    throw new Error(`Failed to get ephemeral token: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log('Ephemeral token response:', JSON.stringify(data).substring(0, 200));
+  
+  // xAI returns the token in client_secret.value
+  const token = data.client_secret?.value || data.value || data.token;
+  if (!token) {
+    console.error('No token found in response:', data);
+    throw new Error('No ephemeral token in response');
+  }
+  
+  console.log('Successfully obtained ephemeral token');
+  return token;
+}
+
 serve(async (req) => {
   const { headers } = req;
   const upgradeHeader = headers.get("upgrade") || "";
@@ -59,39 +94,36 @@ serve(async (req) => {
     // Upgrade client connection to WebSocket
     const { socket: clientSocket, response } = Deno.upgradeWebSocket(req);
     
-    // Connect to xAI Realtime API with proper authentication
-    // xAI uses Bearer token in headers for WebSocket authentication
-    const xaiWsUrl = 'wss://api.x.ai/v1/realtime?model=grok-2-public';
-    
-    console.log('Connecting to xAI WebSocket:', xaiWsUrl);
-    
     let xaiSocket: WebSocket | null = null;
     let isClientConnected = true;
     let isXaiConnected = false;
     let sessionConfigured = false;
 
     // Handle client connection open
-    clientSocket.onopen = () => {
+    clientSocket.onopen = async () => {
       console.log('Client WebSocket connected');
       
-      // Connect to xAI
       try {
-        xaiSocket = new WebSocket(xaiWsUrl, {
-          headers: {
-            'Authorization': `Bearer ${XAI_API_KEY}`,
-            'Content-Type': 'application/json',
-          }
-        } as any);
+        // Fetch ephemeral token first
+        const ephemeralToken = await fetchEphemeralToken(XAI_API_KEY);
+        
+        // Connect to xAI using the ephemeral token in query parameter
+        const xaiWsUrl = `wss://api.x.ai/v1/realtime?model=grok-2-public&token=${ephemeralToken}`;
+        console.log('Connecting to xAI WebSocket with ephemeral token...');
+        
+        xaiSocket = new WebSocket(xaiWsUrl);
 
         xaiSocket.onopen = () => {
           console.log('Connected to xAI Realtime API');
           isXaiConnected = true;
           
           // Notify client that connection is ready
-          clientSocket.send(JSON.stringify({
-            type: 'relay.connected',
-            message: 'Connected to Grok voice service'
-          }));
+          if (clientSocket.readyState === WebSocket.OPEN) {
+            clientSocket.send(JSON.stringify({
+              type: 'relay.connected',
+              message: 'Connected to Grok voice service'
+            }));
+          }
         };
 
         xaiSocket.onmessage = (event) => {
@@ -111,10 +143,8 @@ serve(async (req) => {
                 session: {
                   voice: voice,
                   instructions: instructions,
-                  audio: {
-                    input: { format: { type: 'audio/pcm', rate: 24000 } },
-                    output: { format: { type: 'audio/pcm', rate: 24000 } },
-                  },
+                  input_audio_format: 'pcm16',
+                  output_audio_format: 'pcm16',
                   turn_detection: { type: 'server_vad' },
                 },
               };
@@ -159,11 +189,13 @@ serve(async (req) => {
         };
       } catch (error) {
         console.error('Error connecting to xAI:', error);
-        clientSocket.send(JSON.stringify({
-          type: 'error',
-          error: { message: 'Failed to connect to Grok service' }
-        }));
-        clientSocket.close(1011, 'Failed to connect to xAI');
+        if (clientSocket.readyState === WebSocket.OPEN) {
+          clientSocket.send(JSON.stringify({
+            type: 'error',
+            error: { message: error instanceof Error ? error.message : 'Failed to connect to Grok service' }
+          }));
+          clientSocket.close(1011, 'Failed to connect to xAI');
+        }
       }
     };
 
