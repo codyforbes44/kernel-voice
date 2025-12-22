@@ -75,8 +75,8 @@ serve(async (req) => {
       const tokenStartTime = Date.now();
       
       try {
-        // Step 1: Fetch ephemeral token from xAI
-        const tokenResponse = await fetch("https://api.x.ai/v1/realtime/sessions", {
+        // Step 1: Fetch ephemeral token from xAI using client_secrets endpoint
+        const tokenResponse = await fetch("https://api.x.ai/v1/realtime/client_secrets", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${XAI_API_KEY}`,
@@ -85,6 +85,7 @@ serve(async (req) => {
           body: JSON.stringify({
             model: "grok-2-public",
             voice: voice,
+            expires_after: { seconds: 300 },
           }),
         });
         
