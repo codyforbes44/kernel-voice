@@ -50,14 +50,14 @@ export const VoiceControlPanel = ({
         <div className={`
           relative w-24 h-24 md:w-32 md:h-32 rounded-full flex items-center justify-center
           ${isConnected 
-            ? 'bg-gradient-to-br from-primary to-primary/50' 
+            ? 'bg-gradient-to-br from-primary to-primary/50 shadow-glow animate-glow-pulse' 
             : isConnecting
-              ? 'bg-gradient-to-br from-primary/30 to-primary/10'
+              ? 'bg-gradient-to-br from-primary/30 to-primary/10 shadow-glow-subtle'
               : connectionError
                 ? 'bg-gradient-to-br from-destructive/30 to-destructive/10'
-                : 'bg-gradient-to-br from-muted to-muted-foreground/20'
+                : 'bg-gradient-to-br from-muted to-muted-foreground/20 dark:from-muted dark:to-primary/5'
           }
-          transition-all duration-300 shadow-lg
+          transition-all duration-300
         `}>
           {isConnected && (
             <WaveformOrb 

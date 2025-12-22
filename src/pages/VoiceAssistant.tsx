@@ -109,7 +109,7 @@ const VoiceAssistant = () => {
 
   // Main Voice Interface Card
   const VoiceInterfaceCard = () => (
-    <div className="rounded-2xl bg-card border border-border p-4 md:p-8 shadow-xl">
+    <div className="rounded-2xl bg-card border border-border p-4 md:p-8 shadow-xl dark:shadow-glow-subtle dark:border-primary/10 transition-shadow duration-300 hover:dark:shadow-glow">
       {/* Header */}
       <div className="flex items-center justify-between mb-4 md:mb-6">
         <div className="flex-1 flex justify-start">
