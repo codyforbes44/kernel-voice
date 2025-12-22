@@ -147,12 +147,12 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const handleWebSocketMessage = useCallback(async (event: MessageEvent) => {
     try {
       const message: GrokMessage = JSON.parse(event.data);
-      console.log('Grok message received:', message.type);
+      console.log('[Grok] Message received:', message.type, message.type === 'error' ? message : '');
       options.onMessage?.(message);
       
       switch (message.type) {
         case 'session.created':
-          console.log('Grok session created, sending session.update...');
+          console.log('[Grok] Session created by xAI, sending session.update...');
           sessionCreatedRef.current = true;
           // Send session configuration AFTER receiving session.created
           sendSessionUpdate();
@@ -338,7 +338,8 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
 
   const startSession = useCallback(async () => {
     try {
-      console.log('Starting Grok session via WebSocket relay...');
+      console.log('[Grok] ====== Starting new session ======');
+      console.log('[Grok] Timestamp:', new Date().toISOString());
       setConnectionError(null);
       setStatus('connecting');
       sessionCreatedRef.current = false;
@@ -346,6 +347,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       // Set connection timeout (20 seconds for relay connection)
       connectionTimeoutRef.current = setTimeout(() => {
         if (status === 'connecting') {
+          console.log('[Grok] Connection timeout after 20 seconds');
           const error = new Error('Connection timeout - please try again');
           setConnectionError(error.message);
           setStatus('disconnected');
@@ -359,9 +361,13 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       }, 20000);
       
       // Store config for audio settings
+      const voiceSetting = options.voice || 'Ara';
+      console.log('[Grok] Voice setting:', voiceSetting);
+      console.log('[Grok] Has custom instructions:', !!options.instructions);
+      
       configRef.current = {
         wsUrl: '', // Will be set by relay
-        voice: options.voice || 'Ara',
+        voice: voiceSetting,
         language: null,
         instructions: options.instructions || '',
         audio: {
@@ -376,18 +382,20 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       const wsProtocol = supabaseUrl.startsWith('https') ? 'wss' : 'ws';
       const wsHost = supabaseUrl.replace(/^https?:\/\//, '');
       
-      const voice = encodeURIComponent(options.voice || 'Ara');
+      const voice = encodeURIComponent(voiceSetting);
       const instructions = options.instructions ? encodeURIComponent(options.instructions) : '';
       
       const relayUrl = `${wsProtocol}://${wsHost}/functions/v1/grok-voice-relay?voice=${voice}${instructions ? `&instructions=${instructions}` : ''}`;
       
-      console.log('Connecting to relay:', relayUrl.substring(0, 100) + '...');
+      console.log('[Grok] Relay URL:', relayUrl.replace(/instructions=.*/, 'instructions=...'));
+      console.log('[Grok] Initiating WebSocket connection...');
       
       const ws = new WebSocket(relayUrl);
       wsRef.current = ws;
       
       ws.onopen = () => {
-        console.log('Connected to Grok voice relay, waiting for xAI connection...');
+        console.log('[Grok] WebSocket connected to relay');
+        console.log('[Grok] Waiting for relay to connect to xAI...');
       };
       
       ws.onmessage = (event) => {
