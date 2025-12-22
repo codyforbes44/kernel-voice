@@ -210,7 +210,26 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
             },
           });
 
-          if (error) throw error;
+          if (error) {
+            // Handle rate limit and payment errors
+            if (error.message?.includes('429') || error.message?.includes('Rate limit')) {
+              toast({
+                title: 'Rate Limit Exceeded',
+                description: 'Too many requests. Please wait a moment and try again.',
+                variant: 'destructive',
+              });
+              return JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' });
+            }
+            if (error.message?.includes('402') || error.message?.includes('Payment')) {
+              toast({
+                title: 'Credits Exhausted',
+                description: 'AI credits have been exhausted. Please add more credits.',
+                variant: 'destructive',
+              });
+              return JSON.stringify({ error: 'AI credits exhausted.' });
+            }
+            throw error;
+          }
           
           setGuestMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
           return JSON.stringify({ response: data.message });
@@ -238,7 +257,26 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          // Handle rate limit and payment errors
+          if (error.message?.includes('429') || error.message?.includes('Rate limit')) {
+            toast({
+              title: 'Rate Limit Exceeded',
+              description: 'Too many requests. Please wait a moment and try again.',
+              variant: 'destructive',
+            });
+            return JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' });
+          }
+          if (error.message?.includes('402') || error.message?.includes('Payment')) {
+            toast({
+              title: 'Credits Exhausted',
+              description: 'AI credits have been exhausted. Please add more credits.',
+              variant: 'destructive',
+            });
+            return JSON.stringify({ error: 'AI credits exhausted.' });
+          }
+          throw error;
+        }
 
         return JSON.stringify({ response: data.message });
       } catch (error) {
