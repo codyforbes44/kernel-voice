@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Mic, MessageSquare, FileSearch, Globe, Zap, Shield, ChevronRight } from 'lucide-react';
+import { Mic, MessageSquare, FileSearch, Globe, Zap, Shield, ChevronRight, UserPlus, Sparkles, MessageCircle } from 'lucide-react';
 import SEO from '@/components/SEO';
 import { Header } from '@/components/layout/Header';
 import { useScrollAnimation, useStaggeredAnimation } from '@/hooks/useScrollAnimation';
@@ -11,8 +11,30 @@ const LandingPage = () => {
   
   // Scroll animations for each section
   const heroAnimation = useScrollAnimation({ threshold: 0.1 });
+  const howItWorksAnimation = useStaggeredAnimation(3, { threshold: 0.15 });
   const featuresAnimation = useStaggeredAnimation(6, { threshold: 0.1 });
   const ctaAnimation = useScrollAnimation({ threshold: 0.2 });
+
+  const steps = [
+    {
+      number: '01',
+      icon: UserPlus,
+      title: 'Sign Up Free',
+      description: 'Create your account in seconds. No credit card required to get started.',
+    },
+    {
+      number: '02',
+      icon: Sparkles,
+      title: 'Choose Your Mode',
+      description: 'Select voice, text, or combined mode based on your preference.',
+    },
+    {
+      number: '03',
+      icon: MessageCircle,
+      title: 'Start Talking',
+      description: 'Begin your conversation and experience AI like never before.',
+    },
+  ];
 
   const features = [
     {
@@ -132,6 +154,68 @@ const LandingPage = () => {
                   <div className="text-sm text-muted-foreground">Private & Secure</div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* How it Works Section */}
+        <section ref={howItWorksAnimation.ref} className="py-20 md:py-28 relative overflow-hidden">
+          {/* Subtle background */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.05),transparent_70%)]" />
+          
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div className={`text-center mb-16 transition-all duration-700 ${howItWorksAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+              <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
+                How it Works
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Get started in three simple steps
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 relative">
+              {/* Connecting line - desktop only */}
+              <div className="hidden md:block absolute top-24 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+              
+              {steps.map((step, index) => (
+                <div
+                  key={step.number}
+                  className={`relative text-center transition-all duration-700 ${howItWorksAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+                  style={howItWorksAnimation.getItemDelay(index)}
+                >
+                  {/* Step number badge */}
+                  <div className="relative inline-block mb-6">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-card border-2 border-primary/30 flex items-center justify-center mx-auto shadow-lg dark:shadow-glow-subtle group hover:border-primary/60 transition-all duration-300 hover:scale-105">
+                      <step.icon className="w-8 h-8 md:w-10 md:h-10 text-primary" />
+                    </div>
+                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shadow-md">
+                      {index + 1}
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-xl md:text-2xl font-semibold mb-3">{step.title}</h3>
+                  <p className="text-muted-foreground max-w-xs mx-auto">{step.description}</p>
+                  
+                  {/* Arrow for mobile */}
+                  {index < steps.length - 1 && (
+                    <div className="md:hidden flex justify-center my-6">
+                      <ChevronRight className="w-6 h-6 text-primary/50 rotate-90" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* CTA after steps */}
+            <div className={`text-center mt-12 transition-all duration-700 delay-500 ${howItWorksAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+              <Button
+                size="lg"
+                onClick={() => navigate('/auth')}
+                className="px-8 py-6 text-lg glow-primary"
+              >
+                Get Started Free
+                <ChevronRight className="ml-2 h-5 w-5" />
+              </Button>
             </div>
           </div>
         </section>
