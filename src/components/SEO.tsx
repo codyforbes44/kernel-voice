@@ -11,15 +11,15 @@ interface SEOProps {
 }
 
 const SEO = ({ 
-  title = 'AI Voice Assistant', 
-  description = 'Premium AI Voice Assistant with real-time conversation', 
+  title = 'Kernel', 
+  description = 'Premium AI assistant with real-time conversation', 
   image = '/og-home.png',
   url = typeof window !== 'undefined' ? window.location.href : '',
   type = 'website',
   keywords = ['AI voice assistant', 'voice AI', 'conversational AI'],
   noIndex = false 
 }: SEOProps) => {
-  const fullTitle = title === 'AI Voice Assistant' ? title : `${title} | AI Voice Assistant`;
+  const fullTitle = title === 'Kernel' ? title : `${title} | Kernel`;
   const fullImageUrl = image.startsWith('http') ? image : `${window.location.origin}${image}`;
 
   return (
@@ -37,7 +37,7 @@ const SEO = ({
       <meta property="og:image" content={fullImageUrl} />
       <meta property="og:url" content={url} />
       <meta property="og:type" content={type} />
-      <meta property="og:site_name" content="AI Voice Assistant" />
+      <meta property="og:site_name" content="Kernel" />
 
       {/* Twitter Card Tags */}
       <meta name="twitter:card" content="summary_large_image" />
@@ -51,7 +51,7 @@ const SEO = ({
         {JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebApplication",
-          "name": "AI Voice Assistant",
+          "name": "Kernel",
           "description": description,
           "url": url,
           "applicationCategory": "Productivity",

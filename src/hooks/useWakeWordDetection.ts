@@ -50,7 +50,7 @@ declare global {
 }
 
 export function useWakeWordDetection({
-  wakeWords = ['hey assistant', 'hey ai', 'ok assistant'],
+  wakeWords = ['hey kernel', 'ok kernel', 'kernel'],
   onWakeWordDetected,
   enabled = true,
 }: UseWakeWordDetectionOptions) {

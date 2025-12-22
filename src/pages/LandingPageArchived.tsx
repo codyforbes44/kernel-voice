@@ -29,7 +29,7 @@ const LandingPageArchived = () => {
   return (
     <>
       <SEO 
-        title="AI Intelligence - Premium Conversational AI"
+        title="Kernel - Premium Conversational AI"
         description="Experience the future of AI interaction with real-time voice conversations, intelligent web search, and advanced document analysis."
         image="/og-home.png"
         keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI"]}
