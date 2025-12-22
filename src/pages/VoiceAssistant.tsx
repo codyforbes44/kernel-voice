@@ -21,8 +21,11 @@ import { ConnectionStatusBadge } from '@/components/voice/ConnectionStatusBadge'
 import { AudioLevelVisualizer, WaveformOrb } from '@/components/voice/AudioLevelMeter';
 import { TextMessageInput } from '@/components/voice/TextMessageInput';
 import { InputModeSelector } from '@/components/voice/InputModeSelector';
+import { WakeWordIndicator } from '@/components/voice/WakeWordIndicator';
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
+import { useWakeWordDetection } from '@/hooks/useWakeWordDetection';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useCallback } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -82,6 +85,30 @@ const VoiceAssistant = () => {
 
   const showVoiceInterface = inputMode === 'voice' || inputMode === 'combined';
   const showTextInput = inputMode === 'text' || inputMode === 'combined';
+
+  // Wake word detection - only active in text-only mode when not connected
+  const handleWakeWordDetected = useCallback(async () => {
+    // Switch to voice mode and start conversation
+    setInputMode('voice');
+    // Small delay to let the mode switch, then start conversation
+    setTimeout(() => {
+      if (isReady) {
+        startConversation();
+      }
+    }, 100);
+  }, [setInputMode, isReady, startConversation]);
+
+  const wakeWordEnabled = inputMode === 'text' && !isConnected && isReady;
+  
+  const { 
+    isListening: isWakeWordListening, 
+    isSupported: isWakeWordSupported,
+    lastHeard: wakeWordLastHeard,
+  } = useWakeWordDetection({
+    wakeWords: ['hey assistant', 'hey ai', 'ok assistant', 'hello assistant'],
+    onWakeWordDetected: handleWakeWordDetected,
+    enabled: wakeWordEnabled,
+  });
 
   // Shared voice settings component
   const VoiceSettings = () => (
@@ -255,6 +282,14 @@ const VoiceAssistant = () => {
           <p className="text-xs md:text-sm text-muted-foreground mt-1">
             Type your messages below
           </p>
+          {/* Wake Word Indicator */}
+          <div className="mt-3 flex justify-center">
+            <WakeWordIndicator
+              isListening={isWakeWordListening}
+              isSupported={isWakeWordSupported}
+              lastHeard={wakeWordLastHeard}
+            />
+          </div>
         </div>
       )}
 
