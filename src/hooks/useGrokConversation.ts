@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type GrokVoice = 'Charon' | 'Celeste' | 'Clio' | 'Zephyr' | 'Sol';
 
+import { type GrokVoiceSettings, DEFAULT_GROK_SETTINGS } from '@/components/voice/VoiceProviderSelector';
+
 interface GrokConversationOptions {
   onConnect?: () => void;
   onDisconnect?: () => void;
@@ -13,6 +15,7 @@ interface GrokConversationOptions {
   clientTools?: Record<string, (params: any) => Promise<string>>;
   voice?: GrokVoice;
   instructions?: string;
+  settings?: GrokVoiceSettings;
 }
 
 interface GrokMessage {
@@ -268,9 +271,9 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
               },
               turn_detection: {
                 type: 'server_vad',
-                threshold: 0.5,
-                prefix_padding_ms: 300,
-                silence_duration_ms: 200
+                threshold: options.settings?.vadThreshold ?? DEFAULT_GROK_SETTINGS.vadThreshold,
+                prefix_padding_ms: options.settings?.prefixPadding ?? DEFAULT_GROK_SETTINGS.prefixPadding,
+                silence_duration_ms: options.settings?.silenceDuration ?? DEFAULT_GROK_SETTINGS.silenceDuration
               },
               ...(toolsConfig && { 
                 tools: toolsConfig,
