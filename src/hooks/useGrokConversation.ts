@@ -90,6 +90,21 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   // Ref for startRecording to avoid callback ordering issues
   const startRecordingRef = useRef<((sampleRate: number) => Promise<void>) | null>(null);
 
+  // Safe send helper with try/catch and readyState check
+  const safeSend = useCallback((data: string) => {
+    try {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(data);
+        return true;
+      }
+      log.verbose('Cannot send - WebSocket not open');
+      return false;
+    } catch (err) {
+      log.error('WebSocket send failed', err);
+      return false;
+    }
+  }, []);
+
   const playNextAudio = useCallback(async () => {
     if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
     
@@ -239,13 +254,13 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
               const result = await options.clientTools[message.name](args);
               log.verbose('Tool result:', result);
               
-              wsRef.current?.send(JSON.stringify({
+              safeSend(JSON.stringify({
                 type: 'response.function_call_output',
                 call_id: message.call_id,
                 output: result,
               }));
               
-              wsRef.current?.send(JSON.stringify({
+              safeSend(JSON.stringify({
                 type: 'response.create',
               }));
             } catch (error) {
@@ -304,7 +319,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         }
       }, 50);
       
-      // Helper to send audio data
+      // Helper to send audio data (uses safeSend for error handling)
       const sendAudioData = (inputData: Float32Array) => {
         if (wsRef.current?.readyState !== WebSocket.OPEN) return;
         
@@ -313,10 +328,14 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         const pcmData = floatTo16BitPCM(resampled);
         const base64Audio = arrayBufferToBase64(pcmData);
         
-        wsRef.current.send(JSON.stringify({
-          type: 'input_audio_buffer.append',
-          audio: { data: base64Audio },
-        }));
+        try {
+          wsRef.current?.send(JSON.stringify({
+            type: 'input_audio_buffer.append',
+            audio: { data: base64Audio },
+          }));
+        } catch (err) {
+          log.error('Failed to send audio data', err);
+        }
       };
       
       // Try to use AudioWorklet (modern approach) with fallback to ScriptProcessorNode
@@ -627,14 +646,14 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     };
   }, [endSession]);
 
-  // Send a text message via WebSocket
+  // Send a text message via WebSocket (uses safeSend for error handling)
   const sendTextMessage = useCallback((text: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       console.error('Cannot send text message: WebSocket not connected');
       return false;
     }
 
-    wsRef.current.send(JSON.stringify({
+    const itemSent = safeSend(JSON.stringify({
       type: 'conversation.item.create',
       item: {
         type: 'message',
@@ -643,12 +662,14 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       },
     }));
 
-    wsRef.current.send(JSON.stringify({
-      type: 'response.create',
-    }));
+    if (itemSent) {
+      safeSend(JSON.stringify({
+        type: 'response.create',
+      }));
+    }
 
-    return true;
-  }, []);
+    return itemSent;
+  }, [safeSend]);
 
   return {
     status,
