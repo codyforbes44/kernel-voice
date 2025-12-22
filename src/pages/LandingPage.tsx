@@ -3,9 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Mic, MessageSquare, FileSearch, Globe, Zap, Shield, ChevronRight } from 'lucide-react';
 import SEO from '@/components/SEO';
 import { Header } from '@/components/layout/Header';
+import { useScrollAnimation, useStaggeredAnimation } from '@/hooks/useScrollAnimation';
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  
+  // Scroll animations for each section
+  const heroAnimation = useScrollAnimation({ threshold: 0.1 });
+  const featuresAnimation = useStaggeredAnimation(6, { threshold: 0.1 });
+  const ctaAnimation = useScrollAnimation({ threshold: 0.2 });
 
   const features = [
     {
@@ -53,17 +59,17 @@ const LandingPage = () => {
         <Header />
         
         {/* Hero Section */}
-        <section className="relative overflow-hidden">
+        <section ref={heroAnimation.ref} className="relative overflow-hidden">
           {/* Background Effects */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.15),transparent_50%)]" />
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl" />
           
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24 md:pt-24 md:pb-32 relative">
-            <div className="max-w-4xl mx-auto text-center">
+            <div className={`max-w-4xl mx-auto text-center transition-all duration-700 ${heroAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
               {/* Logo */}
-              <div className="flex justify-center mb-8 animate-fade-in">
+              <div className={`flex justify-center mb-8 transition-all duration-700 delay-100 ${heroAnimation.isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>
                 <div className="relative">
-                  <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl scale-150" />
+                  <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl scale-150 animate-pulse" />
                   <img 
                     src="/logo.png" 
                     alt="Kernel" 
@@ -73,7 +79,7 @@ const LandingPage = () => {
               </div>
               
               {/* Headline */}
-              <h1 className="text-4xl sm:text-5xl md:text-7xl font-display font-bold mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+              <h1 className={`text-4xl sm:text-5xl md:text-7xl font-display font-bold mb-6 transition-all duration-700 delay-200 ${heroAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                 <span className="text-foreground">Meet </span>
                 <span className="bg-gradient-to-r from-primary via-primary to-secondary bg-clip-text text-transparent">
                   Kernel
@@ -81,13 +87,13 @@ const LandingPage = () => {
               </h1>
               
               {/* Tagline */}
-              <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              <p className={`text-lg sm:text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto transition-all duration-700 delay-300 ${heroAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                 Premium AI assistant with real-time voice conversations, 
                 intelligent web search, and advanced document analysis.
               </p>
               
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+              <div className={`flex flex-col sm:flex-row items-center justify-center gap-4 transition-all duration-700 delay-400 ${heroAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                 <Button 
                   size="lg" 
                   className="px-8 py-6 text-lg glow-primary group"
@@ -108,7 +114,7 @@ const LandingPage = () => {
               </div>
               
               {/* Stats */}
-              <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12 mt-16 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+              <div className={`flex flex-wrap items-center justify-center gap-8 md:gap-12 mt-16 transition-all duration-700 delay-500 ${heroAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                 <div className="text-center">
                   <div className="text-3xl md:text-4xl font-bold text-primary">&lt;1s</div>
                   <div className="text-sm text-muted-foreground">Response Time</div>
@@ -127,9 +133,9 @@ const LandingPage = () => {
         </section>
         
         {/* Features Section */}
-        <section className="py-20 md:py-28 bg-muted/30">
+        <section ref={featuresAnimation.ref} className="py-20 md:py-28 bg-muted/30">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <div className={`text-center mb-16 transition-all duration-700 ${featuresAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
               <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
                 Everything You Need
               </h2>
@@ -142,10 +148,10 @@ const LandingPage = () => {
               {features.map((feature, index) => (
                 <div 
                   key={feature.title}
-                  className="group p-6 md:p-8 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5"
-                  style={{ animationDelay: `${index * 0.1}s` }}
+                  className={`group p-6 md:p-8 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-500 hover:shadow-lg hover:shadow-primary/5 ${featuresAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+                  style={featuresAnimation.getItemDelay(index)}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
                     <feature.icon className="h-6 w-6 text-primary" />
                   </div>
                   <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
@@ -157,20 +163,20 @@ const LandingPage = () => {
         </section>
         
         {/* CTA Section */}
-        <section className="py-20 md:py-28 relative overflow-hidden">
+        <section ref={ctaAnimation.ref} className="py-20 md:py-28 relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,hsl(var(--primary)/0.1),transparent_50%)]" />
           
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-6">
+            <div className={`max-w-3xl mx-auto text-center transition-all duration-700 ${ctaAnimation.isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`}>
+              <h2 className={`text-3xl md:text-5xl font-display font-bold mb-6 transition-all duration-700 delay-100 ${ctaAnimation.isVisible ? 'opacity-100' : 'opacity-0'}`}>
                 Ready to Experience the Future?
               </h2>
-              <p className="text-lg text-muted-foreground mb-8">
+              <p className={`text-lg text-muted-foreground mb-8 transition-all duration-700 delay-200 ${ctaAnimation.isVisible ? 'opacity-100' : 'opacity-0'}`}>
                 Join thousands of users who are already using Kernel to enhance their productivity.
               </p>
               <Button 
                 size="lg" 
-                className="px-10 py-6 text-lg glow-primary"
+                className={`px-10 py-6 text-lg glow-primary transition-all duration-700 delay-300 ${ctaAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
                 onClick={() => navigate('/assistant')}
               >
                 Get Started Now
