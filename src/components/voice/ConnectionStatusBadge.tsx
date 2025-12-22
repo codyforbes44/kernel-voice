@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Wifi, WifiOff, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -60,36 +61,68 @@ export const ConnectionStatusBadge = ({
   const Icon = status.icon;
 
   const providerLabel = provider === 'elevenlabs' ? 'EL' : 'Grok';
+  const providerFullName = provider === 'elevenlabs' ? 'ElevenLabs' : 'Grok (xAI)';
   const authLabel = isConnected && authMethod ? `:${authMethod}` : '';
 
-  return (
-    <Badge
-      variant={status.variant}
-      className={cn(
-        'gap-1.5 px-2.5 py-1 text-xs font-medium transition-all duration-300',
-        className
+  const tooltipContent = (
+    <div className="space-y-1 text-xs">
+      <div className="font-medium">Connection Details</div>
+      <div className="text-muted-foreground">
+        <span className="text-foreground">Provider:</span> {providerFullName}
+      </div>
+      <div className="text-muted-foreground">
+        <span className="text-foreground">Status:</span> {status.label}
+      </div>
+      {isConnected && authMethod && (
+        <div className="text-muted-foreground">
+          <span className="text-foreground">Auth param:</span> {authMethod}
+        </div>
       )}
-    >
-      <span className="relative flex h-2 w-2">
-        <span
-          className={cn(
-            'absolute inline-flex h-full w-full rounded-full opacity-75',
-            status.dotColor,
-            (status.animate || isConnected) && 'animate-ping'
-          )}
-        />
-        <span
-          className={cn(
-            'relative inline-flex h-2 w-2 rounded-full',
-            status.dotColor
-          )}
-        />
-      </span>
-      <Icon className={cn('h-3 w-3', status.animate && 'animate-spin')} />
-      <span>{status.label}</span>
-      <span className="text-[10px] opacity-70">
-        ({providerLabel}{authLabel})
-      </span>
-    </Badge>
+      {isConnecting && (
+        <div className="text-muted-foreground italic">
+          Trying different authentication methods...
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge
+            variant={status.variant}
+            className={cn(
+              'gap-1.5 px-2.5 py-1 text-xs font-medium transition-all duration-300 cursor-help',
+              className
+            )}
+          >
+            <span className="relative flex h-2 w-2">
+              <span
+                className={cn(
+                  'absolute inline-flex h-full w-full rounded-full opacity-75',
+                  status.dotColor,
+                  (status.animate || isConnected) && 'animate-ping'
+                )}
+              />
+              <span
+                className={cn(
+                  'relative inline-flex h-2 w-2 rounded-full',
+                  status.dotColor
+                )}
+              />
+            </span>
+            <Icon className={cn('h-3 w-3', status.animate && 'animate-spin')} />
+            <span>{status.label}</span>
+            <span className="text-[10px] opacity-70">
+              ({providerLabel}{authLabel})
+            </span>
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-xs">
+          {tooltipContent}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
