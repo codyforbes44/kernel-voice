@@ -51,19 +51,18 @@ Guidelines:
     const voice = config.voice || 'Ara';
 
     console.log('Fetching ephemeral token from xAI...');
-    console.log('Endpoint: https://api.x.ai/v1/realtime/sessions');
+    console.log('Endpoint: https://api.x.ai/v1/realtime/client_secrets');
 
-    // Fetch ephemeral token from xAI's realtime sessions endpoint
-    // Based on xAI docs: compatible with OpenAI Realtime API spec
-    const tokenResponse = await fetch('https://api.x.ai/v1/realtime/sessions', {
+    // Fetch ephemeral token from xAI's client_secrets endpoint
+    // Based on xAI docs: use expires_after format for ephemeral tokens
+    const tokenResponse = await fetch('https://api.x.ai/v1/realtime/client_secrets', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${XAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'grok-2-public',
-        voice: voice.toLowerCase(),
+        expires_after: { seconds: 300 },
       }),
     });
 
