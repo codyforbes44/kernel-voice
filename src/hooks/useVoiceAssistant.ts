@@ -6,7 +6,7 @@ import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 import { useVoiceProviderPreference, type VoiceProvider, type GrokVoice } from '@/components/voice/VoiceProviderSelector';
 import { useGrokConversation } from '@/hooks/useGrokConversation';
 import { type LiveTranscript } from '@/components/voice/LiveTranscripts';
-
+import { type InputMode } from '@/components/voice/InputModeSelector';
 interface UseVoiceAssistantReturn {
   // Auth state
   isAuthenticated: boolean;
@@ -39,6 +39,8 @@ interface UseVoiceAssistantReturn {
   toggleMute: () => void;
   volume: number;
   setVolume: (v: number) => void;
+  inputMode: InputMode;
+  setInputMode: (mode: InputMode) => void;
   
   // Actions
   startConversation: () => Promise<void>;
@@ -75,6 +77,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   // Controls
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
+  const [inputMode, setInputMode] = useState<InputMode>('combined');
   
   // Guest mode
   const [guestMessages, setGuestMessages] = useState<Array<{ role: string; content: string }>>([]);
@@ -503,6 +506,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     toggleMute,
     volume,
     setVolume,
+    inputMode,
+    setInputMode,
     
     // Actions
     startConversation,
