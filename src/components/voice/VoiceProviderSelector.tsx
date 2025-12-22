@@ -166,32 +166,72 @@ export function VoiceProviderSelector({
     }
   };
 
-  const handleGrokVoiceChange = (newVoice: GrokVoice) => {
+  const handleGrokVoiceChange = async (newVoice: GrokVoice) => {
     onGrokVoiceChange(newVoice);
     localStorage.setItem('grok_voice', newVoice);
+    
+    if (!isAuthenticated) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').update({ grok_voice: newVoice }).eq('id', user.id);
+      }
+    } catch (error) {
+      console.error('Error saving grok voice:', error);
+    }
   };
 
-  const handleOpenAIVoiceChange = (newVoice: OpenAIVoice) => {
+  const handleOpenAIVoiceChange = async (newVoice: OpenAIVoice) => {
     onOpenAIVoiceChange(newVoice);
     localStorage.setItem('openai_voice', newVoice);
+    
+    if (!isAuthenticated) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').update({ openai_voice: newVoice }).eq('id', user.id);
+      }
+    } catch (error) {
+      console.error('Error saving openai voice:', error);
+    }
   };
 
-  const handleGrokSettingChange = <K extends keyof GrokVoiceSettings>(
+  const handleGrokSettingChange = async <K extends keyof GrokVoiceSettings>(
     key: K,
     value: GrokVoiceSettings[K]
   ) => {
     const newSettings = { ...grokSettings, [key]: value };
     onGrokSettingsChange(newSettings);
     localStorage.setItem('grok_settings', JSON.stringify(newSettings));
+    
+    if (!isAuthenticated) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').update({ grok_settings: newSettings }).eq('id', user.id);
+      }
+    } catch (error) {
+      console.error('Error saving grok settings:', error);
+    }
   };
 
-  const handleOpenAISettingChange = <K extends keyof OpenAIVoiceSettings>(
+  const handleOpenAISettingChange = async <K extends keyof OpenAIVoiceSettings>(
     key: K,
     value: OpenAIVoiceSettings[K]
   ) => {
     const newSettings = { ...openaiSettings, [key]: value };
     onOpenAISettingsChange(newSettings);
     localStorage.setItem('openai_settings', JSON.stringify(newSettings));
+    
+    if (!isAuthenticated) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').update({ openai_settings: newSettings }).eq('id', user.id);
+      }
+    } catch (error) {
+      console.error('Error saving openai settings:', error);
+    }
   };
 
   const selectedGrokVoiceInfo = grokVoices.find(v => v.id === grokVoice);
@@ -609,12 +649,26 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
 
         const { data } = await supabase
           .from('profiles')
-          .select('voice_provider')
+          .select('voice_provider, grok_voice, grok_settings, openai_voice, openai_settings')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (data?.voice_provider) {
-          setProvider(data.voice_provider as VoiceProvider);
+        if (data) {
+          if (data.voice_provider) {
+            setProvider(data.voice_provider as VoiceProvider);
+          }
+          if (data.grok_voice) {
+            setGrokVoice(data.grok_voice as GrokVoice);
+          }
+          if (data.grok_settings) {
+            setGrokSettings({ ...DEFAULT_GROK_SETTINGS, ...(data.grok_settings as unknown as GrokVoiceSettings) });
+          }
+          if (data.openai_voice) {
+            setOpenAIVoice(data.openai_voice as OpenAIVoice);
+          }
+          if (data.openai_settings) {
+            setOpenAISettings({ ...DEFAULT_OPENAI_SETTINGS, ...(data.openai_settings as unknown as OpenAIVoiceSettings) });
+          }
         }
       } catch (error) {
         console.error('Error loading voice provider preference:', error);
