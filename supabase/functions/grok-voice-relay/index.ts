@@ -23,9 +23,12 @@ Guidelines:
 
 // Fetch ephemeral token from xAI
 async function fetchEphemeralToken(apiKey: string): Promise<string> {
-  console.log('Fetching ephemeral token from xAI...');
+  console.log('[grok-relay] ====== Fetching ephemeral token ======');
+  console.log('[grok-relay] Endpoint: https://api.x.ai/v1/realtime/client_secrets');
+  console.log('[grok-relay] Model: grok-2-public');
   
-  // Use the correct endpoint for client secrets
+  const startTime = Date.now();
+  
   const response = await fetch('https://api.x.ai/v1/realtime/client_secrets', {
     method: 'POST',
     headers: {
@@ -37,23 +40,27 @@ async function fetchEphemeralToken(apiKey: string): Promise<string> {
     }),
   });
 
+  const elapsed = Date.now() - startTime;
+  console.log(`[grok-relay] Token fetch response: ${response.status} (${elapsed}ms)`);
+
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Failed to get ephemeral token:', response.status, errorText);
+    console.error('[grok-relay] Token fetch failed:', response.status, errorText);
     throw new Error(`Failed to get ephemeral token: ${response.status} ${errorText}`);
   }
 
   const data = await response.json();
-  console.log('Ephemeral token response:', JSON.stringify(data).substring(0, 200));
+  console.log('[grok-relay] Token response keys:', Object.keys(data));
   
   // xAI returns the token in client_secret.value
   const token = data.client_secret?.value || data.value || data.token;
   if (!token) {
-    console.error('No token found in response:', data);
+    console.error('[grok-relay] No token found in response structure');
+    console.error('[grok-relay] Response:', JSON.stringify(data).substring(0, 500));
     throw new Error('No ephemeral token in response');
   }
   
-  console.log('Successfully obtained ephemeral token');
+  console.log('[grok-relay] Successfully obtained ephemeral token (length:', token.length, ')');
   return token;
 }
 
@@ -90,7 +97,9 @@ serve(async (req) => {
     const customInstructions = url.searchParams.get('instructions');
     const instructions = customInstructions || defaultInstructions;
 
-    console.log('WebSocket upgrade request received, voice:', voice);
+    console.log('[grok-relay] ====== New WebSocket connection ======');
+    console.log('[grok-relay] Voice:', voice);
+    console.log('[grok-relay] Has custom instructions:', !!customInstructions);
 
     // Upgrade client connection to WebSocket
     const { socket: clientSocket, response } = Deno.upgradeWebSocket(req);
@@ -106,16 +115,19 @@ serve(async (req) => {
       // Use 'key' parameter as per xAI documentation
       const xaiWsUrl = `wss://api.x.ai/v1/realtime?model=grok-2-public&key=${ephemeralToken}`;
       
-      console.log('Connecting to xAI Realtime API...');
+      console.log('[grok-relay] ====== Connecting to xAI ======');
+      console.log('[grok-relay] WebSocket URL: wss://api.x.ai/v1/realtime?model=grok-2-public&key=...');
       
+      const connectStartTime = Date.now();
       xaiSocket = new WebSocket(xaiWsUrl);
       
       xaiSocket.onopen = () => {
+        const elapsed = Date.now() - connectStartTime;
         if (connectionTimeout) {
           clearTimeout(connectionTimeout);
           connectionTimeout = null;
         }
-        console.log('Connected to xAI Realtime API');
+        console.log(`[grok-relay] Connected to xAI Realtime API (${elapsed}ms)`);
         isXaiConnected = true;
         
         // Notify client that connection is ready
@@ -129,14 +141,13 @@ serve(async (req) => {
 
       xaiSocket.onmessage = (event) => {
         const data = event.data;
-        console.log('xAI message received:', typeof data === 'string' ? data.substring(0, 100) : 'binary');
-        
         try {
           const message = JSON.parse(data);
+          console.log('[grok-relay] xAI message:', message.type);
           
           // When session is created, send configuration
           if (message.type === 'session.created' && !sessionConfigured) {
-            console.log('Session created, sending configuration...');
+            console.log('[grok-relay] Session created, sending configuration...');
             sessionConfigured = true;
             
             const sessionUpdate = {
@@ -150,7 +161,12 @@ serve(async (req) => {
               },
             };
             
+            console.log('[grok-relay] Sending session.update with voice:', voice);
             xaiSocket?.send(JSON.stringify(sessionUpdate));
+          }
+          
+          if (message.type === 'error') {
+            console.error('[grok-relay] xAI error message:', message);
           }
           
           // Forward all messages to client
@@ -166,7 +182,8 @@ serve(async (req) => {
       };
 
       xaiSocket.onerror = (error) => {
-        console.error('xAI WebSocket error:', error);
+        console.error('[grok-relay] xAI WebSocket error:', error);
+        console.error('[grok-relay] isXaiConnected:', isXaiConnected);
         
         if (!isXaiConnected && isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
           clientSocket.send(JSON.stringify({
@@ -178,7 +195,10 @@ serve(async (req) => {
       };
 
       xaiSocket.onclose = (event) => {
-        console.log('xAI WebSocket closed:', event.code, event.reason);
+        console.log('[grok-relay] xAI WebSocket closed');
+        console.log('[grok-relay] Close code:', event.code);
+        console.log('[grok-relay] Close reason:', event.reason || '(none)');
+        console.log('[grok-relay] Was connected:', isXaiConnected);
         isXaiConnected = false;
         
         if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
