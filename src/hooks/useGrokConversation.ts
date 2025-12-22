@@ -240,12 +240,9 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
               log.verbose('Tool result:', result);
               
               wsRef.current?.send(JSON.stringify({
-                type: 'conversation.item.create',
-                item: {
-                  type: 'function_call_output',
-                  call_id: message.call_id,
-                  output: result,
-                },
+                type: 'response.function_call_output',
+                call_id: message.call_id,
+                output: result,
               }));
               
               wsRef.current?.send(JSON.stringify({
@@ -318,7 +315,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         
         wsRef.current.send(JSON.stringify({
           type: 'input_audio_buffer.append',
-          audio: base64Audio,
+          audio: { data: base64Audio },
         }));
       };
       

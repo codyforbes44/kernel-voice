@@ -128,7 +128,7 @@ serve(async (req) => {
       log.basic('====== Connecting to ElevenLabs TTS fallback ======');
       
       try {
-        const elUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_FALLBACK_VOICE}/stream-input?model_id=eleven_turbo_v2_5&optimize_streaming_latency=3`;
+        const elUrl = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_FALLBACK_VOICE}/stream-input?model_id=eleven_turbo_v2_5&optimize_streaming_latency=3`;
         log.verbose(`ElevenLabs URL: ${elUrl}`);
         
         const elResponse = await fetch(elUrl, {
@@ -236,8 +236,8 @@ serve(async (req) => {
         const connectStartTime = Date.now();
         
         // Use fetch with upgrade headers to properly set Authorization
-        log.verbose('Initiating fetch to wss://api.x.ai/v1/realtime');
-        const xaiResponse = await fetch("wss://api.x.ai/v1/realtime", {
+        log.verbose('Initiating fetch to https://api.x.ai/v1/realtime');
+        const xaiResponse = await fetch("https://api.x.ai/v1/realtime", {
           method: "GET",
           headers: {
             "Upgrade": "websocket",
