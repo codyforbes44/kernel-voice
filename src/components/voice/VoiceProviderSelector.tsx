@@ -18,15 +18,31 @@ export interface OpenAIVoiceSettings {
   silenceDuration: number;  // 200-2000ms, silence before response
 }
 
+export type OpenAISettingsPreset = 'fast' | 'balanced' | 'relaxed' | 'custom';
+
+export const OPENAI_PRESETS: Record<Exclude<OpenAISettingsPreset, 'custom'>, { settings: OpenAIVoiceSettings; label: string; description: string }> = {
+  fast: {
+    label: 'Fast',
+    description: 'Quick responses, may interrupt',
+    settings: { temperature: 0.7, vadThreshold: 0.3, silenceDuration: 300 },
+  },
+  balanced: {
+    label: 'Balanced',
+    description: 'Good mix of speed and accuracy',
+    settings: { temperature: 0.8, vadThreshold: 0.5, silenceDuration: 500 },
+  },
+  relaxed: {
+    label: 'Relaxed',
+    description: 'Waits longer, more creative',
+    settings: { temperature: 1.0, vadThreshold: 0.6, silenceDuration: 1000 },
+  },
+};
+
 export type VoiceProvider = 'elevenlabs' | 'grok' | 'openai';
 export type GrokVoice = 'Charon' | 'Celeste' | 'Clio' | 'Zephyr' | 'Sol';
 export type OpenAIVoice = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse';
 
-export const DEFAULT_OPENAI_SETTINGS: OpenAIVoiceSettings = {
-  temperature: 0.8,
-  vadThreshold: 0.5,
-  silenceDuration: 500,
-};
+export const DEFAULT_OPENAI_SETTINGS: OpenAIVoiceSettings = OPENAI_PRESETS.balanced.settings;
 
 interface VoiceProviderSelectorProps {
   value: VoiceProvider;
@@ -259,6 +275,35 @@ export function VoiceProviderSelector({
 
           {/* Voice Settings Controls */}
           <div className="space-y-4 pt-3 border-t border-border">
+            {/* Preset Selector */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Response Style</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(Object.entries(OPENAI_PRESETS) as [Exclude<OpenAISettingsPreset, 'custom'>, typeof OPENAI_PRESETS['balanced']][]).map(([key, preset]) => {
+                  const isActive = 
+                    openaiSettings.temperature === preset.settings.temperature &&
+                    openaiSettings.vadThreshold === preset.settings.vadThreshold &&
+                    openaiSettings.silenceDuration === preset.settings.silenceDuration;
+                  
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => onOpenAISettingsChange(preset.settings)}
+                      disabled={disabled}
+                      className={`p-2 rounded-md border text-center transition-colors ${
+                        isActive 
+                          ? 'border-primary bg-primary/10 text-primary' 
+                          : 'border-border hover:border-primary/50 hover:bg-muted'
+                      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className="text-sm font-medium">{preset.label}</div>
+                      <div className="text-xs text-muted-foreground">{preset.description}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">Temperature</Label>
