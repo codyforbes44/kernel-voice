@@ -388,8 +388,9 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       configRef.current = data;
       
       // Connect to Grok WebSocket - URL already includes the ephemeral token
-      // Use 'realtime' subprotocol as required by xAI
-      const ws = new WebSocket(data.wsUrl, ['realtime']);
+      // Note: xAI realtime API uses standard WebSocket without subprotocol
+      // The 'realtime' subprotocol was causing connection failures (1006 errors)
+      const ws = new WebSocket(data.wsUrl);
       wsRef.current = ws;
       
       ws.onopen = () => {
