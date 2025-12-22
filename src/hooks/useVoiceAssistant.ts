@@ -3,7 +3,7 @@ import { useConversation } from '@11labs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
-import { useVoiceProviderPreference, type VoiceProvider, type GrokVoice, type OpenAIVoice, type OpenAIVoiceSettings } from '@/components/voice/VoiceProviderSelector';
+import { useVoiceProviderPreference, type VoiceProvider, type GrokVoice, type OpenAIVoice, type OpenAIVoiceSettings, type GrokVoiceSettings } from '@/components/voice/VoiceProviderSelector';
 import { useGrokConversation, type ConnectionPhase, type ToolExecution } from '@/hooks/useGrokConversation';
 import { useOpenAIConversation } from '@/hooks/useOpenAIConversation';
 import { type LiveTranscript } from '@/components/voice/LiveTranscripts';
@@ -25,6 +25,8 @@ interface UseVoiceAssistantReturn {
   setVoiceProvider: (provider: VoiceProvider) => void;
   grokVoice: GrokVoice;
   setGrokVoice: (voice: GrokVoice) => void;
+  grokSettings: GrokVoiceSettings;
+  setGrokSettings: (settings: GrokVoiceSettings) => void;
   openaiVoice: OpenAIVoice;
   setOpenAIVoice: (voice: OpenAIVoice) => void;
   openaiSettings: OpenAIVoiceSettings;
@@ -107,6 +109,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setProvider: setVoiceProvider, 
     grokVoice, 
     setGrokVoice,
+    grokSettings,
+    setGrokSettings,
     openaiVoice,
     setOpenAIVoice,
     openaiSettings,
@@ -453,6 +457,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     clientTools,
     voice: grokVoice,
     instructions: systemPrompt,
+    settings: grokSettings,
   });
 
   // OpenAI conversation hook
@@ -651,6 +656,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setVoiceProvider,
     grokVoice,
     setGrokVoice,
+    grokSettings,
+    setGrokSettings,
     openaiVoice,
     setOpenAIVoice,
     openaiSettings,

@@ -48,6 +48,8 @@ const VoiceAssistant = () => {
     setVoiceProvider,
     grokVoice,
     setGrokVoice,
+    grokSettings,
+    setGrokSettings,
     openaiVoice,
     setOpenAIVoice,
     openaiSettings,
@@ -158,6 +160,8 @@ const VoiceAssistant = () => {
                     onVoiceProviderChange={setVoiceProvider}
                     grokVoice={grokVoice}
                     onGrokVoiceChange={setGrokVoice}
+                    grokSettings={grokSettings}
+                    onGrokSettingsChange={setGrokSettings}
                     openaiVoice={openaiVoice}
                     onOpenAIVoiceChange={setOpenAIVoice}
                     openaiSettings={openaiSettings}
@@ -186,6 +190,8 @@ const VoiceAssistant = () => {
                   onVoiceProviderChange={setVoiceProvider}
                   grokVoice={grokVoice}
                   onGrokVoiceChange={setGrokVoice}
+                  grokSettings={grokSettings}
+                  onGrokSettingsChange={setGrokSettings}
                   openaiVoice={openaiVoice}
                   onOpenAIVoiceChange={setOpenAIVoice}
                   openaiSettings={openaiSettings}

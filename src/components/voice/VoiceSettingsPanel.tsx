@@ -1,4 +1,4 @@
-import { VoiceProviderSelector, type VoiceProvider, type GrokVoice, type OpenAIVoice, type OpenAIVoiceSettings } from './VoiceProviderSelector';
+import { VoiceProviderSelector, type VoiceProvider, type GrokVoice, type OpenAIVoice, type OpenAIVoiceSettings, type GrokVoiceSettings } from './VoiceProviderSelector';
 import { InputModeSelector, type InputMode } from './InputModeSelector';
 import { ConnectionTestPanel } from './ConnectionTestPanel';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -8,6 +8,8 @@ interface VoiceSettingsPanelProps {
   onVoiceProviderChange: (value: VoiceProvider) => void;
   grokVoice: GrokVoice;
   onGrokVoiceChange: (value: GrokVoice) => void;
+  grokSettings: GrokVoiceSettings;
+  onGrokSettingsChange: (value: GrokVoiceSettings) => void;
   openaiVoice: OpenAIVoice;
   onOpenAIVoiceChange: (value: OpenAIVoice) => void;
   openaiSettings: OpenAIVoiceSettings;
@@ -26,6 +28,8 @@ export const VoiceSettingsPanel = ({
   onVoiceProviderChange,
   grokVoice,
   onGrokVoiceChange,
+  grokSettings,
+  onGrokSettingsChange,
   openaiVoice,
   onOpenAIVoiceChange,
   openaiSettings,
@@ -47,6 +51,8 @@ export const VoiceSettingsPanel = ({
           onChange={onVoiceProviderChange}
           grokVoice={grokVoice}
           onGrokVoiceChange={onGrokVoiceChange}
+          grokSettings={grokSettings}
+          onGrokSettingsChange={onGrokSettingsChange}
           openaiVoice={openaiVoice}
           onOpenAIVoiceChange={onOpenAIVoiceChange}
           openaiSettings={openaiSettings}
