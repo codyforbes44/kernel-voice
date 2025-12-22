@@ -14,8 +14,8 @@ serve(async (req) => {
   try {
     const { messages, conversationId, userId } = await req.json();
     
-    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!ANTHROPIC_API_KEY) {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
       throw new Error('AI service not configured');
     }
 
@@ -44,26 +44,52 @@ serve(async (req) => {
     // Combine context with new messages
     const allMessages = [...conversationContext, ...messages];
 
-    console.log('Processing conversation with AI model...');
+    console.log('Processing conversation with Lovable AI...');
 
-    // Call Anthropic Claude API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Call Lovable AI Gateway
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4096,
-        system: 'You are Kernel, a helpful, intelligent AI assistant. You provide accurate, thoughtful responses and can help with a wide variety of tasks. When you need current information, you can use the web_search tool. When asked about documents, you can use the query_document tool.',
-        messages: allMessages.map(msg => ({
-          role: msg.role === 'assistant' ? 'assistant' : 'user',
-          content: msg.content
-        }))
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are Kernel, a helpful, intelligent AI assistant. You provide accurate, thoughtful responses and can help with a wide variety of tasks. Be concise but thorough in your responses.' 
+          },
+          ...allMessages.map(msg => ({
+            role: msg.role === 'assistant' ? 'assistant' : 'user',
+            content: msg.content
+          }))
+        ]
       }),
     });
+
+    // Handle rate limiting and payment errors
+    if (response.status === 429) {
+      console.error('Rate limit exceeded');
+      return new Response(JSON.stringify({ 
+        error: 'Rate limit exceeded. Please try again later.',
+        code: 'RATE_LIMIT'
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (response.status === 402) {
+      console.error('Payment required');
+      return new Response(JSON.stringify({ 
+        error: 'AI credits exhausted. Please add credits to continue.',
+        code: 'PAYMENT_REQUIRED'
+      }), {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -72,7 +98,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const assistantMessage = data.content[0].text;
+    const assistantMessage = data.choices?.[0]?.message?.content || 'I apologize, but I was unable to generate a response.';
 
     console.log('AI response generated successfully');
 
@@ -130,7 +156,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       message: assistantMessage,
-      model: 'ai-assistant'
+      model: 'lovable-ai'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

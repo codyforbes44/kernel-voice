@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Mic, MessageSquare, FileSearch, Globe, Zap, Shield, ChevronRight, UserPlus, Sparkles, MessageCircle } from 'lucide-react';
 import SEO from '@/components/SEO';
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { useScrollAnimation, useStaggeredAnimation } from '@/hooks/useScrollAnimation';
 import { AnimatedHeroBackground } from '@/components/landing/AnimatedHeroBackground';
 
@@ -273,20 +274,7 @@ const LandingPage = () => {
           </div>
         </section>
         
-        {/* Footer */}
-        <footer className="py-8 border-t border-border">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center space-x-2">
-                <img src="/logo.png" alt="Kernel" className="h-6 w-6" />
-                <span className="font-semibold">Kernel</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} Kernel. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </>
   );
