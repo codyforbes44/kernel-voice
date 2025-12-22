@@ -25,10 +25,9 @@ interface GrokSessionConfig {
   voice: string;
   language: string | null;
   instructions: string;
-  audioFormat: {
-    input: { format: { type: string; rate: number } };
-    output: { format: { type: string; rate: number } };
-  };
+  inputAudioFormat: string;
+  outputAudioFormat: string;
+  sampleRate: number;
 }
 
 export function useGrokConversation(options: GrokConversationOptions = {}) {
@@ -38,7 +37,8 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const workletNodeRef = useRef<AudioWorkletNode | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const audioQueueRef = useRef<Blob[]>([]);
   const isPlayingRef = useRef(false);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -99,16 +99,15 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     const config = configRef.current;
     console.log('Sending session.update with config:', config.voice);
 
-    // Use xAI-compatible session.update format
-    wsRef.current.send(JSON.stringify({
+    // xAI Realtime API session.update format
+    const sessionUpdate = {
       type: 'session.update',
       session: {
+        modalities: ['text', 'audio'],
         voice: config.voice,
         instructions: config.instructions,
-        audio: {
-          input: config.audioFormat.input,
-          output: config.audioFormat.output,
-        },
+        input_audio_format: config.inputAudioFormat,
+        output_audio_format: config.outputAudioFormat,
         turn_detection: { type: 'server_vad' },
         tools: options.clientTools ? Object.keys(options.clientTools).map(name => ({
           type: 'function',
@@ -120,7 +119,10 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           },
         })) : [],
       },
-    }));
+    };
+    
+    console.log('Sending session.update:', JSON.stringify(sessionUpdate, null, 2));
+    wsRef.current.send(JSON.stringify(sessionUpdate));
   }, [options.clientTools]);
 
   const handleWebSocketMessage = useCallback(async (event: MessageEvent) => {
@@ -143,7 +145,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           options.onConnect?.();
           // Start recording after session is fully configured
           if (configRef.current) {
-            startRecording(configRef.current.audioFormat.input.format.rate);
+            startRecording(configRef.current.sampleRate);
           }
           break;
           
@@ -168,7 +170,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         case 'response.audio.delta':
           // Received audio chunk from Grok
           if (message.delta) {
-            const wavBlob = pcm16ToWavBlob(message.delta, configRef.current?.audioFormat.output.format.rate || 24000);
+            const wavBlob = pcm16ToWavBlob(message.delta, configRef.current?.sampleRate || 24000);
             audioQueueRef.current.push(wavBlob);
             playNextAudio();
           }
@@ -232,9 +234,11 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       
       audioContextRef.current = new AudioContext({ sampleRate: 48000 });
       const source = audioContextRef.current.createMediaStreamSource(stream);
+      sourceRef.current = source;
       
       // Use ScriptProcessorNode for audio processing
       const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+      processorRef.current = processor;
       
       processor.onaudioprocess = (e) => {
         if (wsRef.current?.readyState !== WebSocket.OPEN) return;
@@ -263,9 +267,14 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   }, []);
 
   const stopRecording = useCallback(() => {
-    if (workletNodeRef.current) {
-      workletNodeRef.current.disconnect();
-      workletNodeRef.current = null;
+    if (sourceRef.current) {
+      sourceRef.current.disconnect();
+      sourceRef.current = null;
+    }
+    
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
     }
     
     if (mediaStreamRef.current) {
@@ -318,11 +327,12 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       
       ws.onerror = (error) => {
         console.error('Grok WebSocket error:', error);
+        console.error('WebSocket readyState:', ws.readyState);
         options.onError?.(new Error('WebSocket connection error'));
       };
       
       ws.onclose = (event) => {
-        console.log('Grok WebSocket closed:', event.code, event.reason);
+        console.log('Grok WebSocket closed - code:', event.code, 'reason:', event.reason, 'wasClean:', event.wasClean);
         stopRecording();
         setStatus('disconnected');
         options.onDisconnect?.();
