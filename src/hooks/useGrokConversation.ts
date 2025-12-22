@@ -39,7 +39,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const processorRef = useRef<AudioWorkletNode | ScriptProcessorNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioQueueRef = useRef<Blob[]>([]);
   const isPlayingRef = useRef(false);
@@ -233,9 +233,9 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     }
   }, [options, playNextAudio]);
 
-  const startRecording = useCallback(async (sampleRate: number) => {
+  const startRecording = useCallback(async (targetSampleRate: number) => {
     try {
-      console.log('[Grok] Starting audio recording at sample rate:', sampleRate);
+      console.log('[Grok] Starting audio recording at target sample rate:', targetSampleRate);
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -269,17 +269,12 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         }
       }, 50);
       
-      // Use ScriptProcessorNode for audio processing
-      const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
-      processorRef.current = processor;
-      
-      processor.onaudioprocess = (e) => {
+      // Helper to send audio data
+      const sendAudioData = (inputData: Float32Array) => {
         if (wsRef.current?.readyState !== WebSocket.OPEN) return;
         
-        const inputData = e.inputBuffer.getChannelData(0);
-        
         // Resample from 48kHz to target sample rate
-        const resampled = resampleAudio(inputData, 48000, sampleRate);
+        const resampled = resampleAudio(inputData, 48000, targetSampleRate);
         const pcmData = floatTo16BitPCM(resampled);
         const base64Audio = arrayBufferToBase64(pcmData);
         
@@ -289,9 +284,47 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         }));
       };
       
-      source.connect(processor);
-      processor.connect(audioContextRef.current.destination);
-      console.log('[Grok] Audio recording started successfully');
+      // Try to use AudioWorklet (modern approach) with fallback to ScriptProcessorNode
+      if (audioContextRef.current.audioWorklet) {
+        try {
+          console.log('[Grok] Using AudioWorklet for audio processing');
+          await audioContextRef.current.audioWorklet.addModule('/audio-processor.js');
+          
+          const workletNode = new AudioWorkletNode(audioContextRef.current, 'voice-processor');
+          processorRef.current = workletNode;
+          
+          workletNode.port.onmessage = (event) => {
+            if (event.data.type === 'audio') {
+              sendAudioData(event.data.data);
+            }
+          };
+          
+          source.connect(workletNode);
+          workletNode.connect(audioContextRef.current.destination);
+          console.log('[Grok] AudioWorklet audio recording started successfully');
+        } catch (workletError) {
+          console.warn('[Grok] AudioWorklet failed, falling back to ScriptProcessorNode:', workletError);
+          // Fall through to ScriptProcessorNode
+          setupScriptProcessor(source, sendAudioData);
+        }
+      } else {
+        console.log('[Grok] AudioWorklet not supported, using ScriptProcessorNode');
+        setupScriptProcessor(source, sendAudioData);
+      }
+      
+      function setupScriptProcessor(source: MediaStreamAudioSourceNode, sendAudio: (data: Float32Array) => void) {
+        const processor = audioContextRef.current!.createScriptProcessor(4096, 1, 1);
+        processorRef.current = processor;
+        
+        processor.onaudioprocess = (e) => {
+          const inputData = e.inputBuffer.getChannelData(0);
+          sendAudio(new Float32Array(inputData));
+        };
+        
+        source.connect(processor);
+        processor.connect(audioContextRef.current!.destination);
+        console.log('[Grok] ScriptProcessorNode audio recording started successfully');
+      }
       
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -318,6 +351,10 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     }
     
     if (processorRef.current) {
+      // Close port if AudioWorkletNode
+      if ('port' in processorRef.current && processorRef.current.port) {
+        processorRef.current.port.close();
+      }
       processorRef.current.disconnect();
       processorRef.current = null;
     }
