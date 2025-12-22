@@ -537,10 +537,15 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   }, [retryCount]);
 
   // Internal session start - connects directly to xAI using ephemeral token
+  // Build version marker for cache debugging
+  const BUILD_VERSION = '2024-12-22-v2';
+  
   const startSessionInternal = useCallback(async () => {
     try {
       console.log('[Grok] ====== Starting direct xAI connection ======');
+      console.log('[Grok] Build version:', BUILD_VERSION);
       console.log('[Grok] Timestamp:', new Date().toISOString());
+      console.log('[Grok] Code path: useGrokConversation.startSessionInternal');
       setConnectionError(null);
       setStatus('connecting');
       sessionCreatedRef.current = false;
@@ -571,7 +576,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       console.log('[Grok] Has custom instructions:', !!options.instructions);
       
       // Step 1: Get ephemeral token from edge function
-      console.log('[Grok] Requesting ephemeral token...');
+      console.log('[Grok] Step 1: Requesting ephemeral token from xai-session-token...');
       const { data: tokenData, error: tokenError } = await supabase.functions.invoke('xai-session-token', {
         body: {
           voice: voiceSetting,
@@ -579,9 +584,17 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         },
       });
 
+      console.log('[Grok] Token response received:', {
+        hasData: !!tokenData,
+        hasError: !!tokenError,
+        dataKeys: tokenData ? Object.keys(tokenData) : [],
+        errorMessage: tokenError?.message,
+      });
+
       if (tokenError || !tokenData?.client_secret?.value) {
         const errorMsg = tokenError?.message || tokenData?.error || 'Failed to get session token';
         console.error('[Grok] Token error:', errorMsg);
+        console.error('[Grok] Full token data:', JSON.stringify(tokenData, null, 2));
         throw new Error(errorMsg);
       }
 
@@ -591,9 +604,9 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
       setConnectionPhase('connecting_xai');
       setConnectionInfo({ tokenParam: 'ephemeral' });
       
-      // Step 2: Connect directly to xAI WebSocket
+      // Step 2: Connect directly to xAI WebSocket (hardcoded URL - no wsUrl from config)
       const xaiUrl = `wss://api.x.ai/v1/realtime?model=grok-2-public`;
-      console.log('[Grok] Connecting to xAI:', xaiUrl);
+      console.log('[Grok] Step 2: Connecting to xAI WebSocket:', xaiUrl);
       
       // Create WebSocket with authorization in subprotocol (xAI pattern)
       const ws = new WebSocket(xaiUrl, [
