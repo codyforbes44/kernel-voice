@@ -113,7 +113,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
         input_audio_format: config.audioFormat.input,
         output_audio_format: config.audioFormat.output,
         input_audio_transcription: {
-          model: 'grok-2-vision-latest',
+          model: 'whisper-1',
         },
         turn_detection: {
           type: 'server_vad',

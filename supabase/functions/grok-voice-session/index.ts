@@ -80,8 +80,9 @@ Guidelines:
     console.log('Ephemeral token validated successfully, expires_at:', tokenData.expires_at);
 
     // Return configuration with ephemeral token and full WebSocket URL
+    // Use grok-2-1212 which is the correct model for realtime API
     const sessionConfig = {
-      wsUrl: `wss://api.x.ai/v1/realtime?model=grok-2-public&key=${ephemeralToken}`,
+      wsUrl: `wss://api.x.ai/v1/realtime?model=grok-2-1212&key=${ephemeralToken}`,
       voice: config.voice || 'Ara',
       language: config.language || null,
       instructions: instructions,
