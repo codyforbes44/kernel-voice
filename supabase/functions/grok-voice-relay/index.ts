@@ -112,8 +112,8 @@ serve(async (req) => {
         const tokenData = await tokenResponse.json();
         console.log('[grok-relay] Token response keys:', Object.keys(tokenData));
         
-        // Extract the ephemeral token - xAI returns it in client_secret.value
-        const ephemeralToken = tokenData.client_secret?.value;
+        // Extract the ephemeral token - xAI returns { value: "token", expires_at: ... } directly
+        const ephemeralToken = tokenData.value || tokenData.client_secret?.value;
         
         if (!ephemeralToken) {
           console.error('[grok-relay] No ephemeral token in response:', JSON.stringify(tokenData));
