@@ -18,6 +18,7 @@ import MicrophonePermissionRequest from '@/components/voice/MicrophonePermission
 import { VoiceProviderSelector } from '@/components/voice/VoiceProviderSelector';
 import { LiveTranscripts } from '@/components/voice/LiveTranscripts';
 import { ConnectionStatusBadge } from '@/components/voice/ConnectionStatusBadge';
+import { AudioLevelVisualizer, WaveformOrb } from '@/components/voice/AudioLevelMeter';
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -54,6 +55,8 @@ const VoiceAssistant = () => {
     isConnecting,
     connectionError,
     isSpeaking,
+    inputAudioLevel,
+    outputAudioLevel,
     isMuted,
     toggleMute,
     volume,
@@ -157,22 +160,40 @@ const VoiceAssistant = () => {
                 ? 'bg-gradient-to-br from-destructive/30 to-destructive/10'
                 : 'bg-gradient-to-br from-muted to-muted-foreground/20'
           }
-          ${isSpeaking ? 'animate-pulse' : ''}
-          ${isConnecting ? 'animate-pulse' : ''}
           transition-all duration-300 shadow-lg
         `}>
+          {/* Waveform visualization */}
+          {isConnected && (
+            <WaveformOrb 
+              level={isSpeaking ? outputAudioLevel : inputAudioLevel} 
+              isActive={isConnected}
+            />
+          )}
+          
           {isConnecting ? (
             <Loader2 className="w-10 h-10 md:w-12 md:h-12 text-primary animate-spin" />
           ) : connectionError ? (
             <AlertCircle className="w-10 h-10 md:w-12 md:h-12 text-destructive" />
           ) : (
-            <Mic className="w-10 h-10 md:w-12 md:h-12 text-primary-foreground" />
+            <Mic className={`w-10 h-10 md:w-12 md:h-12 ${isConnected ? 'text-primary-foreground' : 'text-primary-foreground/70'}`} />
           )}
-          {isConnected && (
+          {isConnected && !isSpeaking && inputAudioLevel > 0.1 && (
             <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
           )}
         </div>
       </div>
+
+      {/* Audio Level Meters - Show when connected */}
+      {isConnected && !isMobile && (
+        <div className="flex justify-center mb-4">
+          <AudioLevelVisualizer
+            inputLevel={inputAudioLevel}
+            outputLevel={outputAudioLevel}
+            isConnected={isConnected}
+            isSpeaking={isSpeaking}
+          />
+        </div>
+      )}
 
       {/* Status Text */}
       <div className="text-center mb-6 md:mb-8">
