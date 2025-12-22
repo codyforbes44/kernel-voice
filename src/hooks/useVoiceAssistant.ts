@@ -534,6 +534,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         await elevenlabsConversation.startSession({ 
           signedUrl: data.signedUrl 
         });
+      } else if (voiceProvider === 'openai') {
+        console.log('Starting OpenAI Realtime voice session');
+        await openaiConversation.startSession();
       } else {
         console.log('Starting Grok voice session');
         await grokConversation.startSession();
@@ -551,6 +554,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const endConversation = async () => {
     if (voiceProvider === 'elevenlabs') {
       await elevenlabsConversation.endSession();
+    } else if (voiceProvider === 'openai') {
+      await openaiConversation.endSession();
     } else {
       await grokConversation.endSession();
     }
@@ -563,6 +568,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const retryConnection = async () => {
     if (voiceProvider === 'grok') {
       grokConversation.clearError();
+    } else if (voiceProvider === 'openai') {
+      openaiConversation.clearError();
     }
     await startConversation();
   };
@@ -570,6 +577,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const clearConnectionError = () => {
     if (voiceProvider === 'grok') {
       grokConversation.clearError();
+    } else if (voiceProvider === 'openai') {
+      openaiConversation.clearError();
     }
   };
 
@@ -593,10 +602,16 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
       if (voiceProvider === 'grok' && isConnected && grokConversation.sendTextMessage) {
         const sent = grokConversation.sendTextMessage(text);
         if (sent) {
-          // Message sent via WebSocket, response will come through onTranscript
           setIsProcessingText(false);
           return;
         }
+      }
+      
+      // If connected to OpenAI and it's the active provider, send via data channel
+      if (voiceProvider === 'openai' && isConnected && openaiConversation.sendTextMessage) {
+        openaiConversation.sendTextMessage(text);
+        setIsProcessingText(false);
+        return;
       }
       
       // Otherwise, use the chat function
@@ -631,6 +646,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setVoiceProvider,
     grokVoice,
     setGrokVoice,
+    openaiVoice,
+    setOpenAIVoice,
     systemPrompt,
     setSystemPrompt,
     providerLoading,
@@ -663,7 +680,11 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     isProcessingText,
     
     // Tool execution
-    activeToolCall: voiceProvider === 'grok' ? grokConversation.activeToolCall : null,
+    activeToolCall: voiceProvider === 'grok' 
+      ? grokConversation.activeToolCall 
+      : voiceProvider === 'openai' 
+        ? openaiConversation.activeToolCall 
+        : null,
     
     // Transcripts
     liveTranscripts,

@@ -48,6 +48,8 @@ const VoiceAssistant = () => {
     setVoiceProvider,
     grokVoice,
     setGrokVoice,
+    openaiVoice,
+    setOpenAIVoice,
     systemPrompt,
     setSystemPrompt,
     providerLoading,
@@ -154,6 +156,8 @@ const VoiceAssistant = () => {
                     onVoiceProviderChange={setVoiceProvider}
                     grokVoice={grokVoice}
                     onGrokVoiceChange={setGrokVoice}
+                    openaiVoice={openaiVoice}
+                    onOpenAIVoiceChange={setOpenAIVoice}
                     systemPrompt={systemPrompt}
                     onSystemPromptChange={setSystemPrompt}
                     inputMode={inputMode}
@@ -178,6 +182,8 @@ const VoiceAssistant = () => {
                   onVoiceProviderChange={setVoiceProvider}
                   grokVoice={grokVoice}
                   onGrokVoiceChange={setGrokVoice}
+                  openaiVoice={openaiVoice}
+                  onOpenAIVoiceChange={setOpenAIVoice}
                   systemPrompt={systemPrompt}
                   onSystemPromptChange={setSystemPrompt}
                   inputMode={inputMode}

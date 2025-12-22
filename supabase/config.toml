@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.kb-search]
 verify_jwt = false
+
+[functions.openai-realtime-token]
+verify_jwt = false
+
+[functions.test-xai-connection]
+verify_jwt = false

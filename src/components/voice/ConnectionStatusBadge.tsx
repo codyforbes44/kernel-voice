@@ -4,7 +4,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Wifi, WifiOff, Loader2, AlertCircle, RefreshCw, CheckCircle2, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConnectionPhase } from '@/hooks/useGrokConversation';
-import { ConnectionPhase as OpenAIConnectionPhase } from '@/hooks/useOpenAIConversation';
 
 interface ConnectionStatusBadgeProps {
   isConnected: boolean;
@@ -13,7 +12,7 @@ interface ConnectionStatusBadgeProps {
   errorMessage?: string;
   provider: 'elevenlabs' | 'grok' | 'openai';
   authMethod?: string;
-  connectionPhase?: ConnectionPhase | OpenAIConnectionPhase;
+  connectionPhase?: ConnectionPhase;
   isFallbackMode?: boolean;
   onRetry?: () => void;
   className?: string;
