@@ -47,13 +47,18 @@ serve(async (req) => {
     }
 
     const tokenData = await tokenResponse.json();
-    console.log('Ephemeral token received successfully');
+    console.log('xAI response received:', JSON.stringify(tokenData, null, 2));
 
+    // Check for the expected structure and log what we actually got
     if (!tokenData.client_secret?.value) {
-      throw new Error('Invalid token response from xAI');
+      console.error('Token structure invalid. Expected client_secret.value');
+      console.error('Received keys:', Object.keys(tokenData));
+      console.error('Full response:', JSON.stringify(tokenData));
+      throw new Error(`Invalid token response from xAI - missing client_secret.value. Got keys: ${Object.keys(tokenData).join(', ')}`);
     }
 
     const ephemeralToken = tokenData.client_secret.value;
+    console.log('Ephemeral token validated successfully');
 
     // Return configuration with ephemeral token and full WebSocket URL
     const sessionConfig = {
