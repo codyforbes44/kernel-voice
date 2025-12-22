@@ -4,6 +4,7 @@ import { Mic, MessageSquare, FileSearch, Globe, Zap, Shield, ChevronRight } from
 import SEO from '@/components/SEO';
 import { Header } from '@/components/layout/Header';
 import { useScrollAnimation, useStaggeredAnimation } from '@/hooks/useScrollAnimation';
+import { AnimatedHeroBackground } from '@/components/landing/AnimatedHeroBackground';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -60,9 +61,12 @@ const LandingPage = () => {
         
         {/* Hero Section */}
         <section ref={heroAnimation.ref} className="relative overflow-hidden">
-          {/* Background Effects */}
+          {/* Animated Background */}
+          <AnimatedHeroBackground />
+          
+          {/* Gradient Overlays */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.15),transparent_50%)]" />
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl animate-pulse" />
           
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24 md:pt-24 md:pb-32 relative">
             <div className={`max-w-4xl mx-auto text-center transition-all duration-700 ${heroAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
