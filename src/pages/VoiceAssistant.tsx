@@ -19,7 +19,7 @@ import { VoiceProviderSelector } from '@/components/voice/VoiceProviderSelector'
 import { LiveTranscripts } from '@/components/voice/LiveTranscripts';
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Slider } from '@/components/ui/slider';
 import {
   Popover,
@@ -101,6 +101,10 @@ const VoiceAssistant = () => {
                 </Button>
               </SheetTrigger>
               <SheetContent side="bottom" className="h-auto max-h-[80vh]">
+                <SheetHeader>
+                  <SheetTitle>Voice Settings</SheetTitle>
+                  <SheetDescription>Configure your voice assistant preferences</SheetDescription>
+                </SheetHeader>
                 <div className="pt-4 pb-8">
                   <VoiceSettings />
                 </div>
@@ -306,7 +310,11 @@ const VoiceAssistant = () => {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="left" className="w-[85vw] flex flex-col">
-                    <div className="flex-1 space-y-4 overflow-y-auto pt-12">
+                    <SheetHeader>
+                      <SheetTitle>Conversations</SheetTitle>
+                      <SheetDescription>View your conversation history</SheetDescription>
+                    </SheetHeader>
+                    <div className="flex-1 space-y-4 overflow-y-auto pt-4">
                       <ConversationHistory 
                         currentConversationId={conversationId}
                         onSelectConversation={setConversationId}
@@ -324,7 +332,11 @@ const VoiceAssistant = () => {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="right" className="w-[85vw]">
-                    <div className="pt-12">
+                    <SheetHeader>
+                      <SheetTitle>Document Upload</SheetTitle>
+                      <SheetDescription>Upload documents for analysis</SheetDescription>
+                    </SheetHeader>
+                    <div className="pt-4">
                       <DocumentUpload conversationId={conversationId} />
                     </div>
                   </SheetContent>

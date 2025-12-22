@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -73,6 +74,7 @@ export const DocumentPreviewModal = ({ document, open, onOpenChange }: DocumentP
             <FileText className="h-5 w-5" />
             {document.filename}
           </DialogTitle>
+          <DialogDescription>View document details and content preview</DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">

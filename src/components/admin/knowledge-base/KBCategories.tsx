@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, FolderOpen } from 'lucide-react';
@@ -179,6 +180,7 @@ export const KBCategories = () => {
             <DialogTitle>
               {editCategory ? 'Edit Category' : 'New Category'}
             </DialogTitle>
+            <DialogDescription>Manage category details</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
