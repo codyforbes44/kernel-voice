@@ -17,6 +17,7 @@ import RegistrationPromptModal from '@/components/voice/RegistrationPromptModal'
 import MicrophonePermissionRequest from '@/components/voice/MicrophonePermissionRequest';
 import { VoiceProviderSelector } from '@/components/voice/VoiceProviderSelector';
 import { LiveTranscripts } from '@/components/voice/LiveTranscripts';
+import { ConnectionStatusBadge } from '@/components/voice/ConnectionStatusBadge';
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -92,8 +93,15 @@ const VoiceAssistant = () => {
     <div className="rounded-2xl bg-card border border-border p-4 md:p-8 shadow-xl">
       {/* Header with Settings */}
       <div className="flex items-center justify-between mb-6 md:mb-8">
-        <div className="flex-1" />
-        <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+        <div className="flex-1 flex justify-start">
+          <ConnectionStatusBadge
+            isConnected={isConnected}
+            isConnecting={isConnecting}
+            hasError={!!connectionError}
+            provider={voiceProvider}
+          />
+        </div>
+        <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           AI Intelligence
         </h1>
         <div className="flex-1 flex justify-end">
