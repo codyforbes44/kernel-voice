@@ -84,7 +84,7 @@ serve(async (req) => {
     try {
       log('Testing ElevenLabs fallback connection...');
       const elVoiceId = "EXAVITQu4vr4xnSDxMaL"; // Sarah voice
-      const elUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${elVoiceId}/stream-input?model_id=eleven_turbo_v2_5&optimize_streaming_latency=3`;
+      const elUrl = `https://api.elevenlabs.io/v1/text-to-speech/${elVoiceId}/stream-input?model_id=eleven_turbo_v2_5&optimize_streaming_latency=3`;
       
       const elResponse = await fetch(elUrl, {
         method: "GET",
@@ -169,7 +169,7 @@ serve(async (req) => {
       log('Phase: connecting_websocket');
       
       try {
-        const wsUrl = 'wss://api.x.ai/v1/realtime';
+        const wsUrl = 'https://api.x.ai/v1/realtime';
         const wsResponse = await fetch(wsUrl, {
           method: 'GET',
           headers: {
