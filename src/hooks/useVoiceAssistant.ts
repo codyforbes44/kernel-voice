@@ -4,10 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 import { useVoiceProviderPreference, type VoiceProvider, type GrokVoice } from '@/components/voice/VoiceProviderSelector';
-import { useGrokConversation } from '@/hooks/useGrokConversation';
+import { useGrokConversation, type ConnectionPhase } from '@/hooks/useGrokConversation';
 import { type LiveTranscript } from '@/components/voice/LiveTranscripts';
 import { type InputMode } from '@/components/voice/InputModeSelector';
 import { useInputModePreference } from '@/hooks/useInputModePreference';
+
 interface UseVoiceAssistantReturn {
   // Auth state
   isAuthenticated: boolean;
@@ -32,6 +33,7 @@ interface UseVoiceAssistantReturn {
   isConnecting: boolean;
   connectionError: string | null;
   connectionAuthMethod: string | undefined;
+  connectionPhase: ConnectionPhase | undefined;
   isSpeaking: boolean;
   inputAudioLevel: number;
   outputAudioLevel: number;
@@ -382,6 +384,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const isConnecting = voiceProvider === 'grok' ? grokConversation.status === 'connecting' : false;
   const connectionError = voiceProvider === 'grok' ? grokConversation.connectionError : null;
   const connectionAuthMethod = voiceProvider === 'grok' ? grokConversation.connectionInfo?.tokenParam : undefined;
+  const connectionPhase = voiceProvider === 'grok' ? grokConversation.connectionPhase : undefined;
   const inputAudioLevel = voiceProvider === 'grok' ? grokConversation.inputAudioLevel : 0;
   const outputAudioLevel = voiceProvider === 'grok' ? grokConversation.outputAudioLevel : 0;
 
@@ -506,6 +509,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     isConnecting,
     connectionError,
     connectionAuthMethod,
+    connectionPhase,
     isSpeaking: conversation.isSpeaking,
     inputAudioLevel,
     outputAudioLevel,

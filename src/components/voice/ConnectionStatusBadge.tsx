@@ -1,8 +1,9 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Wifi, WifiOff, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Wifi, WifiOff, Loader2, AlertCircle, RefreshCw, Server, Zap, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ConnectionPhase } from '@/hooks/useGrokConversation';
 
 interface ConnectionStatusBadgeProps {
   isConnected: boolean;
@@ -11,6 +12,7 @@ interface ConnectionStatusBadgeProps {
   errorMessage?: string;
   provider: 'elevenlabs' | 'grok';
   authMethod?: string;
+  connectionPhase?: ConnectionPhase;
   onRetry?: () => void;
   className?: string;
 }
@@ -22,9 +24,31 @@ export const ConnectionStatusBadge = ({
   errorMessage,
   provider,
   authMethod,
+  connectionPhase,
   onRetry,
   className,
 }: ConnectionStatusBadgeProps) => {
+  // Get phase-specific status for Grok
+  const getPhaseInfo = () => {
+    if (provider !== 'grok' || !connectionPhase) return null;
+    
+    switch (connectionPhase) {
+      case 'connecting_relay':
+        return { label: 'Connecting to relay...', step: 1 };
+      case 'connecting_xai':
+        return { label: 'Connecting to Grok...', step: 2 };
+      case 'configuring':
+        return { label: 'Configuring session...', step: 3 };
+      case 'ready':
+        return { label: 'Ready', step: 4 };
+      case 'error':
+        return { label: 'Connection failed', step: 0 };
+      default:
+        return null;
+    }
+  };
+  
+  const phaseInfo = getPhaseInfo();
   const getStatus = () => {
     if (hasError) {
       return {
@@ -83,9 +107,37 @@ export const ConnectionStatusBadge = ({
           <span className="text-foreground">Auth param:</span> {authMethod}
         </div>
       )}
-      {isConnecting && (
+      {isConnecting && provider === 'grok' && phaseInfo && (
+        <div className="mt-2 pt-2 border-t border-border/30 space-y-2">
+          <div className="font-medium text-foreground">Connection Progress</div>
+          <div className="space-y-1.5">
+            {[
+              { step: 1, label: 'Connect to relay' },
+              { step: 2, label: 'Connect to Grok' },
+              { step: 3, label: 'Configure session' },
+              { step: 4, label: 'Ready to talk' },
+            ].map(({ step, label }) => (
+              <div key={step} className="flex items-center gap-2">
+                {phaseInfo.step > step ? (
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                ) : phaseInfo.step === step ? (
+                  <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                ) : (
+                  <div className="h-3 w-3 rounded-full border border-muted-foreground/30" />
+                )}
+                <span className={cn(
+                  phaseInfo.step >= step ? 'text-foreground' : 'text-muted-foreground'
+                )}>
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {isConnecting && provider === 'elevenlabs' && (
         <div className="text-muted-foreground italic">
-          Trying different authentication methods...
+          Connecting to ElevenLabs...
         </div>
       )}
       {hasError && (
