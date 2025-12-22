@@ -160,21 +160,26 @@ serve(async (req) => {
 
   // Test xAI connection with enhanced diagnostics
   try {
-    // Phase 1: Validate API key with HTTP endpoint
+    // Phase 1: Validate API key with chat completions endpoint (per xAI recommendation)
     phase = 'validating_key';
-    log('Phase: validating_key - Testing xAI API accessibility...');
+    log('Phase: validating_key - Testing xAI API key with chat completions...');
     
-    const testHttpUrl = 'https://api.x.ai/v1/models';
+    const testHttpUrl = 'https://api.x.ai/v1/chat/completions';
     const httpResponse = await fetch(testHttpUrl, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${XAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        model: 'grok-2-public',
+        messages: [{ role: 'user', content: 'Test' }],
+        max_tokens: 1
+      }),
     });
     
     keyValidationMs = Date.now() - startTime;
-    log(`HTTP API response: ${httpResponse.status} (${keyValidationMs}ms)`);
+    log(`Chat completions API response: ${httpResponse.status} (${keyValidationMs}ms)`);
     
     if (httpResponse.status !== 200) {
       if (httpResponse.status === 401 || httpResponse.status === 403) {

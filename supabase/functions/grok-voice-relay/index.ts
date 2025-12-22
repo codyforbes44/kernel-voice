@@ -107,8 +107,17 @@ serve(async (req) => {
     log.basic(`ElevenLabs fallback available: ${!!ELEVENLABS_API_KEY}`);
     log.verbose(`Full instructions: ${instructions.substring(0, 100)}...`);
 
-    // Upgrade client connection to WebSocket
-    const { socket: clientSocket, response } = Deno.upgradeWebSocket(req);
+    // Upgrade client connection to WebSocket with error handling
+    let clientSocket: WebSocket;
+    let response: Response;
+    try {
+      const upgrade = Deno.upgradeWebSocket(req);
+      clientSocket = upgrade.socket;
+      response = upgrade.response;
+    } catch (upgradeError) {
+      log.error('WebSocket upgrade failed', upgradeError);
+      return new Response('WebSocket upgrade failed', { status: 400, headers: corsHeaders });
+    }
     
     let xaiSocket: WebSocket | null = null;
     let elevenLabsWs: WebSocket | null = null;
@@ -117,6 +126,49 @@ serve(async (req) => {
     let isFallbackMode = false;
     let sessionConfigured = false;
     let connectionTimeout: number | null = null;
+    
+    // Safe send helper with try/catch and readyState check
+    const safeSendClient = (data: string | ArrayBuffer) => {
+      try {
+        if (clientSocket.readyState === WebSocket.OPEN) {
+          clientSocket.send(data);
+          return true;
+        }
+        log.verbose('Cannot send to client - socket not open');
+        return false;
+      } catch (err) {
+        log.error('Failed to send to client', err);
+        return false;
+      }
+    };
+    
+    const safeSendXai = (data: string | ArrayBuffer) => {
+      try {
+        if (xaiSocket && xaiSocket.readyState === WebSocket.OPEN) {
+          xaiSocket.send(data);
+          return true;
+        }
+        log.verbose('Cannot send to xAI - socket not open');
+        return false;
+      } catch (err) {
+        log.error('Failed to send to xAI', err);
+        return false;
+      }
+    };
+    
+    const safeSendElevenLabs = (data: string | ArrayBuffer) => {
+      try {
+        if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) {
+          elevenLabsWs.send(data);
+          return true;
+        }
+        log.verbose('Cannot send to ElevenLabs - socket not open');
+        return false;
+      } catch (err) {
+        log.error('Failed to send to ElevenLabs', err);
+        return false;
+      }
+    };
 
     // ElevenLabs TTS fallback connection
     const connectToElevenLabs = async () => {
@@ -158,20 +210,18 @@ serve(async (req) => {
         log.basic('✓ Connected to ElevenLabs TTS fallback');
 
         // Notify client about fallback mode
-        if (clientSocket.readyState === WebSocket.OPEN) {
-          clientSocket.send(JSON.stringify({
-            type: 'fallback_active',
-            message: 'Using ElevenLabs TTS fallback - voice-only mode',
-            provider: 'elevenlabs'
-          }));
-          
-          // Send simulated session events for client compatibility
-          clientSocket.send(JSON.stringify({ type: 'session.created' }));
-          clientSocket.send(JSON.stringify({ type: 'session.updated' }));
-        }
+        safeSendClient(JSON.stringify({
+          type: 'fallback_active',
+          message: 'Using ElevenLabs TTS fallback - voice-only mode',
+          provider: 'elevenlabs'
+        }));
+        
+        // Send simulated session events for client compatibility
+        safeSendClient(JSON.stringify({ type: 'session.created' }));
+        safeSendClient(JSON.stringify({ type: 'session.updated' }));
 
         // Initialize ElevenLabs stream
-        ws.send(JSON.stringify({
+        safeSendElevenLabs(JSON.stringify({
           text: " ",
           voice_settings: {
             stability: 0.5,
@@ -191,12 +241,10 @@ serve(async (req) => {
             
             if (data.audio) {
               // Forward audio to client in Grok-compatible format
-              if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
-                clientSocket.send(JSON.stringify({
-                  type: 'response.audio.delta',
-                  delta: data.audio
-                }));
-              }
+              safeSendClient(JSON.stringify({
+                type: 'response.audio.delta',
+                delta: data.audio
+              }));
             }
             
             if (data.isFinal) {
@@ -205,9 +253,7 @@ serve(async (req) => {
           } catch {
             // Binary audio data
             log.verbose('← ElevenLabs: binary audio data');
-            if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
-              clientSocket.send(event.data);
-            }
+            safeSendClient(event.data);
           }
         };
 
@@ -355,13 +401,11 @@ serve(async (req) => {
         }
         
         // Notify client that connection is ready (include connection method for diagnostics)
-        if (clientSocket.readyState === WebSocket.OPEN) {
-          clientSocket.send(JSON.stringify({
-            type: 'relay.connected',
-            message: 'Connected to Grok voice service',
-            connectionMethod: connectionMethod
-          }));
-        }
+        safeSendClient(JSON.stringify({
+          type: 'relay.connected',
+          message: 'Connected to Grok voice service',
+          connectionMethod: connectionMethod
+        }));
 
         ws.onmessage = (event: MessageEvent) => {
           const data = event.data;
@@ -396,7 +440,7 @@ serve(async (req) => {
               
               log.basic(`→ xAI: session.update (voice: ${voice})`);
               log.verbose(`→ xAI: ${JSON.stringify(sessionUpdate)}`);
-              ws.send(JSON.stringify(sessionUpdate));
+              safeSendXai(JSON.stringify(sessionUpdate));
             }
             
             if (message.type === 'session.updated') {
@@ -408,15 +452,11 @@ serve(async (req) => {
             }
             
             // Forward all messages to client
-            if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
-              clientSocket.send(data);
-            }
+            safeSendClient(data);
           } catch {
             // Binary data or parse error - forward as-is
             log.verbose('← xAI: binary/unparseable data');
-            if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
-              clientSocket.send(data);
-            }
+            safeSendClient(data);
           }
         };
 
@@ -424,15 +464,15 @@ serve(async (req) => {
           const errorEvent = error as ErrorEvent;
           log.error(`xAI WebSocket error - type: ${errorEvent.type}, message: ${errorEvent.message || 'Unknown'}, wasConnected: ${isXaiConnected}`);
           
-          if (!isXaiConnected && isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
-            clientSocket.send(JSON.stringify({
+          if (!isXaiConnected && isClientConnected) {
+            safeSendClient(JSON.stringify({
               type: 'error',
               error: { 
                 message: 'Failed to connect to Grok service',
                 details: errorEvent.message || 'Connection rejected'
               }
             }));
-            clientSocket.close(1011, 'Failed to connect to xAI');
+            try { clientSocket.close(1011, 'Failed to connect to xAI'); } catch { /* ignore */ }
           }
         };
 
@@ -451,7 +491,7 @@ serve(async (req) => {
             }
           }
           
-          if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
+          if (isClientConnected) {
             let message = event.reason || 'Grok service disconnected';
             if (event.code === 1000) {
               message = 'Session ended normally';
@@ -461,13 +501,13 @@ serve(async (req) => {
               message = 'Server error occurred';
             }
             
-            clientSocket.send(JSON.stringify({
+            safeSendClient(JSON.stringify({
               type: 'relay.disconnected',
               code: event.code,
               reason: message,
               wasConnected: wasConnected
             }));
-            clientSocket.close(1000, 'xAI connection closed');
+            try { clientSocket.close(1000, 'xAI connection closed'); } catch { /* ignore */ }
           }
         };
         
@@ -483,16 +523,14 @@ serve(async (req) => {
           }
         }
         
-        if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
-          clientSocket.send(JSON.stringify({
-            type: 'error',
-            error: { 
-              message: 'Failed to initialize voice connection',
-              details: error instanceof Error ? error.message : 'Unknown error'
-            }
-          }));
-          clientSocket.close(1011, 'Connection initialization failed');
-        }
+        safeSendClient(JSON.stringify({
+          type: 'error',
+          error: { 
+            message: 'Failed to initialize voice connection',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          }
+        }));
+        try { clientSocket.close(1011, 'Connection initialization failed'); } catch { /* ignore */ }
       }
     };
 
@@ -511,20 +549,20 @@ serve(async (req) => {
           if (ELEVENLABS_API_KEY) {
             log.basic('Timeout reached, trying ElevenLabs fallback...');
             connectToElevenLabs().then(success => {
-              if (!success && isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
-                clientSocket.send(JSON.stringify({
+              if (!success && isClientConnected) {
+                safeSendClient(JSON.stringify({
                   type: 'error',
                   error: { message: 'Connection to voice service timed out' }
                 }));
-                clientSocket.close(1011, 'Connection timeout');
+                try { clientSocket.close(1011, 'Connection timeout'); } catch { /* ignore */ }
               }
             });
-          } else if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
-            clientSocket.send(JSON.stringify({
+          } else if (isClientConnected) {
+            safeSendClient(JSON.stringify({
               type: 'error',
               error: { message: 'Connection to Grok service timed out' }
             }));
-            clientSocket.close(1011, 'Connection timeout');
+            try { clientSocket.close(1011, 'Connection timeout'); } catch { /* ignore */ }
           }
         }
       }, 15000) as unknown as number;
@@ -544,13 +582,13 @@ serve(async (req) => {
           log.verbose(`→ backend full: ${data.substring(0, 300)}`);
           
           // In fallback mode, handle text messages for TTS
-          if (isFallbackMode && elevenLabsWs?.readyState === WebSocket.OPEN) {
+          if (isFallbackMode) {
             if (parsed.type === 'conversation.item.create' && parsed.item?.content) {
               // Extract text from user message and send to ElevenLabs
               const textContent = parsed.item.content.find((c: any) => c.type === 'input_text');
               if (textContent?.text) {
                 log.basic(`→ ElevenLabs TTS: ${textContent.text.substring(0, 50)}...`);
-                elevenLabsWs.send(JSON.stringify({
+                safeSendElevenLabs(JSON.stringify({
                   text: textContent.text + " ",
                   flush: true
                 }));
@@ -565,9 +603,11 @@ serve(async (req) => {
         log.verbose('→ backend: audio data');
       }
       
-      // Forward to xAI if connected
-      if (isXaiConnected && xaiSocket?.readyState === WebSocket.OPEN) {
-        xaiSocket.send(data);
+      // Forward to xAI if connected (with safeSend)
+      if (isXaiConnected) {
+        if (!safeSendXai(data)) {
+          log.error(`Failed to forward to xAI - socket state: ${xaiSocket?.readyState}`);
+        }
       } else if (!isFallbackMode) {
         log.error(`Cannot forward - xAI not connected (state: ${xaiSocket?.readyState})`);
       }
@@ -594,8 +634,8 @@ serve(async (req) => {
       // Close ElevenLabs connection when client disconnects
       if (elevenLabsWs?.readyState === WebSocket.OPEN) {
         log.basic('Closing ElevenLabs connection...');
-        elevenLabsWs.send(JSON.stringify({ text: "" })); // Close stream
-        elevenLabsWs.close(1000, 'Client disconnected');
+        safeSendElevenLabs(JSON.stringify({ text: "" })); // Close stream
+        try { elevenLabsWs.close(1000, 'Client disconnected'); } catch { /* ignore */ }
       }
     };
 
