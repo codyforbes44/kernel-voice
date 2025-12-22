@@ -1,4 +1,4 @@
-import { VoiceProviderSelector, type VoiceProvider, type GrokVoice } from './VoiceProviderSelector';
+import { VoiceProviderSelector, type VoiceProvider, type GrokVoice, type OpenAIVoice } from './VoiceProviderSelector';
 import { InputModeSelector, type InputMode } from './InputModeSelector';
 import { ConnectionTestPanel } from './ConnectionTestPanel';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -8,6 +8,8 @@ interface VoiceSettingsPanelProps {
   onVoiceProviderChange: (value: VoiceProvider) => void;
   grokVoice: GrokVoice;
   onGrokVoiceChange: (value: GrokVoice) => void;
+  openaiVoice: OpenAIVoice;
+  onOpenAIVoiceChange: (value: OpenAIVoice) => void;
   systemPrompt: string;
   onSystemPromptChange: (value: string) => void;
   inputMode: InputMode;
@@ -22,6 +24,8 @@ export const VoiceSettingsPanel = ({
   onVoiceProviderChange,
   grokVoice,
   onGrokVoiceChange,
+  openaiVoice,
+  onOpenAIVoiceChange,
   systemPrompt,
   onSystemPromptChange,
   inputMode,
@@ -39,6 +43,8 @@ export const VoiceSettingsPanel = ({
           onChange={onVoiceProviderChange}
           grokVoice={grokVoice}
           onGrokVoiceChange={onGrokVoiceChange}
+          openaiVoice={openaiVoice}
+          onOpenAIVoiceChange={onOpenAIVoiceChange}
           systemPrompt={systemPrompt}
           onSystemPromptChange={onSystemPromptChange}
           disabled={isConnected || providerLoading}
@@ -60,7 +66,7 @@ export const VoiceSettingsPanel = ({
       </div>
 
       {/* Diagnostics Section */}
-      {voiceProvider === 'grok' && (
+      {(voiceProvider === 'grok' || voiceProvider === 'openai') && (
         <Accordion type="single" collapsible className="pt-4 border-t border-border">
           <AccordionItem value="diagnostics" className="border-none">
             <AccordionTrigger className="py-2 text-sm font-medium hover:no-underline">
