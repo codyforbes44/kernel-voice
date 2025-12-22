@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, RotateCcw } from 'lucide-react';
+import { ChevronDown, RotateCcw, Cloud, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -155,6 +155,20 @@ export function VoiceProviderSelector({
   isAuthenticated = false,
 }: VoiceProviderSelectorProps) {
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const withSync = async (fn: () => Promise<void>) => {
+    if (!isAuthenticated) {
+      await fn();
+      return;
+    }
+    setSyncing(true);
+    try {
+      await fn();
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleProviderChange = async (newProvider: VoiceProvider) => {
     onChange(newProvider);
@@ -162,6 +176,7 @@ export function VoiceProviderSelector({
     if (!isAuthenticated) return;
     
     setSaving(true);
+    setSyncing(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -175,6 +190,7 @@ export function VoiceProviderSelector({
       console.error('Error saving voice provider preference:', error);
     } finally {
       setSaving(false);
+      setSyncing(false);
     }
   };
 
@@ -182,30 +198,24 @@ export function VoiceProviderSelector({
     onGrokVoiceChange(newVoice);
     localStorage.setItem('grok_voice', newVoice);
     
-    if (!isAuthenticated) return;
-    try {
+    await withSync(async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('profiles').update({ grok_voice: newVoice }).eq('id', user.id);
       }
-    } catch (error) {
-      console.error('Error saving grok voice:', error);
-    }
+    });
   };
 
   const handleOpenAIVoiceChange = async (newVoice: OpenAIVoice) => {
     onOpenAIVoiceChange(newVoice);
     localStorage.setItem('openai_voice', newVoice);
     
-    if (!isAuthenticated) return;
-    try {
+    await withSync(async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('profiles').update({ openai_voice: newVoice }).eq('id', user.id);
       }
-    } catch (error) {
-      console.error('Error saving openai voice:', error);
-    }
+    });
   };
 
   const handleGrokSettingChange = async <K extends keyof GrokVoiceSettings>(
@@ -216,15 +226,12 @@ export function VoiceProviderSelector({
     onGrokSettingsChange(newSettings);
     localStorage.setItem('grok_settings', JSON.stringify(newSettings));
     
-    if (!isAuthenticated) return;
-    try {
+    await withSync(async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('profiles').update({ grok_settings: newSettings }).eq('id', user.id);
       }
-    } catch (error) {
-      console.error('Error saving grok settings:', error);
-    }
+    });
   };
 
   const handleOpenAISettingChange = async <K extends keyof OpenAIVoiceSettings>(
@@ -235,15 +242,12 @@ export function VoiceProviderSelector({
     onOpenAISettingsChange(newSettings);
     localStorage.setItem('openai_settings', JSON.stringify(newSettings));
     
-    if (!isAuthenticated) return;
-    try {
+    await withSync(async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('profiles').update({ openai_settings: newSettings }).eq('id', user.id);
       }
-    } catch (error) {
-      console.error('Error saving openai settings:', error);
-    }
+    });
   };
 
   const handleResetGrokSettings = async () => {
@@ -252,8 +256,7 @@ export function VoiceProviderSelector({
     localStorage.setItem('grok_voice', 'Charon');
     localStorage.setItem('grok_settings', JSON.stringify(DEFAULT_GROK_SETTINGS));
     
-    if (!isAuthenticated) return;
-    try {
+    await withSync(async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('profiles').update({ 
@@ -261,9 +264,7 @@ export function VoiceProviderSelector({
           grok_settings: JSON.parse(JSON.stringify(DEFAULT_GROK_SETTINGS))
         }).eq('id', user.id);
       }
-    } catch (error) {
-      console.error('Error resetting grok settings:', error);
-    }
+    });
   };
 
   const handleResetOpenAISettings = async () => {
@@ -272,8 +273,7 @@ export function VoiceProviderSelector({
     localStorage.setItem('openai_voice', 'alloy');
     localStorage.setItem('openai_settings', JSON.stringify(DEFAULT_OPENAI_SETTINGS));
     
-    if (!isAuthenticated) return;
-    try {
+    await withSync(async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('profiles').update({ 
@@ -281,9 +281,7 @@ export function VoiceProviderSelector({
           openai_settings: JSON.parse(JSON.stringify(DEFAULT_OPENAI_SETTINGS))
         }).eq('id', user.id);
       }
-    } catch (error) {
-      console.error('Error resetting openai settings:', error);
-    }
+    });
   };
 
   const selectedGrokVoiceInfo = grokVoices.find(v => v.id === grokVoice);
@@ -293,9 +291,26 @@ export function VoiceProviderSelector({
     <div className="space-y-4">
       {/* Provider Selection */}
       <div className="space-y-2">
-        <Label htmlFor="voice-provider" className="text-sm font-medium">
-          Voice Provider
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="voice-provider" className="text-sm font-medium">
+            Voice Provider
+          </Label>
+          {isAuthenticated && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {syncing ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Syncing...</span>
+                </>
+              ) : (
+                <>
+                  <Cloud className="h-3 w-3" />
+                  <span>Synced</span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
         <Select
           value={value}
           onValueChange={(v) => handleProviderChange(v as VoiceProvider)}
