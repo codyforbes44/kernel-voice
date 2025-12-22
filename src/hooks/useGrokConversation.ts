@@ -179,13 +179,67 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           setRetryCount(0);
           options.onConnect?.();
           
-          // Send session.update with voice config AFTER session.created
+          // Send session.update with voice config and tools AFTER session.created
           const voiceSetting = options.voice || 'Charon';
-          const sessionUpdate = {
+          
+          // Build tools array if clientTools are provided
+          const toolsConfig = options.clientTools ? [
+            {
+              type: 'function',
+              name: 'chat',
+              description: 'Have a conversation with the AI. Use this when the user wants to chat, ask questions, or discuss any topic. Always tell the user you are processing their request.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  message: { 
+                    type: 'string',
+                    description: 'The message or question to send to the AI'
+                  }
+                },
+                required: ['message']
+              }
+            },
+            {
+              type: 'function',
+              name: 'search',
+              description: 'Search the web for information. Use this when the user asks about current events, needs to look something up, or wants real-time information. Tell the user you are searching.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: { 
+                    type: 'string',
+                    description: 'The search query to look up on the web'
+                  }
+                },
+                required: ['query']
+              }
+            },
+            {
+              type: 'function',
+              name: 'query_document',
+              description: 'Query an uploaded document for specific information. Use this when the user asks about content in a document they have uploaded.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  documentId: { 
+                    type: 'string',
+                    description: 'The ID of the document to query'
+                  },
+                  query: { 
+                    type: 'string',
+                    description: 'The question to ask about the document'
+                  }
+                },
+                required: ['documentId', 'query']
+              }
+            }
+          ] : undefined;
+          
+          const sessionUpdate: Record<string, unknown> = {
             type: 'session.update',
             session: {
               voice: voiceSetting,
-              instructions: options.instructions || 'You are a helpful voice assistant. Be concise and conversational.',
+              instructions: options.instructions || 'You are a helpful voice assistant. Be concise and conversational. You have access to tools for chatting, searching the web, and querying documents. Use them when appropriate.',
               audio: {
                 input: { format: { type: 'audio/pcm', rate: 24000 } },
                 output: { format: { type: 'audio/pcm', rate: 24000 } }
@@ -195,10 +249,15 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
                 threshold: 0.5,
                 prefix_padding_ms: 300,
                 silence_duration_ms: 200
-              }
+              },
+              ...(toolsConfig && { 
+                tools: toolsConfig,
+                tool_choice: 'auto'
+              })
             }
           };
           log.verbose('Sending session.update:', sessionUpdate);
+          log.basic(`Tools configured: ${toolsConfig ? toolsConfig.map(t => t.name).join(', ') : 'none'}`);
           safeSend(JSON.stringify(sessionUpdate));
           
           // Start recording after session is ready
