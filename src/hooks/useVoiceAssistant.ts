@@ -6,9 +6,11 @@ import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 import { useVoiceProviderPreference, type VoiceProvider, type GrokVoice, type OpenAIVoice, type OpenAIVoiceSettings, type GrokVoiceSettings } from '@/components/voice/VoiceProviderSelector';
 import { useGrokConversation, type ConnectionPhase, type ToolExecution } from '@/hooks/useGrokConversation';
 import { useOpenAIConversation } from '@/hooks/useOpenAIConversation';
-import { type LiveTranscript } from '@/components/voice/LiveTranscripts';
 import { type InputMode } from '@/components/voice/InputModeSelector';
 import { useInputModePreference } from '@/hooks/useInputModePreference';
+import { useTranscriptManager } from '@/hooks/useTranscriptManager';
+import { createVoiceClientTools } from '@/lib/voiceClientTools';
+import { type LiveTranscript } from '@/components/voice/LiveTranscripts';
 
 interface UseVoiceAssistantReturn {
   // Auth state
@@ -120,40 +122,13 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     loading: providerLoading 
   } = useVoiceProviderPreference(isAuthenticated);
 
-  // Live transcripts state
-  const [liveTranscripts, setLiveTranscripts] = useState<LiveTranscript[]>([]);
-  const [currentAssistantId, setCurrentAssistantId] = useState<string | null>(null);
-
-  // Helper to add or update transcript
-  const addTranscript = useCallback((role: 'user' | 'assistant', text: string, isPartial = false) => {
-    const id = `${role}-${Date.now()}`;
-    
-    if (role === 'assistant' && isPartial) {
-      setLiveTranscripts(prev => {
-        const lastTranscript = prev[prev.length - 1];
-        if (lastTranscript?.role === 'assistant' && lastTranscript?.isPartial) {
-          return prev.map((t, i) => 
-            i === prev.length - 1 
-              ? { ...t, text: t.text + text }
-              : t
-          );
-        }
-        setCurrentAssistantId(id);
-        return [...prev, { id, role, text, timestamp: new Date(), isPartial: true }];
-      });
-    } else if (role === 'assistant' && !isPartial && currentAssistantId) {
-      setLiveTranscripts(prev => 
-        prev.map(t => 
-          t.id === currentAssistantId 
-            ? { ...t, isPartial: false }
-            : t
-        )
-      );
-      setCurrentAssistantId(null);
-    } else {
-      setLiveTranscripts(prev => [...prev, { id, role, text, timestamp: new Date(), isPartial }]);
-    }
-  }, [currentAssistantId]);
+  // Transcript manager hook
+  const { 
+    liveTranscripts, 
+    addTranscript, 
+    clearTranscripts, 
+    updateLastAssistantTranscript 
+  } = useTranscriptManager();
 
   // Authentication check
   useEffect(() => {
@@ -218,178 +193,33 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     conversationIdRef.current = conversationId;
   }, [conversationId]);
 
-  // Memoized client tools - stable reference that won't cause hook re-renders
-  const clientTools = useMemo(() => ({
-    chat: async (parameters: { message: string }) => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setGuestMessages(prev => [...prev, { role: 'user', content: parameters.message }]);
-          
-          const { data, error } = await supabase.functions.invoke('chat', {
-            body: {
-              messages: [...guestMessagesRef.current, { role: 'user', content: parameters.message }],
-            },
-          });
-
-          if (error) {
-            // Handle rate limit and payment errors
-            if (error.message?.includes('429') || error.message?.includes('Rate limit')) {
-              toast({
-                title: 'Rate Limit Exceeded',
-                description: 'Too many requests. Please wait a moment and try again.',
-                variant: 'destructive',
-              });
-              return JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' });
-            }
-            if (error.message?.includes('402') || error.message?.includes('Payment')) {
-              toast({
-                title: 'Credits Exhausted',
-                description: 'AI credits have been exhausted. Please add more credits.',
-                variant: 'destructive',
-              });
-              return JSON.stringify({ error: 'AI credits exhausted.' });
-            }
-            throw error;
-          }
-          
-          setGuestMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
-          return JSON.stringify({ response: data.message });
-        }
-
-        let currentConvId = conversationIdRef.current;
-        if (!currentConvId) {
-          const { data: newConv } = await supabase
-            .from('conversations')
-            .insert({ user_id: user.id })
-            .select()
-            .single();
-          
-          if (newConv) {
-            currentConvId = newConv.id;
-            setConversationId(currentConvId);
-          }
-        }
-
-        const { data, error } = await supabase.functions.invoke('chat', {
-          body: {
-            messages: [{ role: 'user', content: parameters.message }],
-            conversationId: currentConvId,
-            userId: user.id,
-          },
-        });
-
-        if (error) {
-          // Handle rate limit and payment errors
-          if (error.message?.includes('429') || error.message?.includes('Rate limit')) {
-            toast({
-              title: 'Rate Limit Exceeded',
-              description: 'Too many requests. Please wait a moment and try again.',
-              variant: 'destructive',
-            });
-            return JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' });
-          }
-          if (error.message?.includes('402') || error.message?.includes('Payment')) {
-            toast({
-              title: 'Credits Exhausted',
-              description: 'AI credits have been exhausted. Please add more credits.',
-              variant: 'destructive',
-            });
-            return JSON.stringify({ error: 'AI credits exhausted.' });
-          }
-          throw error;
-        }
-
-        return JSON.stringify({ response: data.message });
-      } catch (error) {
-        console.error('Error in conversation:', error);
-        return JSON.stringify({ error: 'Failed to get response' });
-      }
+  // Create client tools using factory function
+  const clientTools = useMemo(() => createVoiceClientTools({
+    onGuestMessage: (message) => setGuestMessages(prev => [...prev, message]),
+    getGuestMessages: () => guestMessagesRef.current,
+    getConversationId: () => conversationIdRef.current,
+    setConversationId,
+    onRateLimitError: () => {
+      toast({
+        title: 'Rate Limit Exceeded',
+        description: 'Too many requests. Please wait a moment and try again.',
+        variant: 'destructive',
+      });
     },
-
-    search: async (parameters: { query: string }) => {
-      try {
-        const { data, error } = await supabase.functions.invoke('search', {
-          body: { query: parameters.query },
-        });
-
-        if (error) throw error;
-
-        return JSON.stringify(data);
-      } catch (error) {
-        console.error('Error in search:', error);
-        return JSON.stringify({ error: 'Search failed' });
-      }
+    onCreditsError: () => {
+      toast({
+        title: 'Credits Exhausted',
+        description: 'AI credits have been exhausted. Please add more credits.',
+        variant: 'destructive',
+      });
     },
-
-    query_document: async (parameters: { documentId: string; query: string }) => {
-      try {
-        const { data } = await supabase
-          .from('document_chunks')
-          .select('content')
-          .eq('document_id', parameters.documentId)
-          .order('chunk_index');
-
-        if (!data || data.length === 0) {
-          return JSON.stringify({ error: 'Document not found' });
-        }
-
-        const fullContent = data.map(chunk => chunk.content).join('\n');
-        
-        const { data: response, error } = await supabase.functions.invoke('chat', {
-          body: {
-            messages: [
-              { 
-                role: 'system', 
-                content: `You are analyzing a document. Here is the content:\n\n${fullContent}` 
-              },
-              { role: 'user', content: parameters.query }
-            ],
-          },
-        });
-
-        if (error) throw error;
-
-        return JSON.stringify({ answer: response.message });
-      } catch (error) {
-        console.error('Error querying document:', error);
-        return JSON.stringify({ error: 'Failed to query document' });
-      }
-    },
-
-    kb_search: async (parameters: { query: string }) => {
-      try {
-        const { data, error } = await supabase.functions.invoke('kb-search', {
-          body: { query: parameters.query, limit: 5 },
-        });
-
-        if (error) throw error;
-
-        // Return the summary for voice response, with full results available
-        return JSON.stringify({
-          summary: data.summary,
-          resultCount: data.resultCount,
-          results: data.results?.map((r: any) => ({
-            documentName: r.documentName,
-            snippet: r.content?.substring(0, 200) + '...',
-          })),
-        });
-      } catch (error) {
-        console.error('Error in kb_search:', error);
-        return JSON.stringify({ 
-          error: 'Failed to search knowledge base',
-          summary: 'I was unable to search the knowledge base. Please try again.'
-        });
-      }
-    },
-  }), [toast, setConversationId, setGuestMessages]);
+  }), [toast, setConversationId]);
 
   // ElevenLabs conversation hook
   const elevenlabsConversation = useConversation({
     onConnect: () => {
       console.log('Connected to ElevenLabs voice service');
-      setLiveTranscripts([]);
+      clearTranscripts();
       toast({
         title: 'Connected',
         description: 'Voice assistant is ready (ElevenLabs)',
@@ -406,16 +236,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
       } else if (message.type === 'agent_response' && message.agent_response_event?.agent_response) {
         addTranscript('assistant', message.agent_response_event.agent_response);
       } else if (message.type === 'agent_response_correction' && message.agent_response_correction_event?.corrected_agent_response) {
-        setLiveTranscripts(prev => {
-          const lastAssistantIdx = [...prev].reverse().findIndex(t => t.role === 'assistant');
-          if (lastAssistantIdx === -1) return prev;
-          const actualIdx = prev.length - 1 - lastAssistantIdx;
-          return prev.map((t, i) => 
-            i === actualIdx 
-              ? { ...t, text: message.agent_response_correction_event.corrected_agent_response, isPartial: false }
-              : t
-          );
-        });
+        updateLastAssistantTranscript(message.agent_response_correction_event.corrected_agent_response, false);
       }
     },
     onError: (error) => {
@@ -433,7 +254,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const grokConversation = useGrokConversation({
     onConnect: () => {
       console.log('Connected to Grok voice service');
-      setLiveTranscripts([]);
+      clearTranscripts();
       const tokenInfo = grokConversation.connectionInfo?.tokenParam 
         ? ` (auth: ${grokConversation.connectionInfo.tokenParam})`
         : '';
@@ -474,7 +295,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const openaiConversation = useOpenAIConversation({
     onConnect: () => {
       console.log('Connected to OpenAI Realtime voice service');
-      setLiveTranscripts([]);
+      clearTranscripts();
       toast({
         title: 'Connected',
         description: 'Voice assistant is ready (OpenAI)',
@@ -571,7 +392,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     isStartingConversationRef.current = true;
     
     try {
-      setLiveTranscripts([]);
+      clearTranscripts();
       
       if (voiceProviderRef.current === 'elevenlabs') {
         const { data, error } = await supabase.functions.invoke('voice-session');
