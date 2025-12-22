@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useConversation } from '@11labs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -529,11 +529,17 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     ? (voiceProvider === 'grok' ? grokConversation : openaiConversation).outputAudioLevel 
     : 0;
 
-  const startConversation = async () => {
+  // Use refs to stabilize the startConversation callback
+  const voiceProviderRef = useRef(voiceProvider);
+  useEffect(() => {
+    voiceProviderRef.current = voiceProvider;
+  }, [voiceProvider]);
+
+  const startConversation = useCallback(async () => {
     try {
       setLiveTranscripts([]);
       
-      if (voiceProvider === 'elevenlabs') {
+      if (voiceProviderRef.current === 'elevenlabs') {
         const { data, error } = await supabase.functions.invoke('voice-session');
         
         if (error || !data?.signedUrl) {
@@ -544,7 +550,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         await elevenlabsConversation.startSession({ 
           signedUrl: data.signedUrl 
         });
-      } else if (voiceProvider === 'openai') {
+      } else if (voiceProviderRef.current === 'openai') {
         console.log('Starting OpenAI Realtime voice session');
         await openaiConversation.startSession();
       } else {
@@ -559,7 +565,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         variant: 'destructive',
       });
     }
-  };
+  }, [elevenlabsConversation, openaiConversation, grokConversation, toast]);
 
   const endConversation = async () => {
     if (voiceProvider === 'elevenlabs') {
