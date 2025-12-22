@@ -53,7 +53,7 @@ serve(async (req) => {
     const url = new URL(req.url);
     const voice = url.searchParams.get('voice') || 'Ara';
     const customInstructions = url.searchParams.get('instructions');
-    const instructions = customInstructions || defaultInstructions;
+    const instructions = customInstructions ? decodeURIComponent(customInstructions) : defaultInstructions;
 
     console.log('[grok-relay] ====== New WebSocket connection ======');
     console.log('[grok-relay] Timestamp:', new Date().toISOString());
@@ -69,42 +69,61 @@ serve(async (req) => {
     let sessionConfigured = false;
     let connectionTimeout: number | null = null;
 
-    // Connect to xAI using API key via query parameter (server-side auth)
+    // Connect to xAI using fetch with upgrade headers (proper Authorization header)
     const connectToXai = async () => {
       console.log('[grok-relay] ====== Connecting to xAI WebSocket ======');
-      console.log('[grok-relay] Using API key authentication via query parameter');
+      console.log('[grok-relay] Using fetch with upgrade headers for proper Authorization');
       
       try {
         const connectStartTime = Date.now();
         
-        // For server-side relay, use api_key query parameter
-        // Deno WebSocket doesn't support custom headers, so we pass the key in the URL
-        const encodedApiKey = encodeURIComponent(XAI_API_KEY);
-        const xaiWsUrl = `wss://api.x.ai/v1/realtime?api_key=${encodedApiKey}`;
+        // Use fetch with upgrade headers to properly set Authorization
+        // This is the xAI-recommended approach that supports Bearer token auth
+        const xaiResponse = await fetch("wss://api.x.ai/v1/realtime", {
+          method: "GET",
+          headers: {
+            "Upgrade": "websocket",
+            "Connection": "Upgrade",
+            "Authorization": `Bearer ${XAI_API_KEY}`,
+          },
+        });
         
-        console.log('[grok-relay] WebSocket URL: wss://api.x.ai/v1/realtime?api_key=***');
+        console.log('[grok-relay] Fetch response status:', xaiResponse.status);
         
-        xaiSocket = new WebSocket(xaiWsUrl);
+        // Check if upgrade was successful
+        if (xaiResponse.status !== 101) {
+          const errorText = await xaiResponse.text().catch(() => 'Unknown error');
+          console.error('[grok-relay] WebSocket upgrade failed:', xaiResponse.status, errorText);
+          throw new Error(`WebSocket upgrade failed: ${xaiResponse.status} - ${errorText}`);
+        }
         
-        xaiSocket.onopen = () => {
-          const elapsed = Date.now() - connectStartTime;
-          if (connectionTimeout) {
-            clearTimeout(connectionTimeout);
-            connectionTimeout = null;
-          }
-          console.log(`[grok-relay] ✓ Connected to xAI Realtime API (${elapsed}ms)`);
-          isXaiConnected = true;
-          
-          // Notify client that connection is ready
-          if (clientSocket.readyState === WebSocket.OPEN) {
-            clientSocket.send(JSON.stringify({
-              type: 'relay.connected',
-              message: 'Connected to Grok voice service'
-            }));
-          }
-        };
+        // Get the WebSocket from the response (Deno-specific)
+        const ws = (xaiResponse as any).webSocket;
+        if (!ws) {
+          throw new Error('No WebSocket in upgrade response');
+        }
+        
+        ws.accept();
+        xaiSocket = ws;
+        
+        const elapsed = Date.now() - connectStartTime;
+        console.log(`[grok-relay] ✓ Connected to xAI Realtime API via fetch upgrade (${elapsed}ms)`);
+        isXaiConnected = true;
+        
+        if (connectionTimeout) {
+          clearTimeout(connectionTimeout);
+          connectionTimeout = null;
+        }
+        
+        // Notify client that connection is ready
+        if (clientSocket.readyState === WebSocket.OPEN) {
+          clientSocket.send(JSON.stringify({
+            type: 'relay.connected',
+            message: 'Connected to Grok voice service'
+          }));
+        }
 
-        xaiSocket.onmessage = (event) => {
+        ws.onmessage = (event: MessageEvent) => {
           const data = event.data;
           try {
             const message = JSON.parse(data);
@@ -115,20 +134,27 @@ serve(async (req) => {
               console.log('[grok-relay] Session created, configuring...');
               sessionConfigured = true;
               
+              // xAI session.update format with nested audio object
               const sessionUpdate = {
                 type: 'session.update',
                 session: {
-                  model: 'grok-2-public',
                   voice: voice,
                   instructions: instructions,
-                  input_audio_format: 'pcm16',
-                  output_audio_format: 'pcm16',
-                  turn_detection: { type: 'server_vad' },
+                  audio: {
+                    input: { format: { type: 'audio/pcm', rate: 24000 } },
+                    output: { format: { type: 'audio/pcm', rate: 24000 } }
+                  },
+                  turn_detection: {
+                    type: 'server_vad',
+                    threshold: 0.5,
+                    prefix_padding_ms: 300,
+                    silence_duration_ms: 200
+                  },
                 },
               };
               
               console.log('[grok-relay] → xAI: session.update (voice:', voice + ')');
-              xaiSocket?.send(JSON.stringify(sessionUpdate));
+              ws.send(JSON.stringify(sessionUpdate));
             }
             
             if (message.type === 'session.updated') {
@@ -151,7 +177,7 @@ serve(async (req) => {
           }
         };
 
-        xaiSocket.onerror = (error: Event) => {
+        ws.onerror = (error: Event) => {
           const errorEvent = error as ErrorEvent;
           console.error('[grok-relay] ✗ xAI WebSocket error');
           console.error('[grok-relay] Error type:', errorEvent.type);
@@ -170,7 +196,7 @@ serve(async (req) => {
           }
         };
 
-        xaiSocket.onclose = (event) => {
+        ws.onclose = (event: CloseEvent) => {
           console.log('[grok-relay] xAI WebSocket closed');
           console.log('[grok-relay] Close code:', event.code);
           console.log('[grok-relay] Close reason:', event.reason || '(none)');
@@ -199,23 +225,8 @@ serve(async (req) => {
           }
         };
         
-        // Set connection timeout (15 seconds for WebSocket connection)
-        connectionTimeout = setTimeout(() => {
-          if (!isXaiConnected) {
-            console.error('[grok-relay] ✗ Connection to xAI timed out after 15s');
-            xaiSocket?.close();
-            if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
-              clientSocket.send(JSON.stringify({
-                type: 'error',
-                error: { message: 'Connection to Grok service timed out' }
-              }));
-              clientSocket.close(1011, 'Connection timeout');
-            }
-          }
-        }, 15000) as unknown as number;
-        
       } catch (error) {
-        console.error('[grok-relay] Token/connection error:', error);
+        console.error('[grok-relay] Connection error:', error);
         if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
           clientSocket.send(JSON.stringify({
             type: 'error',
@@ -234,7 +245,22 @@ serve(async (req) => {
       console.log('[grok-relay] Client WebSocket connected');
       console.log('[grok-relay] Initiating connection to xAI...');
       
-      // Connect directly to xAI using API key
+      // Set connection timeout (15 seconds for WebSocket connection)
+      connectionTimeout = setTimeout(() => {
+        if (!isXaiConnected) {
+          console.error('[grok-relay] ✗ Connection to xAI timed out after 15s');
+          xaiSocket?.close();
+          if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
+            clientSocket.send(JSON.stringify({
+              type: 'error',
+              error: { message: 'Connection to Grok service timed out' }
+            }));
+            clientSocket.close(1011, 'Connection timeout');
+          }
+        }
+      }, 15000) as unknown as number;
+      
+      // Connect to xAI using fetch with proper Authorization header
       connectToXai();
     };
 
