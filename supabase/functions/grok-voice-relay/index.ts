@@ -5,6 +5,42 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Debug logging levels: 'off' (default), 'basic', 'verbose'
+type DebugLevel = 'off' | 'basic' | 'verbose';
+
+// Get effective debug level from env var or query param
+function getDebugLevel(url: URL): DebugLevel {
+  const paramLevel = url.searchParams.get('debug');
+  if (paramLevel === 'basic' || paramLevel === 'verbose') {
+    return paramLevel;
+  }
+  const envLevel = Deno.env.get('DEBUG_LEVEL') || 'off';
+  if (envLevel === 'basic' || envLevel === 'verbose') {
+    return envLevel;
+  }
+  return 'off';
+}
+
+// Debug logging helper
+function createLogger(debugLevel: DebugLevel) {
+  return {
+    basic: (msg: string) => {
+      if (debugLevel === 'off') return;
+      console.log(`[grok-relay:BASIC] ${msg}`);
+    },
+    verbose: (msg: string) => {
+      if (debugLevel !== 'verbose') return;
+      console.log(`[grok-relay:VERBOSE] ${msg}`);
+    },
+    error: (msg: string, data?: unknown) => {
+      console.error(`[grok-relay:ERROR] ${msg}`, data ?? '');
+    },
+    always: (msg: string) => {
+      console.log(`[grok-relay] ${msg}`);
+    }
+  };
+}
+
 // Default system instructions for the AI assistant
 const defaultInstructions = `You are Kernel, a helpful, friendly AI voice assistant. 
 
@@ -58,12 +94,18 @@ serve(async (req) => {
     const voice = url.searchParams.get('voice') || 'Ara';
     const customInstructions = url.searchParams.get('instructions');
     const instructions = customInstructions ? decodeURIComponent(customInstructions) : defaultInstructions;
+    
+    // Initialize debug logger
+    const debugLevel = getDebugLevel(url);
+    const log = createLogger(debugLevel);
 
-    console.log('[grok-relay] ====== New WebSocket connection ======');
-    console.log('[grok-relay] Timestamp:', new Date().toISOString());
-    console.log('[grok-relay] Voice:', voice);
-    console.log('[grok-relay] Has custom instructions:', !!customInstructions);
-    console.log('[grok-relay] ElevenLabs fallback available:', !!ELEVENLABS_API_KEY);
+    log.always('====== New WebSocket connection ======');
+    log.always(`Timestamp: ${new Date().toISOString()}`);
+    log.basic(`Debug level: ${debugLevel}`);
+    log.basic(`Voice: ${voice}`);
+    log.basic(`Has custom instructions: ${!!customInstructions}`);
+    log.basic(`ElevenLabs fallback available: ${!!ELEVENLABS_API_KEY}`);
+    log.verbose(`Full instructions: ${instructions.substring(0, 100)}...`);
 
     // Upgrade client connection to WebSocket
     const { socket: clientSocket, response } = Deno.upgradeWebSocket(req);
@@ -79,14 +121,15 @@ serve(async (req) => {
     // ElevenLabs TTS fallback connection
     const connectToElevenLabs = async () => {
       if (!ELEVENLABS_API_KEY) {
-        console.error('[grok-relay] ElevenLabs API key not available for fallback');
+        log.error('ElevenLabs API key not available for fallback');
         return false;
       }
 
-      console.log('[grok-relay] ====== Connecting to ElevenLabs TTS fallback ======');
+      log.basic('====== Connecting to ElevenLabs TTS fallback ======');
       
       try {
         const elUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_FALLBACK_VOICE}/stream-input?model_id=eleven_turbo_v2_5&optimize_streaming_latency=3`;
+        log.verbose(`ElevenLabs URL: ${elUrl}`);
         
         const elResponse = await fetch(elUrl, {
           method: "GET",
@@ -98,13 +141,13 @@ serve(async (req) => {
         });
 
         if (elResponse.status !== 101) {
-          console.error('[grok-relay] ElevenLabs upgrade failed:', elResponse.status);
+          log.error(`ElevenLabs upgrade failed: ${elResponse.status}`);
           return false;
         }
 
         const ws = (elResponse as any).webSocket;
         if (!ws) {
-          console.error('[grok-relay] No WebSocket in ElevenLabs response');
+          log.error('No WebSocket in ElevenLabs response');
           return false;
         }
 
@@ -112,7 +155,7 @@ serve(async (req) => {
         elevenLabsWs = ws;
         isFallbackMode = true;
 
-        console.log('[grok-relay] ✓ Connected to ElevenLabs TTS fallback');
+        log.basic('✓ Connected to ElevenLabs TTS fallback');
 
         // Notify client about fallback mode
         if (clientSocket.readyState === WebSocket.OPEN) {
@@ -144,6 +187,7 @@ serve(async (req) => {
         ws.onmessage = (event: MessageEvent) => {
           try {
             const data = JSON.parse(event.data);
+            log.verbose(`← ElevenLabs: ${JSON.stringify(data).substring(0, 100)}`);
             
             if (data.audio) {
               // Forward audio to client in Grok-compatible format
@@ -156,10 +200,11 @@ serve(async (req) => {
             }
             
             if (data.isFinal) {
-              console.log('[grok-relay] ElevenLabs audio generation complete');
+              log.basic('ElevenLabs audio generation complete');
             }
-          } catch (e) {
+          } catch {
             // Binary audio data
+            log.verbose('← ElevenLabs: binary audio data');
             if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
               clientSocket.send(event.data);
             }
@@ -167,30 +212,31 @@ serve(async (req) => {
         };
 
         ws.onerror = (error: Event) => {
-          console.error('[grok-relay] ElevenLabs error:', error);
+          log.error('ElevenLabs error', error);
         };
 
         ws.onclose = (event: CloseEvent) => {
-          console.log('[grok-relay] ElevenLabs closed:', event.code);
+          log.basic(`ElevenLabs closed: ${event.code}`);
           elevenLabsWs = null;
         };
 
         return true;
       } catch (error) {
-        console.error('[grok-relay] ElevenLabs fallback error:', error);
+        log.error('ElevenLabs fallback error', error);
         return false;
       }
     };
 
     // Connect to xAI using fetch with upgrade headers (proper Authorization header)
     const connectToXai = async () => {
-      console.log('[grok-relay] ====== Connecting to xAI WebSocket ======');
-      console.log('[grok-relay] Using fetch with upgrade headers for proper Authorization');
+      log.basic('====== Connecting to xAI WebSocket ======');
+      log.basic('Using fetch with upgrade headers for proper Authorization');
       
       try {
         const connectStartTime = Date.now();
         
         // Use fetch with upgrade headers to properly set Authorization
+        log.verbose('Initiating fetch to wss://api.x.ai/v1/realtime');
         const xaiResponse = await fetch("wss://api.x.ai/v1/realtime", {
           method: "GET",
           headers: {
@@ -200,12 +246,13 @@ serve(async (req) => {
           },
         });
         
-        console.log('[grok-relay] Fetch response status:', xaiResponse.status);
+        log.basic(`Fetch response status: ${xaiResponse.status}`);
+        log.verbose(`Response headers: ${JSON.stringify(Object.fromEntries(xaiResponse.headers.entries()))}`);
         
         // Check if upgrade was successful
         if (xaiResponse.status !== 101) {
           const errorText = await xaiResponse.text().catch(() => 'Unknown error');
-          console.error('[grok-relay] WebSocket upgrade failed:', xaiResponse.status, errorText);
+          log.error(`WebSocket upgrade failed: ${xaiResponse.status}`, errorText);
           
           // Provide user-friendly error messages
           let userMessage = 'Failed to connect to voice service';
@@ -221,7 +268,7 @@ serve(async (req) => {
           
           // Try ElevenLabs fallback
           if (ELEVENLABS_API_KEY) {
-            console.log('[grok-relay] Attempting ElevenLabs TTS fallback...');
+            log.basic('Attempting ElevenLabs TTS fallback...');
             const fallbackSuccess = await connectToElevenLabs();
             if (fallbackSuccess) {
               return; // Fallback successful
@@ -241,7 +288,7 @@ serve(async (req) => {
         xaiSocket = ws;
         
         const elapsed = Date.now() - connectStartTime;
-        console.log(`[grok-relay] ✓ Connected to xAI Realtime API via fetch upgrade (${elapsed}ms)`);
+        log.basic(`✓ Connected to xAI Realtime API via fetch upgrade (${elapsed}ms)`);
         isXaiConnected = true;
         
         if (connectionTimeout) {
@@ -261,11 +308,12 @@ serve(async (req) => {
           const data = event.data;
           try {
             const message = JSON.parse(data);
-            console.log('[grok-relay] ← xAI:', message.type);
+            log.basic(`← xAI: ${message.type}`);
+            log.verbose(`← xAI full: ${JSON.stringify(message).substring(0, 500)}`);
             
             // When session is created, send configuration
             if (message.type === 'session.created' && !sessionConfigured) {
-              console.log('[grok-relay] Session created, configuring...');
+              log.basic('Session created, configuring...');
               sessionConfigured = true;
               
               // xAI session.update format with nested audio object
@@ -287,16 +335,17 @@ serve(async (req) => {
                 },
               };
               
-              console.log('[grok-relay] → xAI: session.update (voice:', voice + ')');
+              log.basic(`→ xAI: session.update (voice: ${voice})`);
+              log.verbose(`→ xAI: ${JSON.stringify(sessionUpdate)}`);
               ws.send(JSON.stringify(sessionUpdate));
             }
             
             if (message.type === 'session.updated') {
-              console.log('[grok-relay] ✓ Session configured successfully');
+              log.basic('✓ Session configured successfully');
             }
             
             if (message.type === 'error') {
-              console.error('[grok-relay] xAI error:', JSON.stringify(message.error || message));
+              log.error(`xAI error: ${JSON.stringify(message.error || message)}`);
             }
             
             // Forward all messages to client
@@ -305,6 +354,7 @@ serve(async (req) => {
             }
           } catch {
             // Binary data or parse error - forward as-is
+            log.verbose('← xAI: binary/unparseable data');
             if (isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
               clientSocket.send(data);
             }
@@ -313,10 +363,7 @@ serve(async (req) => {
 
         ws.onerror = (error: Event) => {
           const errorEvent = error as ErrorEvent;
-          console.error('[grok-relay] ✗ xAI WebSocket error');
-          console.error('[grok-relay] Error type:', errorEvent.type);
-          console.error('[grok-relay] Error message:', errorEvent.message || 'Unknown error');
-          console.error('[grok-relay] Was connected:', isXaiConnected);
+          log.error(`xAI WebSocket error - type: ${errorEvent.type}, message: ${errorEvent.message || 'Unknown'}, wasConnected: ${isXaiConnected}`);
           
           if (!isXaiConnected && isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
             clientSocket.send(JSON.stringify({
@@ -331,17 +378,14 @@ serve(async (req) => {
         };
 
         ws.onclose = async (event: CloseEvent) => {
-          console.log('[grok-relay] xAI WebSocket closed');
-          console.log('[grok-relay] Close code:', event.code);
-          console.log('[grok-relay] Close reason:', event.reason || '(none)');
-          console.log('[grok-relay] Was connected:', isXaiConnected);
+          log.basic(`xAI WebSocket closed - code: ${event.code}, reason: ${event.reason || '(none)'}, wasConnected: ${isXaiConnected}`);
           
           const wasConnected = isXaiConnected;
           isXaiConnected = false;
           
           // If connection dropped unexpectedly, try fallback
           if (!isFallbackMode && event.code !== 1000 && ELEVENLABS_API_KEY) {
-            console.log('[grok-relay] xAI connection lost, trying ElevenLabs fallback...');
+            log.basic('xAI connection lost, trying ElevenLabs fallback...');
             const fallbackSuccess = await connectToElevenLabs();
             if (fallbackSuccess) {
               return; // Don't close client connection
@@ -369,11 +413,11 @@ serve(async (req) => {
         };
         
       } catch (error) {
-        console.error('[grok-relay] Connection error:', error);
+        log.error('Connection error', error);
         
         // Try ElevenLabs fallback on connection error
         if (ELEVENLABS_API_KEY && !isFallbackMode) {
-          console.log('[grok-relay] Primary connection failed, trying ElevenLabs fallback...');
+          log.basic('Primary connection failed, trying ElevenLabs fallback...');
           const fallbackSuccess = await connectToElevenLabs();
           if (fallbackSuccess) {
             return; // Fallback successful
@@ -395,18 +439,18 @@ serve(async (req) => {
 
     // Handle client connection open
     clientSocket.onopen = () => {
-      console.log('[grok-relay] Client WebSocket connected');
-      console.log('[grok-relay] Initiating connection to xAI...');
+      log.basic('Client WebSocket connected');
+      log.basic('Initiating connection to xAI...');
       
       // Set connection timeout (15 seconds for WebSocket connection)
       connectionTimeout = setTimeout(() => {
         if (!isXaiConnected && !isFallbackMode) {
-          console.error('[grok-relay] ✗ Connection to xAI timed out after 15s');
+          log.error('Connection to xAI timed out after 15s');
           xaiSocket?.close();
           
           // Try fallback on timeout
           if (ELEVENLABS_API_KEY) {
-            console.log('[grok-relay] Timeout reached, trying ElevenLabs fallback...');
+            log.basic('Timeout reached, trying ElevenLabs fallback...');
             connectToElevenLabs().then(success => {
               if (!success && isClientConnected && clientSocket.readyState === WebSocket.OPEN) {
                 clientSocket.send(JSON.stringify({
@@ -437,7 +481,8 @@ serve(async (req) => {
       if (typeof data === 'string') {
         try {
           const parsed = JSON.parse(data);
-          console.log('[grok-relay] → backend:', parsed.type || 'unknown', isFallbackMode ? '(fallback)' : '');
+          log.basic(`→ backend: ${parsed.type || 'unknown'}${isFallbackMode ? ' (fallback)' : ''}`);
+          log.verbose(`→ backend full: ${data.substring(0, 300)}`);
           
           // In fallback mode, handle text messages for TTS
           if (isFallbackMode && elevenLabsWs?.readyState === WebSocket.OPEN) {
@@ -445,7 +490,7 @@ serve(async (req) => {
               // Extract text from user message and send to ElevenLabs
               const textContent = parsed.item.content.find((c: any) => c.type === 'input_text');
               if (textContent?.text) {
-                console.log('[grok-relay] → ElevenLabs TTS:', textContent.text.substring(0, 50) + '...');
+                log.basic(`→ ElevenLabs TTS: ${textContent.text.substring(0, 50)}...`);
                 elevenLabsWs.send(JSON.stringify({
                   text: textContent.text + " ",
                   flush: true
@@ -455,26 +500,26 @@ serve(async (req) => {
             return;
           }
         } catch {
-          console.log('[grok-relay] → backend: text message');
+          log.basic('→ backend: text message (parse failed)');
         }
       } else {
-        console.log('[grok-relay] → backend: audio data');
+        log.verbose('→ backend: audio data');
       }
       
       // Forward to xAI if connected
       if (isXaiConnected && xaiSocket?.readyState === WebSocket.OPEN) {
         xaiSocket.send(data);
       } else if (!isFallbackMode) {
-        console.warn('[grok-relay] Cannot forward - xAI not connected (state:', xaiSocket?.readyState, ')');
+        log.error(`Cannot forward - xAI not connected (state: ${xaiSocket?.readyState})`);
       }
     };
 
     clientSocket.onerror = (error) => {
-      console.error('[grok-relay] Client WebSocket error:', error);
+      log.error('Client WebSocket error', error);
     };
 
     clientSocket.onclose = (event) => {
-      console.log('[grok-relay] Client WebSocket closed:', event.code, event.reason || '(no reason)');
+      log.basic(`Client WebSocket closed: ${event.code} ${event.reason || '(no reason)'}`);
       isClientConnected = false;
       
       if (connectionTimeout) {
@@ -483,13 +528,13 @@ serve(async (req) => {
       
       // Close xAI connection when client disconnects
       if (xaiSocket?.readyState === WebSocket.OPEN) {
-        console.log('[grok-relay] Closing xAI connection...');
+        log.basic('Closing xAI connection...');
         xaiSocket.close(1000, 'Client disconnected');
       }
       
       // Close ElevenLabs connection when client disconnects
       if (elevenLabsWs?.readyState === WebSocket.OPEN) {
-        console.log('[grok-relay] Closing ElevenLabs connection...');
+        log.basic('Closing ElevenLabs connection...');
         elevenLabsWs.send(JSON.stringify({ text: "" })); // Close stream
         elevenLabsWs.close(1000, 'Client disconnected');
       }

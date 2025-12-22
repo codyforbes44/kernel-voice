@@ -25,6 +25,36 @@ export type ConnectionPhase = 'idle' | 'connecting_relay' | 'connecting_xai' | '
 const MAX_RETRIES = 5;
 const BASE_RETRY_DELAY_MS = 1000;
 
+// Debug logging levels: 'off' (default), 'basic', 'verbose'
+type DebugLevel = 'off' | 'basic' | 'verbose';
+
+function getDebugLevel(): DebugLevel {
+  if (typeof window === 'undefined') return 'off';
+  const params = new URLSearchParams(window.location.search);
+  const level = params.get('debug');
+  if (level === 'basic' || level === 'verbose') return level;
+  return 'off';
+}
+
+const debugLevel = getDebugLevel();
+
+const log = {
+  basic: (msg: string) => {
+    if (debugLevel === 'off') return;
+    console.log(`[Grok:BASIC] ${msg}`);
+  },
+  verbose: (msg: string, data?: unknown) => {
+    if (debugLevel !== 'verbose') return;
+    console.log(`[Grok:VERBOSE] ${msg}`, data ?? '');
+  },
+  always: (msg: string) => {
+    console.log(`[Grok] ${msg}`);
+  },
+  error: (msg: string, data?: unknown) => {
+    console.error(`[Grok] ${msg}`, data ?? '');
+  }
+};
+
 export function useGrokConversation(options: GrokConversationOptions = {}) {
   const [status, setStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -122,17 +152,18 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
   const handleWebSocketMessage = useCallback(async (event: MessageEvent) => {
     try {
       const message: GrokMessage = JSON.parse(event.data);
-      console.log('[Grok] Message received:', message.type, message.type === 'error' ? message : '');
+      log.basic(`Message received: ${message.type}`);
+      log.verbose('Message data:', message);
       options.onMessage?.(message);
       
       switch (message.type) {
         case 'relay.connected':
-          console.log('[Grok] Relay connected to xAI');
+          log.basic('Relay connected to xAI');
           setConnectionPhase('connecting_xai');
           break;
           
         case 'fallback_active':
-          console.log('[Grok] Fallback mode activated:', message.provider);
+          log.basic(`Fallback mode activated: ${message.provider}`);
           setIsFallbackMode(true);
           isFallbackModeRef.current = true;
           setConnectionPhase('fallback');
@@ -141,14 +172,14 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           break;
           
         case 'session.created':
-          console.log('[Grok] Session created by xAI');
+          log.basic('Session created by xAI');
           sessionCreatedRef.current = true;
           setConnectionPhase('configuring');
           // Relay handles session.update automatically
           break;
 
         case 'session.updated':
-          console.log('[Grok] Session updated successfully');
+          log.basic('Session updated successfully');
           setStatus('connected');
           if (!isFallbackModeRef.current) {
             setConnectionPhase('ready');
@@ -165,6 +196,7 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           break;
           
         case 'input_audio_buffer.speech_started':
+          log.verbose('User started speaking - stopping playback');
           // User started speaking - stop any playing audio
           if (currentAudioRef.current) {
             currentAudioRef.current.pause();
@@ -177,12 +209,14 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           
         case 'conversation.item.input_audio_transcription.completed':
           if (message.transcript) {
+            log.verbose(`User transcript: ${message.transcript}`);
             options.onTranscript?.({ role: 'user', text: message.transcript });
           }
           break;
           
         case 'response.audio.delta':
           if (message.delta) {
+            log.verbose(`Audio delta received: ${message.delta.length} chars`);
             const wavBlob = pcm16ToWavBlob(message.delta, audioConfigRef.current.outputRate);
             audioQueueRef.current.push(wavBlob);
             playNextAudio();
@@ -191,15 +225,19 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
           
         case 'response.text.delta':
           if (message.delta) {
+            log.verbose(`Text delta: ${message.delta}`);
             options.onTranscript?.({ role: 'assistant', text: message.delta });
           }
           break;
           
         case 'response.function_call_arguments.done':
           if (message.name && options.clientTools?.[message.name]) {
+            log.basic(`Executing tool: ${message.name}`);
             try {
               const args = JSON.parse(message.arguments || '{}');
+              log.verbose('Tool arguments:', args);
               const result = await options.clientTools[message.name](args);
+              log.verbose('Tool result:', result);
               
               wsRef.current?.send(JSON.stringify({
                 type: 'conversation.item.create',
@@ -214,22 +252,22 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
                 type: 'response.create',
               }));
             } catch (error) {
-              console.error('Error executing tool:', error);
+              log.error('Error executing tool:', error);
             }
           }
           break;
           
         case 'relay.disconnected':
-          console.log('[Grok] Relay disconnected:', message.reason);
+          log.basic(`Relay disconnected: ${message.reason}`);
           break;
           
         case 'error':
-          console.error('[Grok] Error:', message);
+          log.error('Error from server:', message);
           options.onError?.(new Error(message.message || message.error?.message || 'Grok error'));
           break;
       }
     } catch (error) {
-      console.error('Error parsing WebSocket message:', error);
+      log.error('Error parsing WebSocket message:', error);
     }
   }, [options, playNextAudio]);
 

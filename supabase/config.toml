@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.test-grok-connection]
 verify_jwt = false
+
+[functions.test-xai-connection]
+verify_jwt = false
