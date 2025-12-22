@@ -4,15 +4,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Wifi, WifiOff, Loader2, AlertCircle, RefreshCw, CheckCircle2, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConnectionPhase } from '@/hooks/useGrokConversation';
+import { ConnectionPhase as OpenAIConnectionPhase } from '@/hooks/useOpenAIConversation';
 
 interface ConnectionStatusBadgeProps {
   isConnected: boolean;
   isConnecting: boolean;
   hasError: boolean;
   errorMessage?: string;
-  provider: 'elevenlabs' | 'grok';
+  provider: 'elevenlabs' | 'grok' | 'openai';
   authMethod?: string;
-  connectionPhase?: ConnectionPhase;
+  connectionPhase?: ConnectionPhase | OpenAIConnectionPhase;
   isFallbackMode?: boolean;
   onRetry?: () => void;
   className?: string;
@@ -30,15 +31,17 @@ export const ConnectionStatusBadge = ({
   onRetry,
   className,
 }: ConnectionStatusBadgeProps) => {
-  // Get phase-specific status for Grok
+  // Get phase-specific status for Grok and OpenAI
   const getPhaseInfo = () => {
-    if (provider !== 'grok' || !connectionPhase) return null;
+    if ((provider !== 'grok' && provider !== 'openai') || !connectionPhase) return null;
     
     switch (connectionPhase) {
       case 'getting_token':
         return { label: 'Getting token...', step: 1 };
       case 'connecting_xai':
         return { label: 'Connecting to Grok...', step: 2 };
+      case 'connecting_webrtc':
+        return { label: 'Connecting to OpenAI...', step: 2 };
       case 'configuring':
         return { label: 'Configuring session...', step: 3 };
       case 'ready':
