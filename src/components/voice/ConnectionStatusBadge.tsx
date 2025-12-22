@@ -7,6 +7,7 @@ interface ConnectionStatusBadgeProps {
   isConnected: boolean;
   isConnecting: boolean;
   hasError: boolean;
+  errorMessage?: string;
   provider: 'elevenlabs' | 'grok';
   authMethod?: string;
   className?: string;
@@ -16,6 +17,7 @@ export const ConnectionStatusBadge = ({
   isConnected,
   isConnecting,
   hasError,
+  errorMessage,
   provider,
   authMethod,
   className,
@@ -81,6 +83,11 @@ export const ConnectionStatusBadge = ({
       {isConnecting && (
         <div className="text-muted-foreground italic">
           Trying different authentication methods...
+        </div>
+      )}
+      {hasError && errorMessage && (
+        <div className="text-destructive mt-1 pt-1 border-t border-destructive/20">
+          <span className="font-medium">Error:</span> {errorMessage}
         </div>
       )}
     </div>

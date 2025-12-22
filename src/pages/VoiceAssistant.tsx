@@ -119,6 +119,7 @@ const VoiceAssistant = () => {
               isConnected={isConnected}
               isConnecting={isConnecting}
               hasError={!!connectionError}
+              errorMessage={connectionError || undefined}
               provider={voiceProvider}
               authMethod={connectionAuthMethod}
             />
