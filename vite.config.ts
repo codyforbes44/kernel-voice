@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => ({
         name: 'Kernel',
         short_name: 'Kernel',
         description: 'Premium AI assistant with real-time conversation',
-        theme_color: '#000000',
+        theme_color: '#00E5E5',
         background_color: '#000000',
         display: 'standalone',
         orientation: 'portrait',
