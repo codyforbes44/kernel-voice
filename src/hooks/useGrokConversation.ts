@@ -495,6 +495,31 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     };
   }, [endSession]);
 
+  // Send a text message via WebSocket
+  const sendTextMessage = useCallback((text: string) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.error('Cannot send text message: WebSocket not connected');
+      return false;
+    }
+
+    // Create a conversation item with text input
+    wsRef.current.send(JSON.stringify({
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text }],
+      },
+    }));
+
+    // Trigger response generation
+    wsRef.current.send(JSON.stringify({
+      type: 'response.create',
+    }));
+
+    return true;
+  }, []);
+
   return {
     status,
     isSpeaking,
@@ -504,5 +529,6 @@ export function useGrokConversation(options: GrokConversationOptions = {}) {
     startSession,
     endSession,
     clearError,
+    sendTextMessage,
   };
 }
