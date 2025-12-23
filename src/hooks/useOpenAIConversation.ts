@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { type OpenAIVoiceSettings, DEFAULT_OPENAI_SETTINGS, type OpenAIVoice } from '@/components/voice/voiceTypes';
 import { getVoiceToolsConfig } from '@/lib/voiceToolDefinitions';
+import { type ConnectionPhase, type ToolExecution } from '@/hooks/useGrokConversation';
 
 export type { OpenAIVoice } from '@/components/voice/voiceTypes';
 
@@ -22,15 +23,7 @@ interface OpenAIMessage {
   [key: string]: any;
 }
 
-import { type ConnectionPhase } from '@/hooks/useGrokConversation';
-
 const BUILD_VERSION = '2024-12-22-v1';
-
-export interface ToolExecution {
-  name: string;
-  status: 'calling' | 'executing' | 'completed' | 'error';
-  startedAt: Date;
-}
 
 export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
   const [status, setStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
