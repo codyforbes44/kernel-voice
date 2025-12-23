@@ -502,7 +502,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     } finally {
       setIsProcessingText(false);
     }
-  }, [voiceProvider, isConnected, grokConversation, addTranscript, clientTools]);
+  }, [voiceProvider, isConnected, grokConversation, openaiConversation, addTranscript, clientTools]);
 
   return {
     // Auth state
