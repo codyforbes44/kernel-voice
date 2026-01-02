@@ -6,13 +6,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Maximum tokens to send in context to avoid overflows
+const MAX_CONTEXT_MESSAGES = 20;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, conversationId, userId } = await req.json();
+    const { messages, conversationId, userId, stream = false } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -31,7 +34,7 @@ serve(async (req) => {
         .select('role, content')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
-        .limit(20);
+        .limit(MAX_CONTEXT_MESSAGES);
 
       if (previousMessages) {
         conversationContext = previousMessages.map(msg => ({
@@ -41,10 +44,12 @@ serve(async (req) => {
       }
     }
 
-    // Combine context with new messages
-    const allMessages = [...conversationContext, ...messages];
+    // Combine context with new messages (truncate if too long)
+    const allMessages = [...conversationContext, ...messages].slice(-MAX_CONTEXT_MESSAGES);
 
-    console.log('Processing conversation with Lovable AI...');
+    console.log(`Processing conversation with Lovable AI... (messages: ${allMessages.length}, streaming: ${stream})`);
+
+    const systemPrompt = 'You are Kernel, a helpful, intelligent AI assistant. You provide accurate, thoughtful responses and can help with a wide variety of tasks. Be concise but thorough in your responses.';
 
     // Call Lovable AI Gateway
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -56,15 +61,13 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { 
-            role: 'system', 
-            content: 'You are Kernel, a helpful, intelligent AI assistant. You provide accurate, thoughtful responses and can help with a wide variety of tasks. Be concise but thorough in your responses.' 
-          },
+          { role: 'system', content: systemPrompt },
           ...allMessages.map(msg => ({
             role: msg.role === 'assistant' ? 'assistant' : 'user',
             content: msg.content
           }))
-        ]
+        ],
+        stream,
       }),
     });
 
@@ -97,6 +100,15 @@ serve(async (req) => {
       throw new Error(`AI service error: ${response.status}`);
     }
 
+    // Handle streaming response
+    if (stream) {
+      console.log('Streaming response back to client');
+      return new Response(response.body, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
+      });
+    }
+
+    // Non-streaming response
     const data = await response.json();
     const assistantMessage = data.choices?.[0]?.message?.content || 'I apologize, but I was unable to generate a response.';
 

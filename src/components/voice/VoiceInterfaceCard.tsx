@@ -13,72 +13,10 @@ import { InputModeSelector } from '@/components/voice/InputModeSelector';
 import { WakeWordIndicator } from '@/components/voice/WakeWordIndicator';
 import { ToolExecutionIndicator } from '@/components/voice/ToolExecutionIndicator';
 import MicrophonePermissionRequest from '@/components/voice/MicrophonePermissionRequest';
-import { type InputMode } from '@/components/voice/InputModeSelector';
-import { type VoiceProvider, type GrokVoice, type OpenAIVoice, type OpenAIVoiceSettings, type GrokVoiceSettings } from '@/components/voice/VoiceProviderSelector';
-import { type ConnectionPhase, type ToolExecution } from '@/hooks/useGrokConversation';
+import { type VoiceInterfaceCardProps } from '@/components/voice/voiceInterfaceTypes';
 
-export interface VoiceInterfaceCardProps {
-  // Voice settings
-  voiceProvider: VoiceProvider;
-  setVoiceProvider: (provider: VoiceProvider) => void;
-  grokVoice: GrokVoice;
-  setGrokVoice: (voice: GrokVoice) => void;
-  grokSettings: GrokVoiceSettings;
-  setGrokSettings: (settings: GrokVoiceSettings) => void;
-  openaiVoice: OpenAIVoice;
-  setOpenAIVoice: (voice: OpenAIVoice) => void;
-  openaiSettings: OpenAIVoiceSettings;
-  setOpenAISettings: (settings: OpenAIVoiceSettings) => void;
-  systemPrompt: string;
-  setSystemPrompt: (prompt: string) => void;
-  providerLoading: boolean;
-  
-  // Connection state
-  isConnected: boolean;
-  isConnecting: boolean;
-  connectionError: string | null;
-  connectionAuthMethod: string | undefined;
-  connectionPhase: ConnectionPhase | undefined;
-  isFallbackMode: boolean;
-  isSpeaking: boolean;
-  inputAudioLevel: number;
-  outputAudioLevel: number;
-  
-  // Controls
-  isMuted: boolean;
-  toggleMute: () => void;
-  volume: number;
-  setVolume: (v: number) => void;
-  inputMode: InputMode;
-  setInputMode: (mode: InputMode) => void;
-  
-  // Actions
-  startConversation: () => Promise<void>;
-  endConversation: () => Promise<void>;
-  retryConnection: () => Promise<void>;
-  clearConnectionError: () => void;
-  sendTextMessage: (text: string) => Promise<void>;
-  isProcessingText: boolean;
-  
-  // Tool execution
-  activeToolCall: ToolExecution | null;
-  
-  // Microphone permission
-  permissionState: 'checking' | 'granted' | 'denied' | 'prompt';
-  requestPermission: () => Promise<boolean>;
-  isReady: boolean;
-  
-  // Auth
-  isAuthenticated: boolean;
-  
-  // Mobile
-  isMobile: boolean;
-  
-  // Wake word
-  isWakeWordListening: boolean;
-  isWakeWordSupported: boolean;
-  wakeWordLastHeard: string | null;
-}
+// Re-export the props type for consumers
+export type { VoiceInterfaceCardProps } from '@/components/voice/voiceInterfaceTypes';
 
 export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
   voiceProvider,
