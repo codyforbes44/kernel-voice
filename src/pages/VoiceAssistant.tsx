@@ -18,11 +18,18 @@ import { LiveTranscripts } from '@/components/voice/LiveTranscripts';
 import { GuestModeBanner } from '@/components/voice/GuestModeBanner';
 import { ConversationBanner } from '@/components/voice/ConversationBanner';
 import { VoiceInterfaceCard } from '@/components/voice/VoiceInterfaceCard';
+import { VoiceErrorBoundary } from '@/components/voice/VoiceErrorBoundary';
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
 import { useWakeWordDetection } from '@/hooks/useWakeWordDetection';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCallback, useMemo } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+
+/**
+ * Voice Assistant page - main interface for AI voice conversations.
+ * Supports both mobile and desktop layouts with voice/text input modes.
+ */
 
 const VoiceAssistant = () => {
   const navigate = useNavigate();
@@ -97,6 +104,16 @@ const VoiceAssistant = () => {
     wakeWords: ['hey kernel', 'ok kernel', 'kernel'],
     onWakeWordDetected: handleWakeWordDetected,
     enabled: wakeWordEnabled,
+  });
+
+  // Keyboard shortcuts (Ctrl+M for mute, Escape to end, Enter to start)
+  useKeyboardShortcuts({
+    onMuteToggle: toggleMute,
+    onEndConversation: endConversation,
+    onStartConversation: startConversation,
+    isConnected,
+    isReady,
+    enabled: true,
   });
 
   const handleNewConversation = useCallback(() => {
@@ -230,7 +247,9 @@ const VoiceAssistant = () => {
             )}
 
             {/* Main Voice Interface */}
-            <VoiceInterfaceCard {...voiceInterfaceProps} />
+            <VoiceErrorBoundary>
+              <VoiceInterfaceCard {...voiceInterfaceProps} />
+            </VoiceErrorBoundary>
 
             {/* Live Transcripts */}
             {(isConnected || liveTranscripts.length > 0 || inputMode === 'text') && (
@@ -309,7 +328,9 @@ const VoiceAssistant = () => {
                 )}
 
                 {/* Main Voice Interface */}
-                <VoiceInterfaceCard {...voiceInterfaceProps} />
+                <VoiceErrorBoundary>
+                  <VoiceInterfaceCard {...voiceInterfaceProps} />
+                </VoiceErrorBoundary>
 
                 {/* Live Transcripts */}
                 {(isConnected || liveTranscripts.length > 0 || inputMode === 'text') && (

@@ -12,6 +12,10 @@ import { useTranscriptManager } from '@/hooks/useTranscriptManager';
 import { createVoiceClientTools } from '@/lib/voiceClientTools';
 import { type LiveTranscript } from '@/components/voice/LiveTranscripts';
 
+/**
+ * Return type for the useVoiceAssistant hook.
+ * Provides comprehensive state and actions for voice assistant functionality.
+ */
 interface UseVoiceAssistantReturn {
   // Auth state
   isAuthenticated: boolean;
