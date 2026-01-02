@@ -147,6 +147,7 @@ export type Database = {
           content: string
           created_at: string | null
           document_id: string
+          embedding: string | null
           id: string
           metadata: Json | null
           token_count: number | null
@@ -156,6 +157,7 @@ export type Database = {
           content: string
           created_at?: string | null
           document_id: string
+          embedding?: string | null
           id?: string
           metadata?: Json | null
           token_count?: number | null
@@ -165,6 +167,7 @@ export type Database = {
           content?: string
           created_at?: string | null
           document_id?: string
+          embedding?: string | null
           id?: string
           metadata?: Json | null
           token_count?: number | null
@@ -383,6 +386,22 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      match_knowledge_chunks: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          document_id: string
+          id: string
+          metadata: Json
+          similarity: number
+          token_count: number
+        }[]
       }
     }
     Enums: {

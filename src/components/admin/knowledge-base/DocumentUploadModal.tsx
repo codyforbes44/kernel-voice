@@ -98,9 +98,21 @@ export const DocumentUploadModal = ({ open, onOpenChange, onSuccess }: DocumentU
           .from('knowledge_base_documents')
           .update({ chunk_count: chunks.length })
           .eq('id', data.id);
+
+        // Generate embeddings for semantic search (async, don't wait)
+        console.log('[DocumentUpload] Triggering embedding generation for document:', data.id);
+        supabase.functions.invoke('generate-embeddings', {
+          body: { documentId: data.id }
+        }).then(({ error: embedError }) => {
+          if (embedError) {
+            console.error('[DocumentUpload] Embedding generation failed:', embedError);
+          } else {
+            console.log('[DocumentUpload] Embeddings generated successfully');
+          }
+        });
       }
 
-      toast({ title: 'Success', description: 'Document uploaded and processed' });
+      toast({ title: 'Success', description: 'Document uploaded and processing embeddings...' });
       onOpenChange(false);
       onSuccess();
       resetForm();
