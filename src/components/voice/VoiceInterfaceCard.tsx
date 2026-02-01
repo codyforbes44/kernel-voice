@@ -25,6 +25,8 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
   setOpenAIVoice,
   openaiSettings,
   setOpenAISettings,
+  elevenlabsSettings,
+  setElevenLabsSettings,
   systemPrompt,
   setSystemPrompt,
   providerLoading,
@@ -103,6 +105,8 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
                     onOpenAIVoiceChange={setOpenAIVoice}
                     openaiSettings={openaiSettings}
                     onOpenAISettingsChange={setOpenAISettings}
+                    elevenlabsSettings={elevenlabsSettings}
+                    onElevenLabsSettingsChange={setElevenLabsSettings}
                     systemPrompt={systemPrompt}
                     onSystemPromptChange={setSystemPrompt}
                     inputMode={inputMode}
@@ -129,6 +133,8 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
                   onOpenAIVoiceChange={setOpenAIVoice}
                   openaiSettings={openaiSettings}
                   onOpenAISettingsChange={setOpenAISettings}
+                  elevenlabsSettings={elevenlabsSettings}
+                  onElevenLabsSettingsChange={setElevenLabsSettings}
                   systemPrompt={systemPrompt}
                   onSystemPromptChange={setSystemPrompt}
                   inputMode={inputMode}

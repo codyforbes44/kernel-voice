@@ -6,6 +6,20 @@ export interface OpenAIVoiceSettings {
   silenceDuration: number;  // 200-2000ms, silence before response
 }
 
+export type ElevenLabsLanguage = 'auto' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'pl' | 'hi' | 'ar' | 'zh' | 'ja' | 'ko';
+
+export interface ElevenLabsSettings {
+  language: ElevenLabsLanguage;
+  autoLanguageDetection: boolean;
+  enableRAG: boolean;
+}
+
+export const DEFAULT_ELEVENLABS_SETTINGS: ElevenLabsSettings = {
+  language: 'en',
+  autoLanguageDetection: true,
+  enableRAG: true,
+};
+
 export type OpenAISettingsPreset = 'fast' | 'balanced' | 'relaxed' | 'custom';
 
 export type VoiceProvider = 'elevenlabs' | 'openai';
@@ -47,8 +61,8 @@ export const DEFAULT_OPENAI_SETTINGS: OpenAIVoiceSettings = OPENAI_PRESETS.balan
 export const providerInfo = {
   elevenlabs: {
     name: 'ElevenLabs',
-    description: 'Premium voice quality',
-    features: ['Voice cloning', 'Natural prosody'],
+    description: 'Premium voices, auto-language',
+    features: ['29+ Languages', 'Auto-detect', 'Knowledge Base'],
   },
   openai: {
     name: 'OpenAI',

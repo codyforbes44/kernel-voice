@@ -1,4 +1,4 @@
-import { VoiceProviderSelector, type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings } from './VoiceProviderSelector';
+import { VoiceProviderSelector, type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings, type ElevenLabsSettings } from './VoiceProviderSelector';
 import { InputModeSelector, type InputMode } from './InputModeSelector';
 import { ConnectionTestPanel } from './ConnectionTestPanel';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -10,6 +10,8 @@ interface VoiceSettingsPanelProps {
   onOpenAIVoiceChange: (value: OpenAIVoice) => void;
   openaiSettings: OpenAIVoiceSettings;
   onOpenAISettingsChange: (value: OpenAIVoiceSettings) => void;
+  elevenlabsSettings: ElevenLabsSettings;
+  onElevenLabsSettingsChange: (value: ElevenLabsSettings) => void;
   systemPrompt: string;
   onSystemPromptChange: (value: string) => void;
   inputMode: InputMode;
@@ -26,6 +28,8 @@ export const VoiceSettingsPanel = ({
   onOpenAIVoiceChange,
   openaiSettings,
   onOpenAISettingsChange,
+  elevenlabsSettings,
+  onElevenLabsSettingsChange,
   systemPrompt,
   onSystemPromptChange,
   inputMode,
@@ -45,6 +49,8 @@ export const VoiceSettingsPanel = ({
           onOpenAIVoiceChange={onOpenAIVoiceChange}
           openaiSettings={openaiSettings}
           onOpenAISettingsChange={onOpenAISettingsChange}
+          elevenlabsSettings={elevenlabsSettings}
+          onElevenLabsSettingsChange={onElevenLabsSettingsChange}
           systemPrompt={systemPrompt}
           onSystemPromptChange={onSystemPromptChange}
           disabled={isConnected || providerLoading}

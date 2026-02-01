@@ -22,31 +22,99 @@ serve(async (req) => {
       throw new Error('Voice agent not configured');
     }
 
-    console.log('Generating voice session URL');
+    // Parse request body for options
+    let connectionType = 'webrtc'; // Default to WebRTC for lower latency
+    let language = 'en'; // Default language
+    let customPrompt: string | undefined;
+    let voiceId: string | undefined;
 
-    // Get signed URL from voice service
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
-      {
-        method: 'GET',
-        headers: {
-          'xi-api-key': ELEVENLABS_API_KEY,
-        },
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        connectionType = body.connectionType || 'webrtc';
+        language = body.language || 'en';
+        customPrompt = body.customPrompt;
+        voiceId = body.voiceId;
+      } catch {
+        // Body parsing failed, use defaults
       }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Voice service error:', errorText);
-      throw new Error(`Voice service error: ${response.status}`);
     }
 
-    const data = await response.json();
-    console.log('Voice session URL generated successfully');
+    console.log('Generating voice session:', { connectionType, language, hasCustomPrompt: !!customPrompt });
 
-    return new Response(JSON.stringify({ signedUrl: data.signed_url }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    if (connectionType === 'webrtc') {
+      // Get conversation token for WebRTC (recommended - lower latency)
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
+        {
+          method: 'GET',
+          headers: {
+            'xi-api-key': ELEVENLABS_API_KEY,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Voice service error:', errorText);
+        throw new Error(`Voice service error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Voice session URL generated successfully (WebRTC)');
+
+      // Build overrides for the client
+      const overrides: Record<string, unknown> = {};
+      
+      if (language && language !== 'auto') {
+        overrides.language = language;
+      }
+      
+      if (customPrompt) {
+        overrides.agent = {
+          prompt: { prompt: customPrompt }
+        };
+      }
+      
+      if (voiceId) {
+        overrides.tts = { voiceId };
+      }
+
+      return new Response(JSON.stringify({ 
+        signedUrl: data.signed_url,
+        connectionType: 'webrtc',
+        overrides: Object.keys(overrides).length > 0 ? overrides : undefined,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } else {
+      // Legacy: Get signed URL for WebSocket
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
+        {
+          method: 'GET',
+          headers: {
+            'xi-api-key': ELEVENLABS_API_KEY,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Voice service error:', errorText);
+        throw new Error(`Voice service error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Voice session URL generated successfully (WebSocket)');
+
+      return new Response(JSON.stringify({ 
+        signedUrl: data.signed_url,
+        connectionType: 'websocket',
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
   } catch (error) {
     console.error('Error generating voice session:', error);

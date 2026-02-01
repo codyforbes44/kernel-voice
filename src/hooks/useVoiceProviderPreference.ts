@@ -5,7 +5,9 @@ import {
   VoiceProvider,
   OpenAIVoice,
   OpenAIVoiceSettings,
+  ElevenLabsSettings,
   DEFAULT_OPENAI_SETTINGS,
+  DEFAULT_ELEVENLABS_SETTINGS,
   VALID_OPENAI_VOICES,
   VALID_PROVIDERS,
 } from '@/components/voice/voiceTypes';
@@ -14,6 +16,7 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
   const [provider, setProvider] = useState<VoiceProvider>('openai');
   const [openaiVoice, setOpenAIVoice] = useState<OpenAIVoice>('alloy');
   const [openaiSettings, setOpenAISettings] = useState<OpenAIVoiceSettings>(DEFAULT_OPENAI_SETTINGS);
+  const [elevenlabsSettings, setElevenLabsSettings] = useState<ElevenLabsSettings>(DEFAULT_ELEVENLABS_SETTINGS);
   const [loading, setLoading] = useState(true);
   const { systemPrompt, setSystemPrompt, loading: promptLoading } = useSystemPromptPreference();
 
@@ -33,6 +36,17 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
           setOpenAISettings({ ...DEFAULT_OPENAI_SETTINGS, ...parsed });
         } catch (e) {
           console.error('Error parsing OpenAI settings:', e);
+        }
+      }
+
+      // Load ElevenLabs settings from localStorage
+      const savedElevenLabsSettings = localStorage.getItem('elevenlabs_settings');
+      if (savedElevenLabsSettings) {
+        try {
+          const parsed = JSON.parse(savedElevenLabsSettings);
+          setElevenLabsSettings({ ...DEFAULT_ELEVENLABS_SETTINGS, ...parsed });
+        } catch (e) {
+          console.error('Error parsing ElevenLabs settings:', e);
         }
       }
 
@@ -96,6 +110,11 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     localStorage.setItem('openai_settings', JSON.stringify(newSettings));
   };
 
+  const updateElevenLabsSettings = (newSettings: ElevenLabsSettings) => {
+    setElevenLabsSettings(newSettings);
+    localStorage.setItem('elevenlabs_settings', JSON.stringify(newSettings));
+  };
+
   return {
     provider, 
     setProvider: updateProvider, 
@@ -103,6 +122,8 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     setOpenAIVoice: updateOpenAIVoice,
     openaiSettings,
     setOpenAISettings: updateOpenAISettings,
+    elevenlabsSettings,
+    setElevenLabsSettings: updateElevenLabsSettings,
     systemPrompt,
     setSystemPrompt,
     loading: loading || promptLoading,
