@@ -1,155 +1,237 @@
 
-
-# Light Mode Optimization Plan
+# Admin Dashboard Enhancement Plan
 
 ## Current State Analysis
 
-The current light mode has several UX issues that need addressing:
+### Existing Admin Features
 
-### Problems Identified
+| Page | Features | Limitations |
+|------|----------|-------------|
+| **Dashboard** | 6 stats cards (users, conversations, documents, active today, KB docs, KB chunks) | Static metrics only, no trends or charts, no quick actions |
+| **Users** | List, search, role assignment, delete | No pagination, no bulk actions, no user details view, no activity history |
+| **Conversations** | List, search, delete | No message preview, no pagination, no export, no moderation tools |
+| **Documents** | List, search, delete | No preview, no pagination, basic file info only |
+| **Knowledge Base** | 5 tabs (Overview, Documents, Categories, Chunks, Settings) | Good foundation but limited analytics and no reprocessing tools |
 
-1. **Low Contrast Backgrounds**: Pure white backgrounds (`0 0% 100%`) create harsh glare and strain in bright environments
-2. **Insufficient Card Depth**: Cards lack visual hierarchy - same white as background makes them flat
-3. **Weak Shadows**: Light mode shadows are too subtle, reducing depth perception
-4. **Primary Color Accessibility**: Cyan primary (`180 100% 45%`) may have contrast issues with white text on smaller elements
-5. **Missing Light Mode Utilities**: Dark mode has dedicated utilities (`card-glow`, `ambient-glow`) but light mode lacks equivalents
-6. **Hero Section Harshness**: Pure white hero gradient doesn't create visual warmth
-7. **Muted Colors Too Gray**: Current muted foreground is too desaturated, reducing readability
+### Security Implementation
+- `AdminGuard` component checks `isAdmin` from `useUserRole` hook
+- Role-based access via `has_role()` security definer function
+- `admin_audit_log` table exists but is not being used
+
+### Missing Best-in-Class Capabilities
+1. **Real-time monitoring** - No live activity feeds or system health
+2. **Advanced analytics** - No charts, trends, or usage patterns
+3. **Audit logging** - Table exists but no logging implementation
+4. **Bulk operations** - No multi-select or batch actions
+5. **Export functionality** - No data export capabilities
+6. **System configuration** - Limited to KB settings only
+7. **User detail views** - No drill-down into individual users
+8. **Moderation tools** - No conversation review or content flagging
+9. **Collapsible sidebar** - Current layout uses inline navigation
 
 ---
 
-## Solution Overview
+## Solution Architecture
 
-Transform light mode into a warm, professional experience with:
-- Soft off-white backgrounds for reduced eye strain
-- Subtle warm tints that complement the cyan brand
-- Enhanced depth through improved shadows and borders
-- Better text contrast hierarchy
-- Light mode-specific visual utilities
+### Phase 1: Enhanced Dashboard and Analytics
+
+**1.1 Real-Time Dashboard**
+- Live stats with auto-refresh (30-second intervals)
+- Activity feed showing recent actions
+- System health indicators (voice providers, edge functions)
+- Quick action buttons (common admin tasks)
+
+**1.2 Analytics Charts**
+- User growth over time (line chart)
+- Conversation volume trends (area chart)
+- Voice provider usage distribution (pie chart)
+- Daily/weekly active users comparison (bar chart)
+
+**1.3 Dashboard Widgets**
+- Recent user registrations with quick role actions
+- Recent conversations with preview
+- Processing queue status for KB documents
+- Storage usage summary
+
+### Phase 2: Advanced User Management
+
+**2.1 Enhanced User Table**
+- Server-side pagination for scalability
+- Bulk selection with multi-action toolbar
+- Column sorting and advanced filters
+- User status indicators (online/offline based on updated_at)
+
+**2.2 User Detail Drawer/Modal**
+- Complete profile information
+- Role history
+- Conversation count and recent activity
+- Document uploads summary
+- Voice preferences and settings
+- Quick actions (reset password, disable, impersonate)
+
+**2.3 Bulk Operations**
+- Select multiple users
+- Bulk role assignment
+- Bulk export to CSV
+- Bulk delete with confirmation
+
+### Phase 3: Conversation Moderation Tools
+
+**3.1 Enhanced Conversation View**
+- Message preview panel (sliding drawer)
+- Full message transcript view
+- User and assistant message differentiation
+- Audio playback for voice messages
+
+**3.2 Moderation Features**
+- Flag conversations for review
+- Add moderator notes
+- Export conversation transcripts
+- Archive instead of delete option
+
+### Phase 4: Audit Logging System
+
+**4.1 Implement Audit Logging**
+Create `admin-operations` edge function for secure admin actions:
+- User role changes
+- User deletion
+- Conversation deletion
+- Document management
+- Settings changes
+
+**4.2 Audit Log Viewer Page**
+- Searchable audit log table
+- Filter by action type, admin, target
+- Export audit logs
+- Date range filtering
+
+### Phase 5: System Settings and Configuration
+
+**5.1 New Settings Page**
+- Voice provider configuration
+- AI model defaults
+- Rate limiting settings
+- Feature flags
+- Maintenance mode toggle
+
+**5.2 Email/Notification Templates**
+- Welcome email customization
+- Password reset templates
+- System notification settings
+
+### Phase 6: Modern Admin Layout
+
+**6.1 Collapsible Sidebar**
+- Use ShadcnUI Sidebar component
+- Mini-collapsed mode (icons only)
+- Persistent trigger button
+- Mobile-responsive sheet
+
+**6.2 Command Palette**
+- Cmd+K quick navigation
+- Search users, conversations, documents
+- Quick actions from keyboard
 
 ---
 
 ## Implementation Details
 
-### 1. Update CSS Variables (src/index.css)
+### New Files to Create
 
-**Background Colors**
-- Background: Shift from pure white to soft warm-white (`210 20% 99%`)
-- Card: Slightly brighter than background for subtle elevation (`0 0% 100%`)
-- Muted: Warmer gray tint (`210 25% 96%`)
+| File | Purpose |
+|------|---------|
+| `src/components/admin/AdminSidebar.tsx` | Collapsible sidebar with navigation |
+| `src/components/admin/DashboardCharts.tsx` | Analytics charts component |
+| `src/components/admin/ActivityFeed.tsx` | Real-time activity feed |
+| `src/components/admin/UserDetailDrawer.tsx` | User detail slide-over panel |
+| `src/components/admin/ConversationPreview.tsx` | Message transcript viewer |
+| `src/components/admin/AuditLogTable.tsx` | Audit log display component |
+| `src/components/admin/BulkActionToolbar.tsx` | Multi-select action bar |
+| `src/pages/admin/AuditLogs.tsx` | New audit log page |
+| `src/pages/admin/Settings.tsx` | System settings page |
+| `supabase/functions/admin-operations/index.ts` | Secure admin operations |
 
-**Typography Improvements**
-- Muted foreground: Increase contrast (`215 20% 40%` instead of `215 16% 47%`)
-- Keep foreground dark for maximum readability
-
-**Border & Input Refinements**
-- Slightly more visible borders (`214 25% 88%`)
-- Input backgrounds with subtle distinction
-
-**Enhanced Shadows for Light Mode**
-```css
---shadow-glow: 0 4px 20px hsl(var(--primary) / 0.12), 0 0 40px hsl(var(--primary) / 0.08);
---shadow-card: 0 2px 8px hsl(220 20% 20% / 0.06), 0 8px 24px hsl(220 20% 20% / 0.04);
---shadow-subtle: 0 1px 3px hsl(220 20% 20% / 0.08);
-```
-
-**Light Mode Gradients**
-```css
---gradient-hero: linear-gradient(180deg, hsl(210 20% 99%) 0%, hsl(180 20% 97%) 100%);
---gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(210 15% 99%) 100%);
-```
-
-### 2. Add Light Mode Utilities (src/index.css)
-
-New utility classes for light mode visual effects:
-
-```css
-/* Light mode card elevation */
-.light .card-elevated {
-  background: var(--gradient-card);
-  box-shadow: var(--shadow-card);
-}
-
-/* Light mode hover glow */
-.light .glow-hover:hover {
-  box-shadow: 0 4px 20px hsl(var(--primary) / 0.15);
-}
-
-/* Soft border glow for light mode */
-.light .glow-border {
-  box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.08);
-}
-```
-
-### 3. Component Updates
-
-**VoiceInterfaceCard.tsx**
-- Add light mode-specific card styling
-- Update disconnected orb gradient for better visibility
-
-**VoiceControlPanel.tsx**
-- Improve orb gradient visibility in light mode
-- Add `light:` variant for better contrast
-
-**AnimatedHeroBackground.tsx**
-- Already handles light/dark mode - verify colors are optimal
-
-**LandingPage.tsx**
-- Update gradient overlay opacity for light mode
-- Ensure feature cards have proper elevation
-
-### 4. Primary Button Refinement
-
-The primary button uses `text-primary-foreground` (black) on cyan background. This is already good for contrast, but we can enhance hover states:
-
-```css
-/* Button.tsx - no changes needed, but verify */
-default: "bg-primary text-primary-foreground hover:bg-primary/90"
-```
-
----
-
-## Files to Modify
+### Files to Refactor
 
 | File | Changes |
 |------|---------|
-| `src/index.css` | Update `:root` CSS variables, add light mode utilities |
-| `src/components/voice/VoiceInterfaceCard.tsx` | Add light mode card classes |
-| `src/components/voice/VoiceControlPanel.tsx` | Improve light mode orb visibility |
-| `src/pages/LandingPage.tsx` | Optional: fine-tune hero gradients |
+| `src/components/admin/AdminLayout.tsx` | Replace with SidebarProvider layout |
+| `src/pages/admin/Dashboard.tsx` | Add charts, activity feed, widgets |
+| `src/pages/admin/Users.tsx` | Add pagination, bulk actions, detail drawer |
+| `src/pages/admin/Conversations.tsx` | Add message preview, moderation tools |
+| `src/pages/admin/Documents.tsx` | Add pagination, preview, bulk actions |
+| `src/hooks/useUserRole.ts` | Add auth state subscription for real-time updates |
 
----
+### Database Changes
 
-## Technical Details
-
-### CSS Variable Changes Summary
-
-| Variable | Current | New |
-|----------|---------|-----|
-| `--background` | `0 0% 100%` | `210 20% 99%` |
-| `--card` | `0 0% 100%` | `0 0% 100%` (keep) |
-| `--muted` | `210 40% 96%` | `210 25% 96%` |
-| `--muted-foreground` | `215 16% 47%` | `215 20% 40%` |
-| `--border` | `214 32% 91%` | `214 25% 88%` |
-| `--shadow-card` | Basic | Multi-layer soft shadow |
-| `--shadow-glow` | Primary glow only | Refined subtle glow |
-
-### New Light Mode Gradients
-
-```css
---gradient-hero: linear-gradient(180deg, hsl(210 20% 99%) 0%, hsl(180 15% 97%) 100%);
---gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(210 10% 99%) 100%);
+**New table: `admin_settings`**
+```sql
+CREATE TABLE admin_settings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  key text UNIQUE NOT NULL,
+  value jsonb NOT NULL,
+  updated_at timestamptz DEFAULT now(),
+  updated_by uuid REFERENCES auth.users(id)
+);
 ```
 
+**Add indexes for performance:**
+```sql
+CREATE INDEX idx_admin_audit_log_created_at ON admin_audit_log(created_at DESC);
+CREATE INDEX idx_admin_audit_log_admin_id ON admin_audit_log(admin_id);
+CREATE INDEX idx_profiles_updated_at ON profiles(updated_at DESC);
+```
+
+### Edge Function: admin-operations
+
+Secure server-side operations using service role:
+- `deleteUser` - Delete user and cascade data
+- `updateUserRole` - Change user roles with audit logging
+- `exportData` - Generate CSV exports
+- `bulkOperations` - Handle multi-item actions
+
 ---
 
-## Expected Outcome
+## Priority Implementation Order
+
+1. **Phase 6.1: Admin Layout Refactor** - Foundation for better UX
+2. **Phase 1.1-1.3: Enhanced Dashboard** - Immediate value visibility
+3. **Phase 4: Audit Logging** - Security compliance
+4. **Phase 2: User Management** - Core admin functionality
+5. **Phase 3: Conversation Tools** - Content moderation
+6. **Phase 5: System Settings** - Advanced configuration
+
+---
+
+## Technical Considerations
+
+### Performance Optimizations
+- Implement server-side pagination (50 items per page)
+- Use React Query for caching and background refetch
+- Debounce search inputs (300ms)
+- Virtual scrolling for large lists
+
+### Security Measures
+- All destructive operations via edge function with service role
+- Audit logging for every admin action
+- Rate limiting on admin endpoints
+- IP address capture in audit logs
+
+### Accessibility
+- ARIA labels on all interactive elements
+- Keyboard navigation support
+- Screen reader announcements for actions
+- Focus management in modals
+
+---
+
+## Expected Outcomes
 
 After implementation:
-- Softer, warmer appearance that reduces eye strain
-- Clear visual hierarchy with elevated cards
-- Consistent depth perception through improved shadows
-- Better text readability with enhanced contrast
-- Seamless brand integration (cyan accents work beautifully on warm backgrounds)
-- Professional, modern aesthetic matching premium AI product positioning
+- Comprehensive platform visibility with real-time metrics
+- Efficient user and content management at scale
+- Complete audit trail for compliance
+- Modern, responsive admin interface
+- Reduced admin task completion time
+- Enhanced security through proper access controls
 
