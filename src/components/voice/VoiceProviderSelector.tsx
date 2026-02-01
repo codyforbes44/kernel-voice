@@ -11,15 +11,11 @@ import {
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Cloud, Loader2 } from 'lucide-react';
-import { GrokSettingsPanel } from './GrokSettingsPanel';
 import { OpenAISettingsPanel } from './OpenAISettingsPanel';
 import {
   VoiceProvider,
-  GrokVoice,
   OpenAIVoice,
-  GrokVoiceSettings,
   OpenAIVoiceSettings,
-  DEFAULT_GROK_SETTINGS,
   DEFAULT_OPENAI_SETTINGS,
   providerInfo,
 } from './voiceTypes';
@@ -27,19 +23,17 @@ import {
 // Re-export types for backwards compatibility
 export type {
   VoiceProvider,
-  GrokVoice,
   OpenAIVoice,
-  GrokVoiceSettings,
   OpenAIVoiceSettings,
+  ConnectionPhase,
+  ToolExecution,
 } from './voiceTypes';
 
-export type { OpenAISettingsPreset, GrokSettingsPreset } from './voiceTypes';
+export type { OpenAISettingsPreset } from './voiceTypes';
 
 export {
   OPENAI_PRESETS,
-  GROK_PRESETS,
   DEFAULT_OPENAI_SETTINGS,
-  DEFAULT_GROK_SETTINGS,
 } from './voiceTypes';
 
 // Re-export hook for backwards compatibility
@@ -48,10 +42,6 @@ export { useVoiceProviderPreference } from '@/hooks/useVoiceProviderPreference';
 interface VoiceProviderSelectorProps {
   value: VoiceProvider;
   onChange: (provider: VoiceProvider) => void;
-  grokVoice: GrokVoice;
-  onGrokVoiceChange: (voice: GrokVoice) => void;
-  grokSettings: GrokVoiceSettings;
-  onGrokSettingsChange: (settings: GrokVoiceSettings) => void;
   openaiVoice: OpenAIVoice;
   onOpenAIVoiceChange: (voice: OpenAIVoice) => void;
   openaiSettings: OpenAIVoiceSettings;
@@ -65,10 +55,6 @@ interface VoiceProviderSelectorProps {
 export function VoiceProviderSelector({
   value,
   onChange,
-  grokVoice,
-  onGrokVoiceChange,
-  grokSettings,
-  onGrokSettingsChange,
   openaiVoice,
   onOpenAIVoiceChange,
   openaiSettings,
@@ -140,18 +126,6 @@ export function VoiceProviderSelector({
     }
   };
 
-  const handleGrokVoiceChange = async (newVoice: GrokVoice) => {
-    onGrokVoiceChange(newVoice);
-    localStorage.setItem('grok_voice', newVoice);
-    
-    await withSync(async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from('profiles').update({ grok_voice: newVoice }).eq('id', user.id);
-      }
-    });
-  };
-
   const handleOpenAIVoiceChange = async (newVoice: OpenAIVoice) => {
     onOpenAIVoiceChange(newVoice);
     localStorage.setItem('openai_voice', newVoice);
@@ -160,22 +134,6 @@ export function VoiceProviderSelector({
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('profiles').update({ openai_voice: newVoice }).eq('id', user.id);
-      }
-    });
-  };
-
-  const handleGrokSettingChange = async <K extends keyof GrokVoiceSettings>(
-    key: K,
-    settingValue: GrokVoiceSettings[K]
-  ) => {
-    const newSettings = { ...grokSettings, [key]: settingValue };
-    onGrokSettingsChange(newSettings);
-    localStorage.setItem('grok_settings', JSON.stringify(newSettings));
-    
-    await withSync(async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from('profiles').update({ grok_settings: newSettings }).eq('id', user.id);
       }
     });
   };
@@ -192,23 +150,6 @@ export function VoiceProviderSelector({
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('profiles').update({ openai_settings: newSettings }).eq('id', user.id);
-      }
-    });
-  };
-
-  const handleResetGrokSettings = async () => {
-    onGrokVoiceChange('Charon');
-    onGrokSettingsChange(DEFAULT_GROK_SETTINGS);
-    localStorage.setItem('grok_voice', 'Charon');
-    localStorage.setItem('grok_settings', JSON.stringify(DEFAULT_GROK_SETTINGS));
-    
-    await withSync(async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from('profiles').update({ 
-          grok_voice: 'Charon', 
-          grok_settings: JSON.parse(JSON.stringify(DEFAULT_GROK_SETTINGS))
-        }).eq('id', user.id);
       }
     });
   };
@@ -285,21 +226,6 @@ export function VoiceProviderSelector({
           ))}
         </div>
       </div>
-
-      {/* Grok Settings - Only show when Grok is selected */}
-      {value === 'grok' && (
-        <GrokSettingsPanel
-          grokVoice={grokVoice}
-          onGrokVoiceChange={handleGrokVoiceChange}
-          grokSettings={grokSettings}
-          onGrokSettingsChange={onGrokSettingsChange}
-          onGrokSettingChange={handleGrokSettingChange}
-          onResetSettings={handleResetGrokSettings}
-          systemPrompt={systemPrompt}
-          onSystemPromptChange={onSystemPromptChange}
-          disabled={disabled}
-        />
-      )}
 
       {/* OpenAI Settings - Only show when OpenAI is selected */}
       {value === 'openai' && (

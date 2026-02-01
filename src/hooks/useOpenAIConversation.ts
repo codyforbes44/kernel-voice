@@ -1,8 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { type OpenAIVoiceSettings, DEFAULT_OPENAI_SETTINGS, type OpenAIVoice } from '@/components/voice/voiceTypes';
+import { 
+  type OpenAIVoiceSettings, 
+  DEFAULT_OPENAI_SETTINGS, 
+  type OpenAIVoice,
+  type ConnectionPhase,
+  type ToolExecution,
+} from '@/components/voice/voiceTypes';
 import { getVoiceToolsConfig } from '@/lib/voiceToolDefinitions';
-import { type ConnectionPhase, type ToolExecution } from '@/hooks/useGrokConversation';
 
 export type { OpenAIVoice } from '@/components/voice/voiceTypes';
 

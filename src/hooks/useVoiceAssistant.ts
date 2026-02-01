@@ -3,8 +3,8 @@ import { useConversation } from '@11labs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
-import { useVoiceProviderPreference, type VoiceProvider, type GrokVoice, type OpenAIVoice, type OpenAIVoiceSettings, type GrokVoiceSettings } from '@/components/voice/VoiceProviderSelector';
-import { useGrokConversation, type ConnectionPhase, type ToolExecution } from '@/hooks/useGrokConversation';
+import { useVoiceProviderPreference } from '@/hooks/useVoiceProviderPreference';
+import { type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings, type ConnectionPhase, type ToolExecution } from '@/components/voice/voiceTypes';
 import { useOpenAIConversation } from '@/hooks/useOpenAIConversation';
 import { type InputMode } from '@/components/voice/InputModeSelector';
 import { useInputModePreference } from '@/hooks/useInputModePreference';
@@ -29,10 +29,6 @@ interface UseVoiceAssistantReturn {
   // Voice state
   voiceProvider: VoiceProvider;
   setVoiceProvider: (provider: VoiceProvider) => void;
-  grokVoice: GrokVoice;
-  setGrokVoice: (voice: GrokVoice) => void;
-  grokSettings: GrokVoiceSettings;
-  setGrokSettings: (settings: GrokVoiceSettings) => void;
   openaiVoice: OpenAIVoice;
   setOpenAIVoice: (voice: OpenAIVoice) => void;
   openaiSettings: OpenAIVoiceSettings;
@@ -47,7 +43,6 @@ interface UseVoiceAssistantReturn {
   connectionError: string | null;
   connectionAuthMethod: string | undefined;
   connectionPhase: ConnectionPhase | undefined;
-  isFallbackMode: boolean;
   isSpeaking: boolean;
   inputAudioLevel: number;
   outputAudioLevel: number;
@@ -113,10 +108,6 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const { 
     provider: voiceProvider, 
     setProvider: setVoiceProvider, 
-    grokVoice, 
-    setGrokVoice,
-    grokSettings,
-    setGrokSettings,
     openaiVoice,
     setOpenAIVoice,
     openaiSettings,
@@ -254,47 +245,6 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     clientTools,
   });
 
-  // Grok conversation hook
-  const grokConversation = useGrokConversation({
-    onConnect: () => {
-      console.log('Connected to Grok voice service');
-      clearTranscripts();
-      const tokenInfo = grokConversation.connectionInfo?.tokenParam 
-        ? ` (auth: ${grokConversation.connectionInfo.tokenParam})`
-        : '';
-      toast({
-        title: 'Connected',
-        description: `Voice assistant is ready (Grok)${tokenInfo}`,
-      });
-    },
-    onDisconnect: () => {
-      console.log('Disconnected from Grok voice service');
-    },
-    onMessage: (message) => {
-      console.log('Grok message received:', message);
-    },
-    onError: (error) => {
-      console.error('Grok voice service error:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Voice connection error',
-        variant: 'destructive',
-      });
-    },
-    onTranscript: (transcript) => {
-      console.log('Grok transcript:', transcript);
-      if (transcript.role === 'assistant') {
-        addTranscript('assistant', transcript.text, true);
-      } else {
-        addTranscript('user', transcript.text);
-      }
-    },
-    clientTools,
-    voice: grokVoice,
-    instructions: systemPrompt,
-    settings: grokSettings,
-  });
-
   // OpenAI conversation hook
   const openaiConversation = useOpenAIConversation({
     onConnect: () => {
@@ -336,39 +286,31 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   // Use the selected provider's conversation
   const conversation = voiceProvider === 'elevenlabs' 
     ? elevenlabsConversation 
-    : voiceProvider === 'openai' 
-      ? openaiConversation 
-      : grokConversation;
+    : openaiConversation;
   const isConnected = conversation.status === 'connected';
-  const isConnecting = (voiceProvider === 'grok' || voiceProvider === 'openai') 
-    ? (voiceProvider === 'grok' ? grokConversation : openaiConversation).status === 'connecting' 
+  const isConnecting = voiceProvider === 'openai' 
+    ? openaiConversation.status === 'connecting' 
     : false;
-  const connectionError = voiceProvider === 'grok' 
-    ? grokConversation.connectionError 
-    : voiceProvider === 'openai' 
-      ? openaiConversation.connectionError 
-      : null;
-  const connectionAuthMethod = (voiceProvider === 'grok' || voiceProvider === 'openai')
-    ? (voiceProvider === 'grok' ? grokConversation : openaiConversation).connectionInfo?.tokenParam 
+  const connectionError = voiceProvider === 'openai' 
+    ? openaiConversation.connectionError 
+    : null;
+  const connectionAuthMethod = voiceProvider === 'openai'
+    ? openaiConversation.connectionInfo?.tokenParam 
     : undefined;
-  const connectionPhase = voiceProvider === 'grok' 
-    ? grokConversation.connectionPhase 
-    : voiceProvider === 'openai' 
-      ? openaiConversation.connectionPhase 
-      : undefined;
-  const isFallbackMode = voiceProvider === 'grok' ? grokConversation.isFallbackMode : false;
-  const inputAudioLevel = (voiceProvider === 'grok' || voiceProvider === 'openai')
-    ? (voiceProvider === 'grok' ? grokConversation : openaiConversation).inputAudioLevel 
+  const connectionPhase = voiceProvider === 'openai' 
+    ? openaiConversation.connectionPhase 
+    : undefined;
+  const inputAudioLevel = voiceProvider === 'openai'
+    ? openaiConversation.inputAudioLevel 
     : 0;
-  const outputAudioLevel = (voiceProvider === 'grok' || voiceProvider === 'openai')
-    ? (voiceProvider === 'grok' ? grokConversation : openaiConversation).outputAudioLevel 
+  const outputAudioLevel = voiceProvider === 'openai'
+    ? openaiConversation.outputAudioLevel 
     : 0;
 
   // Use refs to stabilize the startConversation callback
   const voiceProviderRef = useRef(voiceProvider);
   const elevenlabsConversationRef = useRef(elevenlabsConversation);
   const openaiConversationRef = useRef(openaiConversation);
-  const grokConversationRef = useRef(grokConversation);
   
   useEffect(() => {
     voiceProviderRef.current = voiceProvider;
@@ -379,9 +321,6 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   useEffect(() => {
     openaiConversationRef.current = openaiConversation;
   }, [openaiConversation]);
-  useEffect(() => {
-    grokConversationRef.current = grokConversation;
-  }, [grokConversation]);
 
   // Ref to track if a start is in progress
   const isStartingConversationRef = useRef(false);
@@ -409,12 +348,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         await elevenlabsConversationRef.current.startSession({ 
           signedUrl: data.signedUrl 
         });
-      } else if (voiceProviderRef.current === 'openai') {
+      } else {
         console.log('Starting OpenAI Realtime voice session');
         await openaiConversationRef.current.startSession();
-      } else {
-        console.log('Starting Grok voice session');
-        await grokConversationRef.current.startSession();
       }
     } catch (error) {
       console.error('Error starting conversation:', error);
@@ -426,15 +362,13 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     } finally {
       isStartingConversationRef.current = false;
     }
-  }, [toast]);
+  }, [toast, clearTranscripts]);
 
   const endConversation = async () => {
     if (voiceProvider === 'elevenlabs') {
       await elevenlabsConversation.endSession();
-    } else if (voiceProvider === 'openai') {
-      await openaiConversation.endSession();
     } else {
-      await grokConversation.endSession();
+      await openaiConversation.endSession();
     }
     
     if (!isAuthenticated && guestMessages.length > 0) {
@@ -443,18 +377,14 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   };
 
   const retryConnection = async () => {
-    if (voiceProvider === 'grok') {
-      grokConversation.clearError();
-    } else if (voiceProvider === 'openai') {
+    if (voiceProvider === 'openai') {
       openaiConversation.clearError();
     }
     await startConversation();
   };
 
   const clearConnectionError = () => {
-    if (voiceProvider === 'grok') {
-      grokConversation.clearError();
-    } else if (voiceProvider === 'openai') {
+    if (voiceProvider === 'openai') {
       openaiConversation.clearError();
     }
   };
@@ -475,15 +405,6 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setIsProcessingText(true);
     
     try {
-      // If connected to Grok and it's the active provider, send via WebSocket
-      if (voiceProvider === 'grok' && isConnected && grokConversation.sendTextMessage) {
-        const sent = grokConversation.sendTextMessage(text);
-        if (sent) {
-          setIsProcessingText(false);
-          return;
-        }
-      }
-      
       // If connected to OpenAI and it's the active provider, send via data channel
       if (voiceProvider === 'openai' && isConnected && openaiConversation.sendTextMessage) {
         openaiConversation.sendTextMessage(text);
@@ -506,7 +427,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     } finally {
       setIsProcessingText(false);
     }
-  }, [voiceProvider, isConnected, grokConversation, openaiConversation, addTranscript, clientTools]);
+  }, [voiceProvider, isConnected, openaiConversation, addTranscript, clientTools]);
 
   return {
     // Auth state
@@ -521,10 +442,6 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     // Voice state
     voiceProvider,
     setVoiceProvider,
-    grokVoice,
-    setGrokVoice,
-    grokSettings,
-    setGrokSettings,
     openaiVoice,
     setOpenAIVoice,
     openaiSettings,
@@ -539,7 +456,6 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     connectionError,
     connectionAuthMethod,
     connectionPhase,
-    isFallbackMode,
     isSpeaking: conversation.isSpeaking,
     inputAudioLevel,
     outputAudioLevel,
@@ -561,11 +477,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     isProcessingText,
     
     // Tool execution
-    activeToolCall: voiceProvider === 'grok' 
-      ? grokConversation.activeToolCall 
-      : voiceProvider === 'openai' 
-        ? openaiConversation.activeToolCall 
-        : null,
+    activeToolCall: voiceProvider === 'openai' 
+      ? openaiConversation.activeToolCall 
+      : null,
     
     // Transcripts
     liveTranscripts,

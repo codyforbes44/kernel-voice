@@ -1,6 +1,5 @@
 import { type InputMode } from '@/components/voice/InputModeSelector';
-import { type VoiceProvider, type GrokVoice, type OpenAIVoice, type OpenAIVoiceSettings, type GrokVoiceSettings } from '@/components/voice/VoiceProviderSelector';
-import { type ConnectionPhase, type ToolExecution } from '@/hooks/useGrokConversation';
+import { type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings, type ConnectionPhase, type ToolExecution } from '@/components/voice/voiceTypes';
 
 /**
  * Voice settings props - controls voice provider and voice configurations
@@ -8,10 +7,6 @@ import { type ConnectionPhase, type ToolExecution } from '@/hooks/useGrokConvers
 export interface VoiceSettingsProps {
   voiceProvider: VoiceProvider;
   setVoiceProvider: (provider: VoiceProvider) => void;
-  grokVoice: GrokVoice;
-  setGrokVoice: (voice: GrokVoice) => void;
-  grokSettings: GrokVoiceSettings;
-  setGrokSettings: (settings: GrokVoiceSettings) => void;
   openaiVoice: OpenAIVoice;
   setOpenAIVoice: (voice: OpenAIVoice) => void;
   openaiSettings: OpenAIVoiceSettings;
@@ -30,7 +25,6 @@ export interface ConnectionStateProps {
   connectionError: string | null;
   connectionAuthMethod: string | undefined;
   connectionPhase: ConnectionPhase | undefined;
-  isFallbackMode: boolean;
   isSpeaking: boolean;
   inputAudioLevel: number;
   outputAudioLevel: number;
