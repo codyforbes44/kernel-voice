@@ -55,7 +55,7 @@ export const VoiceControlPanel = ({
               ? 'bg-gradient-to-br from-primary/30 to-primary/10 shadow-glow-subtle'
               : connectionError
                 ? 'bg-gradient-to-br from-destructive/30 to-destructive/10'
-                : 'bg-gradient-to-br from-muted to-muted-foreground/20 dark:from-muted dark:to-primary/5'
+                : 'bg-gradient-to-br from-primary/10 to-primary/5 dark:from-muted dark:to-primary/5 border border-primary/20'
           }
           transition-all duration-300
         `}>
