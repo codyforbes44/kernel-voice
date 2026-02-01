@@ -21,10 +21,6 @@ export type { VoiceInterfaceCardProps } from '@/components/voice/voiceInterfaceT
 export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
   voiceProvider,
   setVoiceProvider,
-  grokVoice,
-  setGrokVoice,
-  grokSettings,
-  setGrokSettings,
   openaiVoice,
   setOpenAIVoice,
   openaiSettings,
@@ -37,7 +33,6 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
   connectionError,
   connectionAuthMethod,
   connectionPhase,
-  isFallbackMode,
   isSpeaking,
   inputAudioLevel,
   outputAudioLevel,
@@ -80,7 +75,6 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
               provider={voiceProvider}
               authMethod={connectionAuthMethod}
               connectionPhase={connectionPhase}
-              isFallbackMode={isFallbackMode}
               onRetry={retryConnection}
             />
           )}
@@ -105,10 +99,6 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
                   <VoiceSettingsPanel
                     voiceProvider={voiceProvider}
                     onVoiceProviderChange={setVoiceProvider}
-                    grokVoice={grokVoice}
-                    onGrokVoiceChange={setGrokVoice}
-                    grokSettings={grokSettings}
-                    onGrokSettingsChange={setGrokSettings}
                     openaiVoice={openaiVoice}
                     onOpenAIVoiceChange={setOpenAIVoice}
                     openaiSettings={openaiSettings}
@@ -135,10 +125,6 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
                 <VoiceSettingsPanel
                   voiceProvider={voiceProvider}
                   onVoiceProviderChange={setVoiceProvider}
-                  grokVoice={grokVoice}
-                  onGrokVoiceChange={setGrokVoice}
-                  grokSettings={grokSettings}
-                  onGrokSettingsChange={setGrokSettings}
                   openaiVoice={openaiVoice}
                   onOpenAIVoiceChange={setOpenAIVoice}
                   openaiSettings={openaiSettings}
@@ -235,7 +221,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
               </p>
             ) : (
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : voiceProvider === 'openai' ? 'OpenAI' : 'Grok'}
+                Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : 'OpenAI'}
               </p>
             )}
             

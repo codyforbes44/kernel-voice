@@ -1,19 +1,18 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Wifi, WifiOff, Loader2, AlertCircle, RefreshCw, CheckCircle2, Volume2 } from 'lucide-react';
+import { Wifi, WifiOff, Loader2, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ConnectionPhase } from '@/hooks/useGrokConversation';
+import { ConnectionPhase } from '@/components/voice/voiceTypes';
 
 interface ConnectionStatusBadgeProps {
   isConnected: boolean;
   isConnecting: boolean;
   hasError: boolean;
   errorMessage?: string;
-  provider: 'elevenlabs' | 'grok' | 'openai';
+  provider: 'elevenlabs' | 'openai';
   authMethod?: string;
   connectionPhase?: ConnectionPhase;
-  isFallbackMode?: boolean;
   onRetry?: () => void;
   className?: string;
 }
@@ -26,19 +25,16 @@ export const ConnectionStatusBadge = ({
   provider,
   authMethod,
   connectionPhase,
-  isFallbackMode,
   onRetry,
   className,
 }: ConnectionStatusBadgeProps) => {
-  // Get phase-specific status for Grok and OpenAI
+  // Get phase-specific status for OpenAI
   const getPhaseInfo = () => {
-    if ((provider !== 'grok' && provider !== 'openai') || !connectionPhase) return null;
+    if (provider !== 'openai' || !connectionPhase) return null;
     
     switch (connectionPhase) {
       case 'getting_token':
         return { label: 'Getting token...', step: 1 };
-      case 'connecting_xai':
-        return { label: 'Connecting to Grok...', step: 2 };
       case 'connecting_webrtc':
         return { label: 'Connecting to OpenAI...', step: 2 };
       case 'configuring':
@@ -54,21 +50,12 @@ export const ConnectionStatusBadge = ({
   
   const phaseInfo = getPhaseInfo();
   const getStatus = () => {
-    if (hasError && !isFallbackMode) {
+    if (hasError) {
       return {
         label: 'Error',
         icon: AlertCircle,
         variant: 'destructive' as const,
         dotColor: 'bg-destructive',
-        animate: false,
-      };
-    }
-    if (isFallbackMode) {
-      return {
-        label: 'Fallback',
-        icon: Volume2,
-        variant: 'secondary' as const,
-        dotColor: 'bg-orange-500',
         animate: false,
       };
     }
@@ -102,8 +89,8 @@ export const ConnectionStatusBadge = ({
   const status = getStatus();
   const Icon = status.icon;
 
-  const providerLabel = provider === 'elevenlabs' ? 'EL' : 'Grok';
-  const providerFullName = provider === 'elevenlabs' ? 'ElevenLabs' : 'Grok (xAI)';
+  const providerLabel = provider === 'elevenlabs' ? 'EL' : 'OpenAI';
+  const providerFullName = provider === 'elevenlabs' ? 'ElevenLabs' : 'OpenAI Realtime';
   const authLabel = isConnected && authMethod ? `:${authMethod}` : '';
 
   const tooltipContent = (
@@ -120,13 +107,13 @@ export const ConnectionStatusBadge = ({
           <span className="text-foreground">Auth param:</span> {authMethod}
         </div>
       )}
-      {isConnecting && provider === 'grok' && phaseInfo && (
+      {isConnecting && provider === 'openai' && phaseInfo && (
         <div className="mt-2 pt-2 border-t border-border/30 space-y-2">
           <div className="font-medium text-foreground">Connection Progress</div>
           <div className="space-y-1.5">
             {[
               { step: 1, label: 'Get session token' },
-              { step: 2, label: 'Connect to Grok' },
+              { step: 2, label: 'Connect to OpenAI' },
               { step: 3, label: 'Configure session' },
               { step: 4, label: 'Ready to talk' },
             ].map(({ step, label }) => (
@@ -153,17 +140,7 @@ export const ConnectionStatusBadge = ({
           Connecting to ElevenLabs...
         </div>
       )}
-      {isFallbackMode && (
-        <div className="mt-2 pt-2 border-t border-orange-500/20 space-y-1">
-          <div className="font-medium text-orange-600 dark:text-orange-400">
-            TTS Fallback Active
-          </div>
-          <div className="text-muted-foreground text-[11px]">
-            Using ElevenLabs for text-to-speech. Voice input is disabled - use text input instead.
-          </div>
-        </div>
-      )}
-      {hasError && !isFallbackMode && (
+      {hasError && (
         <div className="mt-2 pt-2 border-t border-destructive/20 space-y-2">
           {errorMessage && (
             <div className="text-destructive">
