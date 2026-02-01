@@ -12,11 +12,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Cloud, Loader2 } from 'lucide-react';
 import { OpenAISettingsPanel } from './OpenAISettingsPanel';
+import { ElevenLabsSettingsPanel } from './ElevenLabsSettingsPanel';
 import {
   VoiceProvider,
   OpenAIVoice,
   OpenAIVoiceSettings,
+  ElevenLabsSettings,
   DEFAULT_OPENAI_SETTINGS,
+  DEFAULT_ELEVENLABS_SETTINGS,
   providerInfo,
 } from './voiceTypes';
 
@@ -25,6 +28,7 @@ export type {
   VoiceProvider,
   OpenAIVoice,
   OpenAIVoiceSettings,
+  ElevenLabsSettings,
   ConnectionPhase,
   ToolExecution,
 } from './voiceTypes';
@@ -34,6 +38,7 @@ export type { OpenAISettingsPreset } from './voiceTypes';
 export {
   OPENAI_PRESETS,
   DEFAULT_OPENAI_SETTINGS,
+  DEFAULT_ELEVENLABS_SETTINGS,
 } from './voiceTypes';
 
 // Re-export hook for backwards compatibility
@@ -46,6 +51,8 @@ interface VoiceProviderSelectorProps {
   onOpenAIVoiceChange: (voice: OpenAIVoice) => void;
   openaiSettings: OpenAIVoiceSettings;
   onOpenAISettingsChange: (settings: OpenAIVoiceSettings) => void;
+  elevenlabsSettings: ElevenLabsSettings;
+  onElevenLabsSettingsChange: (settings: ElevenLabsSettings) => void;
   systemPrompt: string;
   onSystemPromptChange: (prompt: string) => void;
   disabled?: boolean;
@@ -59,6 +66,8 @@ export function VoiceProviderSelector({
   onOpenAIVoiceChange,
   openaiSettings,
   onOpenAISettingsChange,
+  elevenlabsSettings,
+  onElevenLabsSettingsChange,
   systemPrompt,
   onSystemPromptChange,
   disabled = false,
@@ -171,6 +180,11 @@ export function VoiceProviderSelector({
     });
   };
 
+  const handleElevenLabsSettingsChange = async (newSettings: ElevenLabsSettings) => {
+    onElevenLabsSettingsChange(newSettings);
+    localStorage.setItem('elevenlabs_settings', JSON.stringify(newSettings));
+  };
+
   return (
     <div className="space-y-4">
       {/* Provider Selection */}
@@ -227,7 +241,7 @@ export function VoiceProviderSelector({
         </div>
       </div>
 
-      {/* OpenAI Settings - Only show when OpenAI is selected */}
+      {/* Provider-specific Settings */}
       {value === 'openai' && (
         <OpenAISettingsPanel
           openaiVoice={openaiVoice}
@@ -236,6 +250,16 @@ export function VoiceProviderSelector({
           onOpenAISettingsChange={onOpenAISettingsChange}
           onOpenAISettingChange={handleOpenAISettingChange}
           onResetSettings={handleResetOpenAISettings}
+          systemPrompt={systemPrompt}
+          onSystemPromptChange={onSystemPromptChange}
+          disabled={disabled}
+        />
+      )}
+      
+      {value === 'elevenlabs' && (
+        <ElevenLabsSettingsPanel
+          settings={elevenlabsSettings}
+          onSettingsChange={handleElevenLabsSettingsChange}
           systemPrompt={systemPrompt}
           onSystemPromptChange={onSystemPromptChange}
           disabled={disabled}

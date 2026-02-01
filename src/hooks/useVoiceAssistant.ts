@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 import { useVoiceProviderPreference } from '@/hooks/useVoiceProviderPreference';
-import { type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings, type ConnectionPhase, type ToolExecution } from '@/components/voice/voiceTypes';
+import { type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings, type ElevenLabsSettings, type ConnectionPhase, type ToolExecution } from '@/components/voice/voiceTypes';
 import { useOpenAIConversation } from '@/hooks/useOpenAIConversation';
 import { type InputMode } from '@/components/voice/InputModeSelector';
 import { useInputModePreference } from '@/hooks/useInputModePreference';
@@ -33,6 +33,8 @@ interface UseVoiceAssistantReturn {
   setOpenAIVoice: (voice: OpenAIVoice) => void;
   openaiSettings: OpenAIVoiceSettings;
   setOpenAISettings: (settings: OpenAIVoiceSettings) => void;
+  elevenlabsSettings: ElevenLabsSettings;
+  setElevenLabsSettings: (settings: ElevenLabsSettings) => void;
   systemPrompt: string;
   setSystemPrompt: (prompt: string) => void;
   providerLoading: boolean;
@@ -112,6 +114,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setOpenAIVoice,
     openaiSettings,
     setOpenAISettings,
+    elevenlabsSettings,
+    setElevenLabsSettings,
     systemPrompt,
     setSystemPrompt,
     loading: providerLoading 
@@ -310,6 +314,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   // Use refs to stabilize the startConversation callback
   const voiceProviderRef = useRef(voiceProvider);
   const elevenlabsConversationRef = useRef(elevenlabsConversation);
+  const elevenlabsSettingsRef = useRef(elevenlabsSettings);
   const openaiConversationRef = useRef(openaiConversation);
   
   useEffect(() => {
@@ -318,6 +323,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   useEffect(() => {
     elevenlabsConversationRef.current = elevenlabsConversation;
   }, [elevenlabsConversation]);
+  useEffect(() => {
+    elevenlabsSettingsRef.current = elevenlabsSettings;
+  }, [elevenlabsSettings]);
   useEffect(() => {
     openaiConversationRef.current = openaiConversation;
   }, [openaiConversation]);
@@ -338,15 +346,22 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
       clearTranscripts();
       
       if (voiceProviderRef.current === 'elevenlabs') {
-        const { data, error } = await supabase.functions.invoke('voice-session');
+        const settings = elevenlabsSettingsRef.current;
+        const { data, error } = await supabase.functions.invoke('voice-session', {
+          body: {
+            connectionType: 'webrtc',
+            language: settings.autoLanguageDetection ? 'auto' : settings.language,
+          }
+        });
         
         if (error || !data?.signedUrl) {
           throw new Error(error?.message || 'Failed to get session URL');
         }
 
-        console.log('Starting ElevenLabs voice session');
+        console.log('Starting ElevenLabs voice session with language:', settings.autoLanguageDetection ? 'auto' : settings.language);
         await elevenlabsConversationRef.current.startSession({ 
-          signedUrl: data.signedUrl 
+          signedUrl: data.signedUrl,
+          ...(data.overrides && { overrides: data.overrides }),
         });
       } else {
         console.log('Starting OpenAI Realtime voice session');
@@ -446,6 +461,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setOpenAIVoice,
     openaiSettings,
     setOpenAISettings,
+    elevenlabsSettings,
+    setElevenLabsSettings,
     systemPrompt,
     setSystemPrompt,
     providerLoading,

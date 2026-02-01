@@ -1,5 +1,5 @@
 import { type InputMode } from '@/components/voice/InputModeSelector';
-import { type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings, type ConnectionPhase, type ToolExecution } from '@/components/voice/voiceTypes';
+import { type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings, type ElevenLabsSettings, type ConnectionPhase, type ToolExecution } from '@/components/voice/voiceTypes';
 
 /**
  * Voice settings props - controls voice provider and voice configurations
@@ -11,6 +11,8 @@ export interface VoiceSettingsProps {
   setOpenAIVoice: (voice: OpenAIVoice) => void;
   openaiSettings: OpenAIVoiceSettings;
   setOpenAISettings: (settings: OpenAIVoiceSettings) => void;
+  elevenlabsSettings: ElevenLabsSettings;
+  setElevenLabsSettings: (settings: ElevenLabsSettings) => void;
   systemPrompt: string;
   setSystemPrompt: (prompt: string) => void;
   providerLoading: boolean;
