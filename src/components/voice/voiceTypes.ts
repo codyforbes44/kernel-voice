@@ -9,7 +9,7 @@ export interface OpenAIVoiceSettings {
 export type OpenAISettingsPreset = 'fast' | 'balanced' | 'relaxed' | 'custom';
 
 export type VoiceProvider = 'elevenlabs' | 'openai';
-export type OpenAIVoice = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse';
+export type OpenAIVoice = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse' | 'cedar' | 'marin';
 
 // Connection phase type (used by OpenAI)
 export type ConnectionPhase = 'idle' | 'getting_token' | 'connecting_webrtc' | 'configuring' | 'ready' | 'error';
@@ -21,22 +21,22 @@ export interface ToolExecution {
   startedAt: Date;
 }
 
-// Presets
+// Presets optimized for gpt-4o-realtime-preview-2025-06-03
 export const OPENAI_PRESETS: Record<Exclude<OpenAISettingsPreset, 'custom'>, { settings: OpenAIVoiceSettings; label: string; description: string }> = {
   fast: {
-    label: 'Fast',
-    description: 'Quick responses, may interrupt',
-    settings: { temperature: 0.7, vadThreshold: 0.3, silenceDuration: 300 },
+    label: 'Snappy',
+    description: 'Quick back-and-forth',
+    settings: { temperature: 0.6, vadThreshold: 0.25, silenceDuration: 250 },
   },
   balanced: {
-    label: 'Balanced',
-    description: 'Good mix of speed and accuracy',
-    settings: { temperature: 0.8, vadThreshold: 0.5, silenceDuration: 500 },
+    label: 'Natural',
+    description: 'Conversational flow',
+    settings: { temperature: 0.8, vadThreshold: 0.4, silenceDuration: 400 },
   },
   relaxed: {
-    label: 'Relaxed',
-    description: 'Waits longer, more creative',
-    settings: { temperature: 1.0, vadThreshold: 0.6, silenceDuration: 1000 },
+    label: 'Thoughtful',
+    description: 'Patient, detailed responses',
+    settings: { temperature: 1.0, vadThreshold: 0.55, silenceDuration: 800 },
   },
 };
 
@@ -57,8 +57,12 @@ export const providerInfo = {
   },
 };
 
-// Voice options
-export const openaiVoices: { id: OpenAIVoice; name: string; type: string; tone: string; description: string }[] = [
+// Voice options - organized by category
+export const openaiVoices: { id: OpenAIVoice; name: string; type: string; tone: string; description: string; isNew?: boolean }[] = [
+  // New voices (2025)
+  { id: 'cedar', name: 'Cedar', type: 'Male', tone: 'Grounded, steady', description: 'Calm and reassuring presence', isNew: true },
+  { id: 'marin', name: 'Marin', type: 'Female', tone: 'Warm, articulate', description: 'Clear and engaging delivery', isNew: true },
+  // Original voices
   { id: 'alloy', name: 'Alloy', type: 'Neutral', tone: 'Balanced, clear', description: 'Default versatile voice' },
   { id: 'ash', name: 'Ash', type: 'Male', tone: 'Warm, confident', description: 'Professional and engaging' },
   { id: 'ballad', name: 'Ballad', type: 'Neutral', tone: 'Soft, melodic', description: 'Gentle and soothing' },
@@ -70,5 +74,5 @@ export const openaiVoices: { id: OpenAIVoice; name: string; type: string; tone: 
 ];
 
 // Valid voice values for validation
-export const VALID_OPENAI_VOICES: OpenAIVoice[] = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'];
+export const VALID_OPENAI_VOICES: OpenAIVoice[] = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'cedar', 'marin'];
 export const VALID_PROVIDERS: VoiceProvider[] = ['elevenlabs', 'openai'];

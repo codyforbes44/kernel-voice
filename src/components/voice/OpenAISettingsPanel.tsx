@@ -74,6 +74,11 @@ export function OpenAISettingsPanel({
             <SelectItem key={voice.id} value={voice.id}>
               <div className="flex items-center gap-2">
                 <span className="font-medium">{voice.name}</span>
+                {voice.isNew && (
+                  <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4 bg-primary/20 text-primary">
+                    New
+                  </Badge>
+                )}
                 <span className="text-xs text-muted-foreground">
                   ({voice.type}) - {voice.tone}
                 </span>
