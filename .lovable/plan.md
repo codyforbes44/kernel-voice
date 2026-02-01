@@ -1,316 +1,231 @@
 
 
-# Comprehensive Application Review and Production Refactoring Plan
+# Grok Removal and Voice Provider Upgrade Plan
 
-## Executive Summary
+## Overview
 
-This document presents a complete analysis of the Kernel Voice AI application, covering architecture, security, user experience, features, and production readiness. The application is a sophisticated AI voice assistant platform with real-time voice conversations, text chat, document analysis, web search, and knowledge base management.
-
-## Current State Analysis
-
-### Application Overview
-- **Product**: Premium AI voice assistant (Kernel Voice)
-- **Tech Stack**: React 18, Vite, TypeScript, Tailwind CSS, Supabase (Lovable Cloud)
-- **Voice Providers**: ElevenLabs, OpenAI Realtime, xAI Grok
-- **AI Backend**: Lovable AI Gateway (Gemini 2.5 Flash), GPT-4o Vision, Perplexity Search
-- **PWA**: Fully implemented with offline support and service worker caching
-
-### Pages and Routes Structure
-| Route | Purpose | Auth Required | Status |
-|-------|---------|---------------|--------|
-| `/` | Landing page | No | Good |
-| `/assistant` | Voice assistant | No (Guest mode) | Good |
-| `/auth` | Login/Signup | No | Good |
-| `/install` | PWA install | No | Good |
-| `/profile` | User settings | Yes | Good |
-| `/privacy` | Privacy policy | No | Good |
-| `/terms` | Terms of service | No | Good |
-| `/admin` | Admin dashboard | Admin only | Good |
-| `/admin/users` | User management | Admin only | Good |
-| `/admin/conversations` | Conversation oversight | Admin only | Good |
-| `/admin/documents` | Document management | Admin only | Good |
-| `/admin/knowledge-base` | KB management | Admin only | Good |
-| `*` | 404 Not Found | No | Good |
-
-### Edge Functions Inventory
-| Function | Purpose | Auth | Status |
-|----------|---------|------|--------|
-| `chat` | AI conversation | JWT | Good (streaming added) |
-| `search` | Web search (Perplexity) | JWT | Fixed (sonar model) |
-| `voice-session` | ElevenLabs session | JWT | Good |
-| `grok-voice-relay` | xAI WebSocket relay | No | Good (fallback included) |
-| `openai-realtime-token` | OpenAI ephemeral token | No | Good |
-| `xai-session-token` | xAI ephemeral token | No | Good |
-| `analyze-document` | GPT-4o Vision analysis | JWT | Good |
-| `generate-embeddings` | Vector embeddings | JWT | Good (new) |
-| `kb-search` | Knowledge base search | No | Good (semantic search) |
-| `validate-xai-key` | API key validation | No | Good |
-| `test-xai-connection` | Connection testing | No | Good |
-| `brand-og-image` | OG image generation | No | Good |
+This plan removes all xAI Grok integration from the codebase and provides recommendations for upgrading the remaining voice providers (ElevenLabs and OpenAI) to enhance user experience.
 
 ---
 
-## Critical Findings
+## Part 1: Complete Grok Removal
 
-### Security Issues (MUST FIX)
+### Files to Delete
 
-1. **Leaked Password Protection Disabled** (HIGH)
-   - Database linter warning
-   - Users can set compromised passwords from known breaches
-   - Fix: Enable in auth settings
+| File | Purpose | Action |
+|------|---------|--------|
+| `src/hooks/useGrokConversation.ts` | 761-line Grok WebSocket conversation hook | Delete |
+| `src/components/voice/GrokSettingsPanel.tsx` | Grok-specific settings UI | Delete |
+| `supabase/functions/grok-voice-relay/index.ts` | 653-line WebSocket relay function | Delete folder |
+| `supabase/functions/xai-session-token/index.ts` | Ephemeral token generator | Delete folder |
+| `supabase/functions/validate-xai-key/index.ts` | API key validation | Delete folder |
+| `supabase/functions/test-xai-connection/index.ts` | Connection testing | Delete folder |
 
-2. **Extension in Public Schema** (MEDIUM)
-   - pgvector extension installed in public schema
-   - Recommendation: Move to separate schema for security
+### Files to Modify
 
-3. **Admin User Deletion Uses Admin API** (MEDIUM)
-   - `supabase.auth.admin.deleteUser()` called from client
-   - This will fail without admin credentials
-   - Fix: Create edge function for admin operations
+#### 1. Voice Types (`src/components/voice/voiceTypes.ts`)
+- Remove `GrokVoice` type
+- Remove `GrokVoiceSettings` interface
+- Remove `GrokSettingsPreset` type
+- Remove `GROK_PRESETS` constant
+- Remove `DEFAULT_GROK_SETTINGS` constant
+- Remove `grokVoices` array
+- Remove `VALID_GROK_VOICES` constant
+- Remove `'grok'` from `VoiceProvider` type
+- Remove `grok` from `providerInfo` object
+- Remove `'grok'` from `VALID_PROVIDERS` array
 
-### Architecture Issues
+#### 2. Voice Provider Selector (`src/components/voice/VoiceProviderSelector.tsx`)
+- Remove Grok-related props (`grokVoice`, `onGrokVoiceChange`, `grokSettings`, `onGrokSettingsChange`)
+- Remove `GrokSettingsPanel` import and usage
+- Remove Grok voice persistence logic
+- Update type re-exports to exclude Grok types
 
-4. **Duplicate Hook Logic** (MEDIUM)
-   - `useGrokConversation.ts` (761 lines) and `useOpenAIConversation.ts` (450 lines)
-   - Significant code duplication in audio handling, connection management
-   - Created shared hooks but not yet integrated
+#### 3. Voice Provider Preference Hook (`src/hooks/useVoiceProviderPreference.ts`)
+- Remove `grokVoice` and `grokSettings` state
+- Remove Grok-related setters
+- Remove `grok_voice` and `grok_settings` from profile loading/saving
+- Default provider to `'openai'` instead of first available
 
-5. **Admin RLS Policy Gap** (MEDIUM)
-   - Admins cannot view all users' conversations/documents from client
-   - Admin pages query all records but RLS only allows user's own data
-   - Fix: Add admin SELECT policies for admin oversight
+#### 4. Voice Assistant Hook (`src/hooks/useVoiceAssistant.ts`)
+- Remove `useGrokConversation` import and usage
+- Remove `grokVoice`, `setGrokVoice`, `grokSettings`, `setGrokSettings` from provider preference
+- Remove Grok conversation hook instantiation
+- Simplify provider conditional logic (only ElevenLabs and OpenAI)
+- Remove fallback mode logic (was Grok-specific)
 
-6. **No Rate Limiting on Public Edge Functions** (MEDIUM)
-   - Functions like `kb-search`, `grok-voice-relay` have no JWT requirement
-   - Potential for abuse
+#### 5. OpenAI Conversation Hook (`src/hooks/useOpenAIConversation.ts`)
+- Remove import of types from `useGrokConversation` (move `ConnectionPhase` and `ToolExecution` types locally)
 
-### UX/Mobile Optimization Issues
+#### 6. Config File (`supabase/config.toml`)
+- Remove `[functions.grok-voice-relay]` section
+- Remove `[functions.xai-session-token]` section
+- Remove `[functions.validate-xai-key]` section
+- Remove `[functions.test-xai-connection]` section
 
-7. **Desktop-Only Audio Level Meters**
-   - Audio visualization hidden on mobile - should show compact version
-
-8. **No Loading States in Admin Tables**
-   - Tables show "Loading..." text instead of skeletons
-
-9. **Missing Password Strength Indicator**
-   - Auth page lacks visual feedback for password strength
-
-10. **No Conversation Export**
-    - Users cannot download their conversation history
-
----
-
-## User Role Analysis
-
-### Current Roles
-- **user**: Default role, can use voice assistant, save conversations
-- **moderator**: Not currently implemented (role exists but no special permissions)
-- **admin**: Full access to admin dashboard
-
-### Role Permission Matrix
-| Feature | Guest | User | Moderator | Admin |
-|---------|-------|------|-----------|-------|
-| Voice Chat | Yes (limited) | Yes | Yes | Yes |
-| Save Conversations | No | Yes | Yes | Yes |
-| Upload Documents | No | Yes | Yes | Yes |
-| View Own History | No | Yes | Yes | Yes |
-| Access Admin | No | No | No | Yes |
-| Manage Users | No | No | No | Yes |
-| Manage KB | No | No | No | Yes |
-
-### Recommendation
-- Define moderator privileges (e.g., view reported content, manage specific KB categories)
-- Add usage limits for free users vs premium (profitability)
+### Database Changes
+- The `profiles` table has `grok_voice` and `grok_settings` columns
+- These can remain for backwards compatibility but will be unused
+- Optional: Migration to remove columns (not critical)
 
 ---
 
-## Profitability Optimization Recommendations
+## Part 2: Existing API Resources Review
 
-### Current Monetization: None implemented
+### Currently Configured Secrets
 
-### Recommended Revenue Streams
+| Secret | Provider | Status | Usage |
+|--------|----------|--------|-------|
+| `ELEVENLABS_API_KEY` | ElevenLabs | Active | Voice sessions |
+| `VITE_ELEVENLABS_AGENT_ID` | ElevenLabs | Active | Agent configuration |
+| `OPENAI_API_KEY` | OpenAI | Active | Realtime API + embeddings |
+| `ANTHROPIC_API_KEY` | Anthropic | Unused | Previously for chat (now Lovable AI) |
+| `PERPLEXITY_API_KEY` | Perplexity | Active | Web search |
+| `LOVABLE_API_KEY` | Lovable | Active | Chat AI gateway |
+| `XAI_API_KEY` | xAI | To Remove | Was for Grok |
 
-1. **Freemium Tier Structure**
-   - Free: 50 voice minutes/month, 100 text messages, basic web search
-   - Pro ($9.99/mo): Unlimited conversations, document analysis, priority support
-   - Team ($29.99/mo): Multi-user, shared knowledge base, API access
+### Active Voice Providers After Grok Removal
 
-2. **Usage Tracking Infrastructure**
-   - Add `usage_metrics` table to track API calls per user
-   - Display usage in profile page
-   - Implement soft limits with upgrade prompts
+#### 1. ElevenLabs (Current Implementation)
+- **Endpoint**: `voice-session` edge function
+- **Features**: Premium voice quality, voice cloning capability
+- **Voices**: Configured via agent in ElevenLabs dashboard
+- **Latency**: Medium (WebSocket-based)
 
-3. **Premium Features**
-   - Voice cloning (ElevenLabs paid tier)
-   - Advanced document analysis (larger files)
-   - Custom system prompts saved
-   - Conversation export
-
----
-
-## Refactoring Plan for Production
-
-### Phase 1: Critical Security Fixes (Immediate)
-
-1.1 Enable leaked password protection
-1.2 Add admin SELECT policies for oversight
-1.3 Create secure admin operations edge function
-1.4 Add rate limiting headers to public functions
-
-### Phase 2: Admin Panel Security Fix
-
-2.1 Create `admin-operations` edge function:
-- User deletion (uses service role)
-- Role assignment (secure validation)
-- All admin actions server-side
-
-2.2 Add admin RLS policies:
-- Admins can SELECT all conversations (for moderation)
-- Admins can SELECT all documents (for moderation)
-
-### Phase 3: Mobile-First UX Optimization
-
-3.1 **Voice Assistant Mobile Enhancements**
-- Compact audio level indicator for mobile
-- Larger touch targets (minimum 48x48px)
-- Bottom sheet for settings instead of popover
-- Swipe gestures for conversation navigation
-
-3.2 **Admin Dashboard Mobile**
-- Collapsible sidebar for mobile admin
-- Card-based layouts instead of tables
-- Touch-optimized action buttons
-
-3.3 **PWA Enhancements**
-- Add push notification support
-- Improve offline conversation caching
-- Background sync for message delivery
-
-### Phase 4: Code Quality and Maintainability
-
-4.1 **Integrate Shared Hooks**
-- Refactor `useGrokConversation` to use `useAudioCapture`
-- Refactor `useOpenAIConversation` to use `useConnectionState`
-- Reduce each hook by ~200 lines
-
-4.2 **Component Optimization**
-- Lazy load admin pages
-- Add React.memo to heavy components
-- Implement virtualization for long lists
-
-4.3 **Error Handling Standardization**
-- Consistent error boundary usage
-- Standardized error response format
-- User-friendly error messages
-
-### Phase 5: Feature Completions
-
-5.1 **Conversation Export**
-- Export to JSON
-- Export to PDF with formatting
-- Export to markdown
-
-5.2 **Usage Tracking**
-- Create usage_metrics table
-- Track API calls per user
-- Display usage dashboard in profile
-
-5.3 **Password Strength Indicator**
-- Visual password strength meter
-- Requirements checklist
-- Breach detection warning
-
-### Phase 6: Performance Optimization
-
-6.1 **Bundle Optimization**
-- Code splitting by route
-- Lazy load voice components
-- Tree shake unused icons
-
-6.2 **API Optimization**
-- Implement request deduplication
-- Add response caching for KB search
-- Optimize database queries in admin pages
-
-6.3 **Image Optimization**
-- WebP format for OG images
-- Lazy load non-critical images
-- Responsive image srcsets
+#### 2. OpenAI Realtime (Current Implementation)
+- **Endpoint**: `openai-realtime-token` edge function
+- **Model**: `gpt-4o-realtime-preview-2024-12-17`
+- **Features**: WebRTC, 8 voices, tool calling, server VAD
+- **Latency**: Low (WebRTC peer-to-peer)
 
 ---
 
-## Technical Implementation Details
+## Part 3: Voice Provider Upgrade Recommendations
 
-### Database Changes Required
+### Option A: Upgrade OpenAI to `gpt-realtime` (Recommended)
 
-```text
-1. Add admin_audit_log table for tracking admin actions
-2. Add usage_metrics table for tracking API usage
-3. Add subscription_tiers table for premium features
-4. Add user_subscriptions table for user tier mapping
-```
+OpenAI released `gpt-realtime` (August 2025) with significant improvements:
 
-### New Edge Functions Required
+**New Features Available:**
+- Two new voices: **Cedar** and **Marin** (most natural sounding)
+- MCP server support for external tool integration
+- **Image input support** - users can send images during voice conversations
+- **SIP phone calling support** - direct phone integration
+- Improved instruction following and tool calling precision
+- Better multi-language switching mid-conversation
 
-```text
-1. admin-operations - Secure admin actions
-2. usage-track - Record API usage
-3. subscription-check - Verify user tier limits
-4. conversation-export - Generate export files
-```
+**Implementation Changes:**
+1. Update model from `gpt-4o-realtime-preview-2024-12-17` to `gpt-realtime`
+2. Add Cedar and Marin to voice options
+3. (Optional) Add image upload during voice sessions
+4. (Optional) Add SIP integration for phone-based access
 
-### RLS Policy Additions
-
-```text
-1. Admins can SELECT all conversations
-2. Admins can SELECT all documents
-3. Admins can SELECT all messages (for moderation)
-4. Usage metrics owned by user (CRUD)
-```
+**User Experience Benefits:**
+- More natural, expressive speech
+- Better reasoning and complex task handling
+- Improved reliability for production use
 
 ---
 
-## Deployment Checklist
+### Option B: Upgrade ElevenLabs to Conversational AI 2.0
 
-### Pre-Production
+ElevenLabs released Conversational AI 2.0 (January 2026) with major enhancements:
 
-- [ ] Enable leaked password protection
-- [ ] Add admin RLS policies
-- [ ] Create admin-operations edge function
-- [ ] Test all OAuth providers
-- [ ] Verify PWA manifest and icons
-- [ ] Test mobile responsiveness on real devices
-- [ ] Load test voice connections
-- [ ] Security audit of all edge functions
+**New Features Available:**
+- **State-of-the-art turn-taking model** - understands "um", "ah", pauses
+- **Integrated RAG** - knowledge base access with low latency
+- **Automatic language detection** - seamless multilingual conversations
+- **Multi-character switching** - multiple personas in one agent
+- **Voice + Text modality** - combined text chat with voice
+- **Outbound telephony** - batch call scheduling, SIP trunking
+- **HIPAA compliance** - healthcare-ready
 
-### Production Launch
+**Implementation Changes:**
+1. Update ElevenLabs agent configuration in dashboard
+2. Enable RAG integration with knowledge base
+3. Enable automatic language detection
+4. (Optional) Add text + voice combined mode
 
-- [ ] Configure custom domain
-- [ ] Set up monitoring (error tracking)
-- [ ] Configure analytics
-- [ ] Set up backup strategy
-- [ ] Document API rate limits
-- [ ] Create user onboarding flow
-- [ ] Prepare support channels
-
-### Post-Launch
-
-- [ ] Monitor error rates
-- [ ] Track user engagement metrics
-- [ ] Gather user feedback
-- [ ] Iterate on UX issues
-- [ ] Plan feature roadmap
+**User Experience Benefits:**
+- Natural conversation flow (no awkward interruptions)
+- Access knowledge base during voice conversations
+- Automatic language switching for global users
 
 ---
 
-## Summary
+### Option C: Add Hume AI EVI (Emotional Voice Interface)
 
-The Kernel Voice AI application is well-architected with comprehensive features. The main areas requiring attention before production are:
+Hume AI offers a unique emotional intelligence voice API:
 
-1. **Security**: Enable leaked password protection, fix admin operations
-2. **Mobile UX**: Optimize touch targets, add compact visualizations
-3. **Code Quality**: Integrate shared hooks, reduce duplication
-4. **Monetization**: Implement usage tracking and tier system
+**Unique Features:**
+- **Emotion detection** - understands user emotional state
+- **Empathic responses** - responds with emotional intelligence
+- **Expression analysis** - confidence scores for emotions
+- **WebSocket-based** - similar architecture to current implementation
 
-The refactoring plan prioritizes security first, then user experience, followed by profitability features. All changes maintain backwards compatibility and follow mobile-first principles.
+**Implementation Effort:** Medium (new integration)
+
+**User Experience Benefits:**
+- AI responds appropriately to frustrated/happy/confused users
+- More empathetic customer support interactions
+- Unique differentiation from competitors
+
+---
+
+## Part 4: Recommended Implementation Path
+
+### Phase 1: Grok Removal (Immediate)
+1. Delete Grok-related files and edge functions
+2. Update type definitions and hooks
+3. Set OpenAI as default voice provider
+4. Update config.toml
+5. Test ElevenLabs and OpenAI providers
+
+### Phase 2: OpenAI Upgrade (Short-term)
+1. Update to `gpt-realtime` model
+2. Add Cedar and Marin voices
+3. Improve voice settings UI with new presets
+4. Test and validate improvements
+
+### Phase 3: ElevenLabs Enhancement (Medium-term)
+1. Enable Conversational AI 2.0 features in dashboard
+2. Integrate RAG with knowledge base
+3. Enable automatic language detection
+4. Add voice + text combined mode option
+
+### Phase 4: Consider Hume AI (Future)
+1. Evaluate emotional intelligence use cases
+2. Prototype integration if valuable for user base
+3. Add as third provider option
+
+---
+
+## Technical Summary
+
+### Files to Delete
+- `src/hooks/useGrokConversation.ts`
+- `src/components/voice/GrokSettingsPanel.tsx`
+- `supabase/functions/grok-voice-relay/` (folder)
+- `supabase/functions/xai-session-token/` (folder)
+- `supabase/functions/validate-xai-key/` (folder)
+- `supabase/functions/test-xai-connection/` (folder)
+
+### Files to Modify
+- `src/components/voice/voiceTypes.ts`
+- `src/components/voice/VoiceProviderSelector.tsx`
+- `src/hooks/useVoiceProviderPreference.ts`
+- `src/hooks/useVoiceAssistant.ts`
+- `src/hooks/useOpenAIConversation.ts`
+- `supabase/config.toml`
+
+### Edge Functions to Delete
+1. `grok-voice-relay`
+2. `xai-session-token`
+3. `validate-xai-key`
+4. `test-xai-connection`
+
+### Post-Removal Default
+- Default voice provider: **OpenAI Realtime**
+- Fallback provider: **ElevenLabs**
+- No Grok references remain in codebase
 
