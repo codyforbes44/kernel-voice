@@ -10,8 +10,8 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Light Theme - Kernel Cyan Brand */
-    --background: 0 0% 100%;
+    /* Light Theme - Kernel Cyan Brand (Optimized for reduced eye strain) */
+    --background: 210 20% 99%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -27,8 +27,8 @@ All colors MUST be HSL.
     --secondary: 195 100% 50%;
     --secondary-foreground: 0 0% 0%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 210 25% 96%;
+    --muted-foreground: 215 20% 40%;
 
     --accent: 195 100% 50%;
     --accent-foreground: 0 0% 0%;
@@ -36,30 +36,33 @@ All colors MUST be HSL.
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 214 25% 88%;
+    --input: 214 25% 91%;
     --ring: 180 100% 45%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 210 20% 98%;
     --sidebar-foreground: 222 47% 11%;
     --sidebar-primary: 180 100% 45%;
     --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent: 210 25% 96%;
     --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 214 32% 91%;
+    --sidebar-border: 214 25% 88%;
     --sidebar-ring: 180 100% 45%;
 
-    /* Custom gradients */
+    /* Light mode gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
     --gradient-accent: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
-    --gradient-hero: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(180 30% 98%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(210 20% 99%) 0%, hsl(180 15% 97%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(210 10% 99%) 100%);
 
-    /* Shadows */
-    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.25);
-    --shadow-accent-glow: 0 0 40px hsl(var(--secondary) / 0.2);
-    --shadow-card: 0 20px 50px -10px hsl(var(--primary) / 0.15);
+    /* Enhanced shadows for light mode */
+    --shadow-glow: 0 4px 20px hsl(var(--primary) / 0.12), 0 0 40px hsl(var(--primary) / 0.08);
+    --shadow-accent-glow: 0 4px 20px hsl(var(--secondary) / 0.15);
+    --shadow-card: 0 2px 8px hsl(220 20% 20% / 0.06), 0 8px 24px hsl(220 20% 20% / 0.04);
+    --shadow-subtle: 0 1px 3px hsl(220 20% 20% / 0.08);
+    --shadow-border-glow: inset 0 0 0 1px hsl(var(--primary) / 0.08);
 
     /* Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -196,6 +199,27 @@ All colors MUST be HSL.
   .dark .card-glow {
     background: var(--gradient-card);
     box-shadow: var(--shadow-card), var(--shadow-border-glow);
+  }
+
+  /* Light mode card elevation */
+  :root .card-elevated {
+    background: var(--gradient-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Light mode hover glow */
+  :root .glow-hover:hover {
+    box-shadow: 0 4px 20px hsl(var(--primary) / 0.15);
+  }
+
+  /* Light mode subtle glow border */
+  :root .glow-border {
+    box-shadow: var(--shadow-border-glow);
+  }
+
+  /* Override for dark mode glow-hover (keep existing behavior) */
+  .dark .glow-hover:hover {
+    box-shadow: 0 0 25px hsl(var(--primary) / 0.25), 0 0 50px hsl(var(--primary) / 0.1);
   }
 
   /* Hide scrollbars while keeping scroll functionality */

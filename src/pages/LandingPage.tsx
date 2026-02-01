@@ -185,7 +185,7 @@ const LandingPage = () => {
                 >
                   {/* Step number badge */}
                   <div className="relative inline-block mb-6">
-                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-card border-2 border-primary/30 flex items-center justify-center mx-auto shadow-lg dark:shadow-glow-subtle group hover:border-primary/60 transition-all duration-300 hover:scale-105">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-card border-2 border-primary/30 flex items-center justify-center mx-auto shadow-lg card-elevated dark:shadow-glow-subtle group hover:border-primary/60 transition-all duration-300 hover:scale-105">
                       <step.icon className="w-8 h-8 md:w-10 md:h-10 text-primary" />
                     </div>
                     <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shadow-md">
@@ -236,7 +236,7 @@ const LandingPage = () => {
               {features.map((feature, index) => (
                 <div 
                   key={feature.title}
-                  className={`group p-6 md:p-8 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-500 hover:shadow-lg hover:shadow-primary/5 ${featuresAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+                  className={`group p-6 md:p-8 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-500 card-elevated glow-hover ${featuresAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
                   style={featuresAnimation.getItemDelay(index)}
                 >
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
