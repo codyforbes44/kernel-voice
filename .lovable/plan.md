@@ -24,16 +24,16 @@ The implementation introduces a **user_features** table to track optional featur
 
 ### 1. Database Migration
 Create a new `user_features` table and update defaults:
-- Create `user_features` table with columns: `id`, `user_id`, `feature_key`, `enabled`, `granted_by`, `granted_at`
+- Create `user_features` table with columns: `id`, `user_id`, `feature_key`, `enabled`, `granted_by`, `granted_at`, `revoked_at`, `metadata`
 - Add RLS policies allowing users to view their features and admins to manage all features
 - Update `profiles.voice_provider` default from `'elevenlabs'` to `'openai'`
-- Update `admin_settings.voice_providers` default to `{"default": "openai", ...}`
 
 ### 2. New Hook: useUserFeatures
 Create `src/hooks/useUserFeatures.ts`:
 - Check if current user has specific features enabled
 - Cache results with React Query for performance
 - Return `hasFeature(featureKey)` helper function
+- Provide loading state for UI gating
 
 ### 3. Voice Provider Selector Updates
 Modify `src/components/voice/VoiceProviderSelector.tsx`:
@@ -44,24 +44,24 @@ Modify `src/components/voice/VoiceProviderSelector.tsx`:
 
 ### 4. Voice Provider Preference Hook Updates
 Modify `src/hooks/useVoiceProviderPreference.ts`:
-- Change default state from `'openai'` (already done in code)
+- Ensure default state is `'openai'` (already done)
 - Add validation that user has access to selected provider
 - Fallback to OpenAI if user selects ElevenLabs without access
 
 ### 5. Admin Operations Edge Function Updates
 Modify `supabase/functions/admin-operations/index.ts`:
-- Add new actions: `grantFeature`, `revokeFeature`, `getFeatures`
+- Add new actions: `grantFeature`, `revokeFeature`, `listUserFeatures`
 - Enable admins to assign/remove ElevenLabs access per user
 - Log feature changes in audit log
 
 ### 6. Admin Users Page Updates
 Modify `src/pages/admin/Users.tsx`:
-- Add a "Features" column showing assigned features
-- Add ability to grant/revoke ElevenLabs from user detail drawer
+- Add a "Features" column showing assigned features (badge icons)
+- Fetch user features alongside roles
 
 ### 7. User Detail Drawer Updates
 Modify `src/components/admin/UserDetailDrawer.tsx`:
-- Add "Feature Upgrades" section
+- Add "Feature Upgrades" section with toggle switches
 - Toggle switch for ElevenLabs access
 - Show who granted the feature and when
 
@@ -69,6 +69,12 @@ Modify `src/components/admin/UserDetailDrawer.tsx`:
 Modify `src/components/voice/voiceTypes.ts`:
 - Mark ElevenLabs as a premium feature in `providerInfo`
 - Add `isPremium: true` flag for feature gating
+
+### 9. Voice Session Edge Function Updates
+Modify `supabase/functions/voice-session/index.ts`:
+- Add optional authentication check
+- Validate user has `elevenlabs_voice` feature before issuing tokens
+- Return appropriate error if user lacks access
 
 ## Technical Details
 
@@ -86,25 +92,39 @@ CREATE TABLE public.user_features (
   metadata JSONB DEFAULT '{}',
   UNIQUE(user_id, feature_key)
 );
+
+-- Enable RLS
+ALTER TABLE public.user_features ENABLE ROW LEVEL SECURITY;
+
+-- Users can view their own features
+CREATE POLICY "Users can view own features"
+ON public.user_features FOR SELECT
+USING (auth.uid() = user_id);
+
+-- Admins can manage all features
+CREATE POLICY "Admins can manage features"
+ON public.user_features FOR ALL
+USING (has_role(auth.uid(), 'admin'::app_role));
+
+-- Update profiles default
+ALTER TABLE public.profiles 
+ALTER COLUMN voice_provider SET DEFAULT 'openai';
 ```
 
 ### Feature Keys
 - `elevenlabs_voice` - Access to ElevenLabs voice provider
 - Future: `priority_support`, `extended_history`, etc.
 
-### RLS Policies
-- Users can SELECT their own features
-- Admins can SELECT, INSERT, UPDATE, DELETE all features
-
 ### Voice Provider Selector Logic
 
 ```typescript
-// Pseudo-code for provider availability
+const { hasFeature, loading: featuresLoading } = useUserFeatures();
+
 const availableProviders = useMemo(() => {
-  const providers = [{ key: 'openai', ...providerInfo.openai }];
+  const providers: VoiceProvider[] = ['openai'];
   
   if (hasFeature('elevenlabs_voice')) {
-    providers.push({ key: 'elevenlabs', ...providerInfo.elevenlabs });
+    providers.push('elevenlabs');
   }
   
   return providers;
@@ -116,7 +136,7 @@ const availableProviders = useMemo(() => {
 1. Admin opens User Management page
 2. Clicks on a user row to open detail drawer
 3. Sees "Feature Upgrades" section with available features
-4. Toggles "ElevenLabs Voice" switch on
+4. Toggles "Premium Voice (ElevenLabs)" switch on
 5. System calls `admin-operations` edge function with `grantFeature` action
 6. Feature is recorded in `user_features` table
 7. User can now select ElevenLabs in voice settings
@@ -131,6 +151,7 @@ const availableProviders = useMemo(() => {
 | `src/components/voice/voiceTypes.ts` | Modify | Add isPremium flag to provider info |
 | `src/hooks/useVoiceProviderPreference.ts` | Modify | Validate provider access on selection |
 | `supabase/functions/admin-operations/index.ts` | Modify | Add feature grant/revoke actions |
+| `supabase/functions/voice-session/index.ts` | Modify | Validate feature access before issuing tokens |
 | `src/pages/admin/Users.tsx` | Modify | Show feature status in user list |
 | `src/components/admin/UserDetailDrawer.tsx` | Modify | Add feature toggle UI |
 
@@ -140,13 +161,17 @@ const availableProviders = useMemo(() => {
 - OpenAI is the default and always available
 - ElevenLabs option only appears if admin has granted access
 - If ElevenLabs was previously selected but access is revoked, gracefully fallback to OpenAI
+- Clear messaging when provider is unavailable
 
 ### For Admins
-- Can see which users have ElevenLabs access at a glance
-- Simple toggle to grant/revoke access per user
+- Can see which users have ElevenLabs access at a glance (badge in user list)
+- Simple toggle to grant/revoke access in user detail drawer
 - Audit trail of who granted access and when
+- Feature changes logged in admin audit log
 
 ## Security Considerations
 - Feature checks happen both client-side (UI) and server-side (edge functions)
-- The `voice-session` edge function should validate user has ElevenLabs feature before issuing tokens
+- The `voice-session` edge function validates user has ElevenLabs feature before issuing tokens
 - RLS policies ensure users cannot grant themselves features
+- Only admins can insert/update/delete in `user_features` table
+- All feature changes are logged in `admin_audit_log`
