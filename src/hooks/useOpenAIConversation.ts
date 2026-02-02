@@ -85,7 +85,12 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
     }
     
     if (audioElRef.current) {
+      audioElRef.current.pause();
       audioElRef.current.srcObject = null;
+      // Remove from DOM
+      if (audioElRef.current.parentNode) {
+        audioElRef.current.parentNode.removeChild(audioElRef.current);
+      }
       audioElRef.current = null;
     }
     
@@ -271,9 +276,11 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
       // Step 2: Set up WebRTC
       console.log('[OpenAI] Step 2: Setting up WebRTC...');
       
-      // Create audio element for playback
+      // Create audio element for playback and append to DOM
       audioElRef.current = document.createElement('audio');
       audioElRef.current.autoplay = true;
+      audioElRef.current.setAttribute('playsinline', 'true'); // Important for iOS
+      document.body.appendChild(audioElRef.current);
       
       // Create peer connection
       const pc = new RTCPeerConnection();
@@ -284,6 +291,10 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
         console.log('[OpenAI] Received remote audio track');
         if (audioElRef.current) {
           audioElRef.current.srcObject = e.streams[0];
+          // Explicitly call play() to ensure audio starts
+          audioElRef.current.play().catch(err => {
+            console.warn('[OpenAI] Audio autoplay blocked:', err);
+          });
         }
       };
       
