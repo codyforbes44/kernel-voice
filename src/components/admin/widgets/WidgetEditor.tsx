@@ -563,14 +563,43 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
                   </Button>
                 </div>
               </div>
-              <Textarea
-                id="systemPrompt"
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                placeholder="You are a helpful AI assistant. Define your widget's personality, tone, and instructions here..."
-                rows={8}
-                className="font-mono text-sm"
-              />
+              <div className="relative">
+                <Textarea
+                  id="systemPrompt"
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  placeholder="You are a helpful AI assistant. Define your widget's personality, tone, and instructions here..."
+                  rows={8}
+                  className="font-mono text-sm pb-8"
+                />
+                {/* Character/Token Counter */}
+                <div className="absolute bottom-2 right-2 flex items-center gap-3 text-xs">
+                  {(() => {
+                    const charCount = systemPrompt.length;
+                    const estimatedTokens = Math.ceil(charCount / 4); // ~4 chars per token
+                    const maxRecommended = 2000; // chars
+                    const warningThreshold = 1500;
+                    
+                    let status: 'optimal' | 'warning' | 'danger' = 'optimal';
+                    if (charCount > maxRecommended) status = 'danger';
+                    else if (charCount > warningThreshold) status = 'warning';
+                    
+                    const statusColors = {
+                      optimal: 'text-muted-foreground',
+                      warning: 'text-amber-500',
+                      danger: 'text-destructive',
+                    };
+                    
+                    return (
+                      <span className={statusColors[status]}>
+                        {charCount.toLocaleString()} chars · ~{estimatedTokens.toLocaleString()} tokens
+                        {status === 'warning' && ' (getting long)'}
+                        {status === 'danger' && ' (may be truncated)'}
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
               <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
                 <Sparkles className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                 <div className="text-xs text-muted-foreground space-y-1">
@@ -580,6 +609,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
                     <li>Specify what topics it should focus on</li>
                     <li>Include any company-specific information</li>
                     <li>Set boundaries for what it shouldn't discuss</li>
+                    <li>Keep under 2,000 characters for best results</li>
                   </ul>
                 </div>
               </div>
