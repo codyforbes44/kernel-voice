@@ -438,6 +438,80 @@ export type Database = {
         }
         Relationships: []
       }
+      widget_analytics: {
+        Row: {
+          created_at: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          referrer_domain: string | null
+          session_id: string | null
+          widget_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          referrer_domain?: string | null
+          session_id?: string | null
+          widget_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          referrer_domain?: string | null
+          session_id?: string | null
+          widget_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_analytics_widget_id_fkey"
+            columns: ["widget_id"]
+            isOneToOne: false
+            referencedRelation: "widget_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      widget_configs: {
+        Row: {
+          allowed_domains: string[] | null
+          api_key: string
+          config: Json
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          allowed_domains?: string[] | null
+          api_key: string
+          config?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          allowed_domains?: string[] | null
+          api_key?: string
+          config?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

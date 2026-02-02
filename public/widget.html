@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kernel AI Widget</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: transparent;
+    }
+    #widget-root {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="widget-root"></div>
+  <script>
+    // Parse URL parameters
+    const params = new URLSearchParams(window.location.search);
+    const apiKey = params.get('apiKey');
+    
+    if (apiKey) {
+      window.KernelConfig = {
+        apiKey: apiKey,
+        brandName: params.get('brandName') || 'AI Assistant',
+        brandColor: params.get('brandColor') || '#00CED1',
+        accentColor: params.get('accentColor') || '#00B4D8',
+        greeting: params.get('greeting') || 'Hi! How can I help you today?',
+        position: params.get('position') || 'bottom-right'
+      };
+    }
+
+    // Listen for configuration from parent window
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'KERNEL_CONFIG') {
+        window.KernelConfig = event.data.config;
+        if (window.KernelWidget) {
+          window.KernelWidget.init(event.data.config);
+        }
+      }
+    });
+
+    // Notify parent that widget is ready
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'KERNEL_READY' }, '*');
+    }
+  </script>
+  <script type="module" src="/src/embed/index.tsx"></script>
+</body>
+</html>

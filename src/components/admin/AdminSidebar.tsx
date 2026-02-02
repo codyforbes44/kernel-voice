@@ -11,7 +11,8 @@ import {
   ClipboardList,
   ChevronLeft,
   ChevronRight,
-  Command
+  Command,
+  Code
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ const navItems: NavItem[] = [
   { to: '/admin/conversations', label: 'Conversations', icon: MessageSquare },
   { to: '/admin/documents', label: 'Documents', icon: FileText },
   { to: '/admin/knowledge-base', label: 'Knowledge Base', icon: BookOpen },
+  { to: '/admin/widgets', label: 'Widgets', icon: Code },
   { to: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ];
