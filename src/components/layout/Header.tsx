@@ -6,7 +6,7 @@ import { User } from '@supabase/supabase-js';
 import { UserMenu } from './UserMenu';
 import { ThemePreview } from '@/components/ThemePreview';
 import { useUserRole } from '@/hooks/useUserRole';
-import { Mic, Download, LayoutDashboard, Menu } from 'lucide-react';
+import { Mic, Download, LayoutDashboard, Menu, Crown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +48,7 @@ export const Header = () => {
   const navLinks = [
     { path: '/assistant', label: 'Assistant', icon: Mic },
     { path: '/install', label: 'Install', icon: Download },
+    { path: '/pricing', label: 'Pricing', icon: Crown },
   ];
 
   return (
