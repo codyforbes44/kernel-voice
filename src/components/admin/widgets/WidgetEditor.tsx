@@ -54,6 +54,8 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
   const [enableVoice, setEnableVoice] = useState(false);
   const [voiceProvider, setVoiceProvider] = useState<'native' | 'elevenlabs'>('native');
   const [position, setPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
+  const [enableTTS, setEnableTTS] = useState(false);
+  const [ttsVoiceId, setTtsVoiceId] = useState('EXAVITQu4vr4xnSDxMaL');
   const [rateLimitPerMinute, setRateLimitPerMinute] = useState(10);
   const [rateLimitPerHour, setRateLimitPerHour] = useState(100);
 
@@ -74,6 +76,8 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
       setEnableVoice((config.enableVoice as boolean) || false);
       setVoiceProvider((config.voiceProvider as 'native' | 'elevenlabs') || 'native');
       setPosition((config.position as 'bottom-right' | 'bottom-left') || 'bottom-right');
+      setEnableTTS((config.enableTTS as boolean) || false);
+      setTtsVoiceId((config.ttsVoiceId as string) || 'EXAVITQu4vr4xnSDxMaL');
       const rateLimit = config.rateLimit as { messagesPerMinute?: number; messagesPerHour?: number } | undefined;
       setRateLimitPerMinute(rateLimit?.messagesPerMinute ?? 10);
       setRateLimitPerHour(rateLimit?.messagesPerHour ?? 100);
@@ -93,6 +97,8 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
       setEnableVoice(false);
       setVoiceProvider('native');
       setPosition('bottom-right');
+      setEnableTTS(false);
+      setTtsVoiceId('EXAVITQu4vr4xnSDxMaL');
       setRateLimitPerMinute(10);
       setRateLimitPerHour(100);
     }
@@ -115,6 +121,8 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
         enableVoice,
         voiceProvider,
         position,
+        enableTTS,
+        ttsVoiceId,
         rateLimit: {
           messagesPerMinute: rateLimitPerMinute,
           messagesPerHour: rateLimitPerHour,
@@ -255,6 +263,37 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
                   {voiceProvider === 'elevenlabs' 
                     ? 'Uses ElevenLabs Scribe for higher accuracy transcription'
                     : 'Uses browser\'s built-in speech recognition (may vary by browser)'}
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Enable Text-to-Speech</Label>
+                <p className="text-xs text-muted-foreground">
+                  Speak AI responses aloud using ElevenLabs
+                </p>
+              </div>
+              <Switch checked={enableTTS} onCheckedChange={setEnableTTS} />
+            </div>
+
+            {enableTTS && (
+              <div className="space-y-2 pl-4 border-l-2 border-muted">
+                <Label>Voice</Label>
+                <Select value={ttsVoiceId} onValueChange={setTtsVoiceId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select voice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EXAVITQu4vr4xnSDxMaL">Sarah (Warm, Conversational)</SelectItem>
+                    <SelectItem value="JBFqnCBsd6RMkjVDRZzb">George (British, Authoritative)</SelectItem>
+                    <SelectItem value="onwK4e9ZLuTAKqWW03F9">Daniel (Deep, Friendly)</SelectItem>
+                    <SelectItem value="pFZP5JQG7iQjIQuC4Bku">Lily (Young, Cheerful)</SelectItem>
+                    <SelectItem value="TX3LPaxmHKxFdv7VOQHJ">Liam (American, Professional)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Choose the voice for speaking AI responses
                 </p>
               </div>
             )}

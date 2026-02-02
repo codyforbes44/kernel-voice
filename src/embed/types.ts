@@ -21,6 +21,8 @@ export interface KernelWidgetConfig {
   // Features
   enableVoice?: boolean;
   voiceProvider?: 'native' | 'elevenlabs';
+  enableTTS?: boolean;
+  ttsVoiceId?: string;
   enableKB?: boolean;
   kbDocumentIds?: string[];
 
@@ -69,6 +71,8 @@ export const DEFAULT_CONFIG: Partial<KernelWidgetConfig> = {
   placeholder: 'Type your message...',
   enableVoice: false,
   voiceProvider: 'native',
+  enableTTS: false,
+  ttsVoiceId: 'EXAVITQu4vr4xnSDxMaL', // Sarah voice
   enableKB: false,
 };
 
