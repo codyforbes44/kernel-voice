@@ -26,6 +26,7 @@ serve(async (req) => {
     let connectionType = 'webrtc'; // Default to WebRTC for lower latency
     let language = 'en'; // Default language
     let customPrompt: string | undefined;
+    let firstMessage: string | undefined;
     let voiceId: string | undefined;
 
     if (req.method === 'POST') {
@@ -34,13 +35,19 @@ serve(async (req) => {
         connectionType = body.connectionType || 'webrtc';
         language = body.language || 'en';
         customPrompt = body.customPrompt;
+        firstMessage = body.firstMessage;
         voiceId = body.voiceId;
       } catch {
         // Body parsing failed, use defaults
       }
     }
 
-    console.log('Generating voice session:', { connectionType, language, hasCustomPrompt: !!customPrompt });
+    console.log('Generating voice session:', { 
+      connectionType, 
+      language, 
+      hasCustomPrompt: !!customPrompt,
+      hasFirstMessage: !!firstMessage 
+    });
 
     if (connectionType === 'webrtc') {
       // Get conversation token for WebRTC (recommended - lower latency)
@@ -70,9 +77,10 @@ serve(async (req) => {
         overrides.language = language;
       }
       
-      if (customPrompt) {
+      if (customPrompt || firstMessage) {
         overrides.agent = {
-          prompt: { prompt: customPrompt }
+          ...(customPrompt && { prompt: { prompt: customPrompt } }),
+          ...(firstMessage && { first_message: firstMessage }),
         };
       }
       
