@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { WidgetMessage } from './types';
 import { useWidgetTheme } from './WidgetTheme';
-import { Bot, User, Volume2, VolumeX, Square } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX } from 'lucide-react';
 
 interface WidgetChatProps {
   messages: WidgetMessage[];
@@ -74,14 +74,15 @@ export function WidgetChat({
               fontWeight: 500,
               cursor: 'pointer',
               transition: 'all 0.2s',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              boxShadow: isSpeaking ? `0 0 0 3px ${theme.primaryColor}40, 0 2px 8px rgba(0,0,0,0.1)` : '0 2px 8px rgba(0,0,0,0.1)',
+              animation: isSpeaking ? 'speaking-pulse 1.5s ease-in-out infinite' : 'none',
             }}
             title={isSpeaking ? 'Stop speaking' : (isTTSEnabled ? 'Voice responses on' : 'Voice responses off')}
           >
             {isSpeaking ? (
               <>
-                <Square size={12} fill="currentColor" />
-                Stop
+                <SpeakingWaveform color="#fff" />
+                Speaking
               </>
             ) : isTTSEnabled ? (
               <>
@@ -253,6 +254,39 @@ function LoadingIndicator({ theme }: { theme: { accentColor: string } }) {
           @keyframes pulse {
             0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
             40% { transform: scale(1); opacity: 1; }
+          }
+        `}
+      </style>
+    </div>
+  );
+}
+
+// Animated waveform for speaking state
+function SpeakingWaveform({ color }: { color: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '2px', height: '14px' }}>
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          style={{
+            width: '2px',
+            height: '100%',
+            backgroundColor: color,
+            borderRadius: '1px',
+            animation: `speaking-bar 0.8s ease-in-out ${i * 0.1}s infinite`,
+            transformOrigin: 'center',
+          }}
+        />
+      ))}
+      <style>
+        {`
+          @keyframes speaking-bar {
+            0%, 100% { transform: scaleY(0.4); }
+            50% { transform: scaleY(1); }
+          }
+          @keyframes speaking-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
           }
         `}
       </style>
