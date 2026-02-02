@@ -4,6 +4,7 @@ export interface OpenAIVoiceSettings {
   temperature: number;      // 0.6-1.2, controls response creativity
   vadThreshold: number;     // 0.0-1.0, voice activity detection sensitivity
   silenceDuration: number;  // 200-2000ms, silence before response
+  firstMessage: string;     // Initial greeting spoken when connection is established
 }
 
 export type ElevenLabsLanguage = 'auto' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'pl' | 'hi' | 'ar' | 'zh' | 'ja' | 'ko';
@@ -44,7 +45,14 @@ export interface ToolExecution {
 }
 
 // Presets optimized for gpt-4o-realtime-preview-2025-06-03
-export const OPENAI_PRESETS: Record<Exclude<OpenAISettingsPreset, 'custom'>, { settings: OpenAIVoiceSettings; label: string; description: string }> = {
+// Base settings without firstMessage (used for presets comparison)
+export interface OpenAIPresetSettings {
+  temperature: number;
+  vadThreshold: number;
+  silenceDuration: number;
+}
+
+export const OPENAI_PRESETS: Record<Exclude<OpenAISettingsPreset, 'custom'>, { settings: OpenAIPresetSettings; label: string; description: string }> = {
   fast: {
     label: 'Snappy',
     description: 'Quick back-and-forth',
@@ -63,7 +71,10 @@ export const OPENAI_PRESETS: Record<Exclude<OpenAISettingsPreset, 'custom'>, { s
 };
 
 // Default settings
-export const DEFAULT_OPENAI_SETTINGS: OpenAIVoiceSettings = OPENAI_PRESETS.balanced.settings;
+export const DEFAULT_OPENAI_SETTINGS: OpenAIVoiceSettings = {
+  ...OPENAI_PRESETS.balanced.settings,
+  firstMessage: "Hello! How can I help you today?",
+};
 
 // Provider info
 export const providerInfo: Record<VoiceProvider, {

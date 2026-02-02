@@ -4,6 +4,7 @@ import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -121,7 +122,12 @@ export function OpenAISettingsPanel({
               return (
                 <button
                   key={key}
-                  onClick={() => onOpenAISettingsChange(preset.settings)}
+                  onClick={() => onOpenAISettingsChange({
+                    ...openaiSettings,
+                    temperature: preset.settings.temperature,
+                    vadThreshold: preset.settings.vadThreshold,
+                    silenceDuration: preset.settings.silenceDuration,
+                  })}
                   disabled={disabled}
                   className={`p-2 rounded-md border text-center transition-colors ${
                     isActive 
@@ -229,6 +235,21 @@ export function OpenAISettingsPanel({
             </AlertDialog>
           </CollapsibleContent>
         </Collapsible>
+      </div>
+
+      {/* First Message (Greeting) */}
+      <div className="space-y-2 pt-3 border-t border-border">
+        <Label className="text-sm font-medium">First Message (Greeting)</Label>
+        <Textarea
+          value={openaiSettings.firstMessage}
+          onChange={(e) => onOpenAISettingChange('firstMessage', e.target.value)}
+          placeholder="Hello! How can I help you today?"
+          className="min-h-[60px] resize-none text-sm"
+          disabled={disabled}
+        />
+        <p className="text-xs text-muted-foreground">
+          Leave empty to skip automatic greeting
+        </p>
       </div>
 
       <div className="pt-3 border-t border-border">
