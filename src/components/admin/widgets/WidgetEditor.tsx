@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { WidgetPreview } from './WidgetPreview';
 
 interface WidgetConfig {
   id: string;
@@ -145,12 +146,16 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {widget ? 'Edit Widget' : 'Create New Widget'}
           </DialogTitle>
         </DialogHeader>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+          {/* Settings Panel */}
+          <div>
 
         <Tabs defaultValue="general" className="mt-4">
           <TabsList className="grid w-full grid-cols-3">
@@ -322,6 +327,22 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
             </div>
           </TabsContent>
         </Tabs>
+
+          </div>
+
+          {/* Preview Panel */}
+          <div className="hidden lg:block">
+            <WidgetPreview
+              brandName={brandName || name}
+              brandLogo={brandLogo}
+              brandColor={brandColor}
+              accentColor={accentColor}
+              greeting={greeting}
+              placeholder={placeholder}
+              position={position}
+            />
+          </div>
+        </div>
 
         <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>
