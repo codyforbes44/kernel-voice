@@ -21,6 +21,7 @@ interface OpenAIConversationOptions {
   voice?: OpenAIVoice;
   instructions?: string;
   settings?: OpenAIVoiceSettings;
+  firstMessage?: string;
 }
 
 interface OpenAIMessage {
@@ -106,6 +107,23 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
           setConnectionPhase('ready');
           setStatus('connected');
           options.onConnect?.();
+          
+          // Trigger first message if configured
+          if (options.firstMessage?.trim() && dcRef.current?.readyState === 'open') {
+            console.log('[OpenAI] Triggering first message greeting');
+            dcRef.current.send(JSON.stringify({
+              type: 'conversation.item.create',
+              item: {
+                type: 'message',
+                role: 'user',
+                content: [{
+                  type: 'input_text',
+                  text: `[System: Start the conversation by greeting the user with exactly this message: "${options.firstMessage}"]`
+                }]
+              }
+            }));
+            dcRef.current.send(JSON.stringify({ type: 'response.create' }));
+          }
           break;
           
         case 'session.updated':

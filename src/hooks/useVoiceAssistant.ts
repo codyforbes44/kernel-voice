@@ -285,6 +285,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     voice: openaiVoice,
     instructions: systemPrompt,
     settings: openaiSettings,
+    firstMessage: openaiSettings.firstMessage,
   });
 
   // Use the selected provider's conversation
