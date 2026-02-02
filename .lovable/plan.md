@@ -1,122 +1,174 @@
 
-# Plan: Fix Audio Playback in 3ʙɪ Voice Assistant
+# Plan: Stripe Subscription Integration for Kernel Pro
 
-## Problem Identified
+## Overview
+Implement a complete Stripe subscription system that unlocks all premium features (ElevenLabs voice, credits, and future features) when users subscribe to Kernel Pro. The integration will use your existing products and prices in Stripe.
 
-The audio element for receiving AI voice responses is created in memory but **never attached to the DOM**. This causes audio playback to fail in many browsers, particularly on mobile devices that have stricter autoplay policies.
+## Architecture
 
-```typescript
-// Current code (line 275-276 in useOpenAIConversation.ts)
-audioElRef.current = document.createElement('audio');
-audioElRef.current.autoplay = true;
-// Audio element is NEVER added to the DOM
+```text
+User Flow:
+┌─────────────────────────────────────────────────────────────────────┐
+│                                                                     │
+│  Free User                     →    Clicks "Upgrade"                │
+│       ↓                                    ↓                        │
+│  Sees upgrade prompts          →    Redirected to Stripe Checkout  │
+│       ↓                                    ↓                        │
+│  Limited features              →    Completes payment               │
+│                                            ↓                        │
+│                                    Redirected to success page       │
+│                                            ↓                        │
+│                                    check-subscription called        │
+│                                            ↓                        │
+│                                    Premium features unlocked        │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+Subscription Check Flow:
+┌─────────────┐    ┌──────────────────┐    ┌─────────────┐
+│   Frontend  │───→│ check-subscription│───→│   Stripe    │
+│             │    │   Edge Function   │    │     API     │
+└─────────────┘    └──────────────────┘    └─────────────┘
+                            │
+                            ↓
+                   Returns: subscribed, 
+                   product_id, end_date
 ```
 
-## Root Cause
+## Existing Stripe Products
 
-Modern browsers require audio elements to be in the DOM for reliable playback. Additionally, autoplay is often blocked without user interaction, and an explicit `play()` call after setting `srcObject` helps ensure playback starts.
+Your Stripe account already has these products configured:
 
-## Solution
+| Product | Price ID | Amount | Interval |
+|---------|----------|--------|----------|
+| Kernel Pro Monthly | price_1SgV4E2MfT7Ozvjxa9RyAT59 | $19/month | Monthly |
+| Kernel Pro Yearly | price_1SgV4F2MfT7OzvjxHgQYF1vC | $190/year | Yearly |
 
-Update `src/hooks/useOpenAIConversation.ts` to:
+## Implementation Steps
 
-1. **Append the audio element to the document body** after creation
-2. **Set additional properties** to improve compatibility (muted temporarily for autoplay, then unmute)
-3. **Call `play()` explicitly** when the remote audio track is received
-4. **Remove the audio element from the DOM** during cleanup
+### 1. Create Edge Functions
 
-## Changes Required
+**a) `create-checkout` function**
+- Creates a Stripe Checkout session for authenticated users
+- Checks if user already has a Stripe customer record
+- Redirects to Stripe's hosted checkout page
 
-### File: `src/hooks/useOpenAIConversation.ts`
+**b) `check-subscription` function**
+- Verifies if user has an active Stripe subscription
+- Returns subscription status, product ID, and end date
+- Called on page load, after checkout, and periodically
 
-#### 1. Audio Element Creation (lines 274-277)
+**c) `customer-portal` function**
+- Creates a Stripe Customer Portal session
+- Allows users to manage billing, cancel, or upgrade plans
 
-**Current:**
-```typescript
-// Create audio element for playback
-audioElRef.current = document.createElement('audio');
-audioElRef.current.autoplay = true;
-```
+### 2. Create Subscription Context/Hook
 
-**Fixed:**
-```typescript
-// Create audio element for playback and append to DOM
-audioElRef.current = document.createElement('audio');
-audioElRef.current.autoplay = true;
-audioElRef.current.playsInline = true; // Important for iOS
-document.body.appendChild(audioElRef.current);
-```
+Create a `useSubscription` hook that:
+- Checks subscription status on login and page load
+- Auto-refreshes every 60 seconds while connected
+- Provides `isSubscribed`, `subscriptionTier`, `subscriptionEnd`
+- Integrates with existing `useUserFeatures` for feature checks
 
-#### 2. Remote Audio Track Handler (lines 282-288)
+### 3. Create Pricing/Subscription Page
 
-**Current:**
-```typescript
-// Handle remote audio
-pc.ontrack = (e) => {
-  console.log('[OpenAI] Received remote audio track');
-  if (audioElRef.current) {
-    audioElRef.current.srcObject = e.streams[0];
-  }
-};
-```
+New `/pricing` or `/subscribe` page with:
+- Plan comparison (Free vs Pro)
+- Monthly/yearly toggle
+- Feature list highlighting what's included
+- Upgrade buttons that trigger checkout
 
-**Fixed:**
-```typescript
-// Handle remote audio
-pc.ontrack = (e) => {
-  console.log('[OpenAI] Received remote audio track');
-  if (audioElRef.current) {
-    audioElRef.current.srcObject = e.streams[0];
-    // Explicitly call play() to ensure audio starts
-    audioElRef.current.play().catch(err => {
-      console.warn('[OpenAI] Audio autoplay blocked:', err);
-    });
-  }
-};
-```
+### 4. Update Feature Gating
 
-#### 3. Cleanup Function (lines 87-90)
+Modify `useUserFeatures` to also check subscription status:
+- If subscribed to Pro → all premium features enabled
+- If not subscribed → use existing `user_features` table for admin-granted features
 
-**Current:**
-```typescript
-if (audioElRef.current) {
-  audioElRef.current.srcObject = null;
-  audioElRef.current = null;
-}
-```
+### 5. Add Upgrade Prompts
 
-**Fixed:**
-```typescript
-if (audioElRef.current) {
-  audioElRef.current.pause();
-  audioElRef.current.srcObject = null;
-  // Remove from DOM
-  if (audioElRef.current.parentNode) {
-    audioElRef.current.parentNode.removeChild(audioElRef.current);
-  }
-  audioElRef.current = null;
-}
-```
+Show upgrade CTAs in relevant places:
+- Voice provider selector (when trying to select ElevenLabs)
+- Settings panel
+- Optional: in-app banner for free users
 
-## Why This Fixes the Issue
+### 6. Create Success/Cancel Pages
 
-| Problem | Solution |
-|---------|----------|
-| Audio element not in DOM | Append to `document.body` |
-| Autoplay may be blocked | Call `play()` explicitly with error handling |
-| iOS Safari compatibility | Add `playsInline = true` |
-| Memory leak on cleanup | Remove element from DOM during cleanup |
+- `/subscription-success`: Thank you page with confirmation
+- `/subscription-canceled`: Encourage to try again later
 
-## Testing After Implementation
-
-1. Connect to the voice assistant
-2. Verify the AI greeting ("Hello! How can I help you today?") is heard
-3. Verify ongoing conversation audio works
-4. Test on mobile devices (iOS Safari has strictest policies)
-5. Verify no orphaned audio elements remain after disconnecting
-
-## Files to Modify
+## File Changes Summary
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/hooks/useOpenAIConversation.ts` | Modify | Fix audio element creation, playback, and cleanup |
+| `supabase/functions/create-checkout/index.ts` | Create | Stripe checkout session creation |
+| `supabase/functions/check-subscription/index.ts` | Create | Subscription status verification |
+| `supabase/functions/customer-portal/index.ts` | Create | Billing management portal |
+| `src/hooks/useSubscription.ts` | Create | Subscription state management |
+| `src/hooks/useUserFeatures.ts` | Modify | Integrate subscription check |
+| `src/pages/Pricing.tsx` | Create | Pricing page with plan comparison |
+| `src/pages/SubscriptionSuccess.tsx` | Create | Post-checkout success page |
+| `src/components/subscription/UpgradeButton.tsx` | Create | Reusable upgrade CTA component |
+| `src/components/subscription/PricingCard.tsx` | Create | Plan display card component |
+| `src/components/voice/VoiceProviderSelector.tsx` | Modify | Add upgrade prompt for ElevenLabs |
+| `src/App.tsx` | Modify | Add new routes |
+| `supabase/config.toml` | Modify | Add new function configs |
+
+## Technical Details
+
+### Price IDs Configuration
+```typescript
+// src/lib/stripe.ts
+export const STRIPE_PRICES = {
+  PRO_MONTHLY: 'price_1SgV4E2MfT7Ozvjxa9RyAT59',
+  PRO_YEARLY: 'price_1SgV4F2MfT7OzvjxHgQYF1vC',
+} as const;
+
+export const STRIPE_PRODUCTS = {
+  KERNEL_PRO_MONTHLY: 'prod_TdmdVkA3JmKFhQ',
+  KERNEL_PRO_YEARLY: 'prod_Tdmd0XQ3F3Lhx9',
+} as const;
+```
+
+### Subscription Hook Interface
+```typescript
+interface UseSubscriptionReturn {
+  isSubscribed: boolean;
+  isLoading: boolean;
+  productId: string | null;
+  subscriptionEnd: string | null;
+  refetch: () => void;
+}
+```
+
+### Feature Access Logic
+```typescript
+// Combined check: subscription OR admin-granted feature
+const hasPremiumVoice = isSubscribed || hasFeature('elevenlabs_voice');
+```
+
+## User Experience
+
+### Free Users
+- Can use 3ʙɪ voice provider (included)
+- See "Pro" badges on premium features
+- See pricing prompts in relevant locations
+
+### Pro Subscribers
+- Full access to ElevenLabs premium voice
+- All current and future Pro features
+- Can manage billing via Stripe portal
+- See subscription status in profile/settings
+
+## Security Considerations
+
+1. **Server-side verification**: Subscription status is always verified via edge function, never trusted from client
+2. **JWT validation**: All edge functions validate the user's JWT before proceeding
+3. **No webhooks needed**: Using polling approach per your existing architecture
+4. **Customer email matching**: Uses authenticated user's email to find Stripe customer
+
+## Notes
+
+- The Stripe secret key is already configured as `STRIPE_SECRET_KEY`
+- No webhooks are used - subscription status is checked on-demand
+- The monthly price is $19 and yearly is $190 (save ~17%)
+- Portal must be activated in Stripe dashboard before users can manage subscriptions
