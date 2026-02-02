@@ -141,7 +141,11 @@ function WidgetContent() {
         >
           <WidgetHeader onClose={handleClose} onMinimize={handleMinimize} />
           <WidgetChat messages={messages} isLoading={isLoading} />
-          <WidgetInput onSend={handleSend} isLoading={isLoading} />
+          <WidgetInput 
+            onSend={handleSend} 
+            isLoading={isLoading} 
+            enableVoice={config.enableVoice}
+          />
         </div>
       )}
 
