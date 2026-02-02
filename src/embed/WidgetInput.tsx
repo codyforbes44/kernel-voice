@@ -3,7 +3,7 @@ import { Send, Loader2, Mic, MicOff } from 'lucide-react';
 import { useWidgetTheme } from './WidgetTheme';
 import { useWidgetVoice } from './useWidgetVoice';
 import { useElevenLabsSTT } from './useElevenLabsSTT';
-import { AudioLevelIndicator } from './AudioLevelIndicator';
+import { WaveformVisualizer } from './WaveformVisualizer';
 
 interface WidgetInputProps {
   onSend: (message: string) => void;
@@ -118,7 +118,7 @@ export function WidgetInput({
         </div>
       )}
 
-      {/* Audio level indicator - shows above input when recording */}
+      {/* Waveform visualizer - shows above input when recording */}
       {voice.isListening && (
         <div
           style={{
@@ -126,32 +126,63 @@ export function WidgetInput({
             bottom: '100%',
             left: '50%',
             transform: 'translateX(-50%)',
-            marginBottom: '8px',
-            padding: '8px 16px',
-            background: 'rgba(0, 0, 0, 0.8)',
-            borderRadius: '20px',
+            marginBottom: '12px',
+            padding: '12px 20px',
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(30, 30, 30, 0.95) 100%)',
+            borderRadius: '24px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            gap: '14px',
+            boxShadow: `0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1), 0 0 20px ${theme.primaryColor}33`,
+            backdropFilter: 'blur(8px)',
           }}
         >
+          {/* Pulsing record indicator */}
           <div
             style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: '#ef4444',
-              animation: 'pulse-dot 1s ease-in-out infinite',
+              position: 'relative',
+              width: '12px',
+              height: '12px',
             }}
-          />
-          <AudioLevelIndicator
-            level={voice.audioLevel}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '50%',
+                background: '#ef4444',
+                animation: 'pulse-dot 1s ease-in-out infinite',
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                inset: '-4px',
+                borderRadius: '50%',
+                background: 'transparent',
+                border: '2px solid #ef4444',
+                opacity: 0.5,
+                animation: 'pulse-ring 1.5s ease-out infinite',
+              }}
+            />
+          </div>
+          
+          {/* Waveform */}
+          <WaveformVisualizer
+            audioLevel={voice.audioLevel}
             isActive={voice.isListening}
             primaryColor={theme.primaryColor}
-            barCount={7}
+            barCount={11}
           />
-          <span style={{ color: '#fff', fontSize: '12px', fontWeight: 500 }}>
+          
+          {/* Status text */}
+          <span style={{ 
+            color: '#fff', 
+            fontSize: '13px', 
+            fontWeight: 500,
+            minWidth: '80px',
+            textAlign: 'left',
+          }}>
             {voice.isConnecting ? 'Connecting...' : (voice.partialTranscript || 'Listening...')}
           </span>
         </div>
@@ -281,8 +312,12 @@ export function WidgetInput({
               50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
             }
             @keyframes pulse-dot {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0.5; }
+              0%, 100% { opacity: 1; transform: scale(1); }
+              50% { opacity: 0.6; transform: scale(0.9); }
+            }
+            @keyframes pulse-ring {
+              0% { transform: scale(1); opacity: 0.6; }
+              100% { transform: scale(2); opacity: 0; }
             }
           `}
         </style>
