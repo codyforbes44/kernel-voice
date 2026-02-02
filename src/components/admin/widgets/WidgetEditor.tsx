@@ -54,6 +54,8 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
   const [enableVoice, setEnableVoice] = useState(false);
   const [voiceProvider, setVoiceProvider] = useState<'native' | 'elevenlabs'>('native');
   const [position, setPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
+  const [rateLimitPerMinute, setRateLimitPerMinute] = useState(10);
+  const [rateLimitPerHour, setRateLimitPerHour] = useState(100);
 
   useEffect(() => {
     if (widget) {
@@ -72,6 +74,9 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
       setEnableVoice((config.enableVoice as boolean) || false);
       setVoiceProvider((config.voiceProvider as 'native' | 'elevenlabs') || 'native');
       setPosition((config.position as 'bottom-right' | 'bottom-left') || 'bottom-right');
+      const rateLimit = config.rateLimit as { messagesPerMinute?: number; messagesPerHour?: number } | undefined;
+      setRateLimitPerMinute(rateLimit?.messagesPerMinute ?? 10);
+      setRateLimitPerHour(rateLimit?.messagesPerHour ?? 100);
     } else {
       // Reset for new widget
       setName('');
@@ -88,6 +93,8 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
       setEnableVoice(false);
       setVoiceProvider('native');
       setPosition('bottom-right');
+      setRateLimitPerMinute(10);
+      setRateLimitPerHour(100);
     }
   }, [widget, open]);
 
@@ -108,6 +115,10 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
         enableVoice,
         voiceProvider,
         position,
+        rateLimit: {
+          messagesPerMinute: rateLimitPerMinute,
+          messagesPerHour: rateLimitPerHour,
+        },
       };
 
       const domains = allowedDomains
@@ -167,10 +178,11 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
           <div>
 
         <Tabs defaultValue="general" className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="behavior">Behavior</TabsTrigger>
+            <TabsTrigger value="limits">Limits</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-4 mt-4">
@@ -362,6 +374,55 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
               />
               <p className="text-xs text-muted-foreground">
                 Instructions for the AI on how to respond
+              </p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="limits" className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="rateLimitPerMinute">Messages per Minute</Label>
+              <Input
+                id="rateLimitPerMinute"
+                type="number"
+                min={1}
+                max={100}
+                value={rateLimitPerMinute}
+                onChange={(e) => setRateLimitPerMinute(Math.max(1, parseInt(e.target.value) || 10))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Maximum messages a user can send per minute (1-100)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="rateLimitPerHour">Messages per Hour</Label>
+              <Input
+                id="rateLimitPerHour"
+                type="number"
+                min={1}
+                max={1000}
+                value={rateLimitPerHour}
+                onChange={(e) => setRateLimitPerHour(Math.max(1, parseInt(e.target.value) || 100))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Maximum messages a user can send per hour (1-1000)
+              </p>
+            </div>
+
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm font-medium mb-2">Current Limits</p>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Per Minute:</span>{' '}
+                  <span className="font-medium">{rateLimitPerMinute}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Per Hour:</span>{' '}
+                  <span className="font-medium">{rateLimitPerHour}</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Rate limits help prevent abuse and control API usage costs.
               </p>
             </div>
           </TabsContent>
