@@ -171,6 +171,7 @@ function WidgetContent() {
             isLoading={isLoading} 
             enableVoice={config.enableVoice}
             voiceProvider={config.voiceProvider}
+            waveformStyle={config.waveformStyle}
             supabaseUrl={config.supabaseUrl}
             supabaseKey={config.supabaseKey}
           />

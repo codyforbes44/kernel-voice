@@ -21,6 +21,7 @@ export interface KernelWidgetConfig {
   // Features
   enableVoice?: boolean;
   voiceProvider?: 'native' | 'elevenlabs';
+  waveformStyle?: 'bars' | 'wave' | 'circular';
   enableTTS?: boolean;
   ttsVoiceId?: string;
   enableKB?: boolean;
@@ -71,6 +72,7 @@ export const DEFAULT_CONFIG: Partial<KernelWidgetConfig> = {
   placeholder: 'Type your message...',
   enableVoice: false,
   voiceProvider: 'native',
+  waveformStyle: 'bars',
   enableTTS: false,
   ttsVoiceId: 'EXAVITQu4vr4xnSDxMaL', // Sarah voice
   enableKB: false,
