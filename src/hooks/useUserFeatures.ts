@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscription } from '@/hooks/useSubscription';
 
 export type FeatureKey = 'elevenlabs_voice';
 
@@ -17,6 +18,7 @@ interface UserFeature {
 
 export function useUserFeatures() {
   const [userId, setUserId] = useState<string | null>(null);
+  const { isSubscribed, isLoading: subscriptionLoading } = useSubscription();
 
   useEffect(() => {
     const getUser = async () => {
@@ -56,15 +58,21 @@ export function useUserFeatures() {
   });
 
   const hasFeature = useCallback((featureKey: FeatureKey): boolean => {
+    // Pro subscribers get all premium features
+    if (isSubscribed) {
+      return true;
+    }
+    // Otherwise check admin-granted features
     return features.some(f => f.feature_key === featureKey && f.enabled);
-  }, [features]);
+  }, [features, isSubscribed]);
 
   return {
     features,
     hasFeature,
-    loading: isLoading,
+    loading: isLoading || subscriptionLoading,
     refetch,
     isAuthenticated: !!userId,
+    isSubscribed,
   };
 }
 

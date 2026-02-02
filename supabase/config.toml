@@ -29,3 +29,18 @@ verify_jwt = false
 
 [functions.widget-chat]
 verify_jwt = false
+
+[functions.widget-tts]
+verify_jwt = false
+
+[functions.elevenlabs-scribe-token]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
+
+[functions.customer-portal]
+verify_jwt = false

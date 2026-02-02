@@ -13,6 +13,8 @@ import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import Pricing from "./pages/Pricing";
+import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
 import AdminConversations from "./pages/admin/Conversations";
@@ -40,6 +42,8 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/subscription-success" element={<SubscriptionSuccess />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/conversations" element={<AdminConversations />} />

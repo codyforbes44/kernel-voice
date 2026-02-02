@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -10,7 +11,8 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Cloud, Loader2, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Cloud, Loader2, Sparkles, Crown } from 'lucide-react';
 import { OpenAISettingsPanel } from './OpenAISettingsPanel';
 import { ElevenLabsSettingsPanel } from './ElevenLabsSettingsPanel';
 import {
@@ -77,7 +79,8 @@ export function VoiceProviderSelector({
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const { hasFeature, loading: featuresLoading } = useUserFeatures();
+  const { hasFeature, loading: featuresLoading, isSubscribed } = useUserFeatures();
+  const navigate = useNavigate();
 
   // Determine available providers based on user features
   const availableProviders = useMemo(() => {
@@ -258,10 +261,21 @@ export function VoiceProviderSelector({
         
         {/* Show upgrade prompt if ElevenLabs is not available */}
         {!hasElevenLabsAccess && isAuthenticated && (
-          <p className="text-xs text-muted-foreground">
-            <Sparkles className="h-3 w-3 inline mr-1" />
-            Premium voices available with ElevenLabs upgrade
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground flex items-center">
+              <Crown className="h-3 w-3 mr-1 text-primary" />
+              Premium voices available with Kernel Pro
+            </p>
+            <Button 
+              variant="link" 
+              size="sm" 
+              className="h-auto p-0 text-xs"
+              onClick={() => navigate('/pricing')}
+            >
+              <Sparkles className="h-3 w-3 mr-1" />
+              Upgrade
+            </Button>
+          </div>
         )}
         
         {/* Feature badges */}
