@@ -55,6 +55,7 @@ interface UseWidgetVoiceOptions {
 interface UseWidgetVoiceReturn {
   isListening: boolean;
   isSupported: boolean;
+  audioLevel: number;
   startListening: () => void;
   stopListening: () => void;
   toggleListening: () => void;
@@ -71,8 +72,72 @@ export function useWidgetVoice({
 }: UseWidgetVoiceOptions): UseWidgetVoiceReturn {
   const [isListening, setIsListening] = useState(false);
   const [isSupported] = useState(isSpeechRecognitionSupported);
+  const [audioLevel, setAudioLevel] = useState(0);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const transcriptRef = useRef<string>('');
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+
+  // Cleanup audio analysis
+  const cleanupAudioAnalysis = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+    setAudioLevel(0);
+  }, []);
+
+  // Analyze audio levels
+  const analyzeAudio = useCallback(() => {
+    if (!analyserRef.current) return;
+
+    const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+    analyserRef.current.getByteFrequencyData(dataArray);
+
+    // Calculate average volume level (0-1)
+    const average = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
+    const normalizedLevel = Math.min(average / 128, 1);
+    
+    setAudioLevel(normalizedLevel);
+
+    if (isListening) {
+      animationFrameRef.current = requestAnimationFrame(analyzeAudio);
+    }
+  }, [isListening]);
+
+  // Setup audio analysis
+  const setupAudioAnalysis = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
+
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      analyserRef.current = analyser;
+
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      analyzeAudio();
+    } catch (error) {
+      console.error('Failed to setup audio analysis:', error);
+    }
+  }, [analyzeAudio]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -94,6 +159,7 @@ export function useWidgetVoice({
 
     recognition.onend = () => {
       setIsListening(false);
+      cleanupAudioAnalysis();
       // If we have accumulated transcript, send it
       if (transcriptRef.current.trim()) {
         onTranscript(transcriptRef.current.trim());
@@ -103,6 +169,7 @@ export function useWidgetVoice({
 
     recognition.onerror = (event) => {
       setIsListening(false);
+      cleanupAudioAnalysis();
       const errorMessages: Record<string, string> = {
         'no-speech': 'No speech detected. Please try again.',
         'audio-capture': 'Microphone not available. Please check permissions.',
@@ -137,16 +204,16 @@ export function useWidgetVoice({
 
     return () => {
       recognition.abort();
+      cleanupAudioAnalysis();
     };
-  }, [isSupported, onTranscript, onError]);
+  }, [isSupported, onTranscript, onError, cleanupAudioAnalysis]);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current || isListening) return;
 
     try {
-      // Request microphone permission first
-      navigator.mediaDevices
-        .getUserMedia({ audio: true })
+      // Request microphone permission and setup audio analysis
+      setupAudioAnalysis()
         .then(() => {
           transcriptRef.current = '';
           recognitionRef.current?.start();
@@ -157,12 +224,13 @@ export function useWidgetVoice({
     } catch (error) {
       onError?.('Failed to start voice input.');
     }
-  }, [isListening, onError]);
+  }, [isListening, onError, setupAudioAnalysis]);
 
   const stopListening = useCallback(() => {
     if (!recognitionRef.current || !isListening) return;
     recognitionRef.current.stop();
-  }, [isListening]);
+    cleanupAudioAnalysis();
+  }, [isListening, cleanupAudioAnalysis]);
 
   const toggleListening = useCallback(() => {
     if (isListening) {
@@ -175,6 +243,7 @@ export function useWidgetVoice({
   return {
     isListening,
     isSupported,
+    audioLevel,
     startListening,
     stopListening,
     toggleListening,

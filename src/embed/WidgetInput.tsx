@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, Mic, MicOff } from 'lucide-react';
 import { useWidgetTheme } from './WidgetTheme';
 import { useWidgetVoice } from './useWidgetVoice';
+import { AudioLevelIndicator } from './AudioLevelIndicator';
 
 interface WidgetInputProps {
   onSend: (message: string) => void;
@@ -16,7 +17,7 @@ export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { isListening, isSupported, toggleListening } = useWidgetVoice({
+  const { isListening, isSupported, audioLevel, toggleListening } = useWidgetVoice({
     onTranscript: (text) => {
       // Send the transcribed text directly
       if (text.trim()) {
@@ -66,6 +67,45 @@ export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }
           }}
         >
           {voiceError}
+        </div>
+      )}
+
+      {/* Audio level indicator - shows above input when recording */}
+      {isListening && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: '8px',
+            padding: '8px 16px',
+            background: 'rgba(0, 0, 0, 0.8)',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+          }}
+        >
+          <div
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#ef4444',
+              animation: 'pulse-dot 1s ease-in-out infinite',
+            }}
+          />
+          <AudioLevelIndicator
+            level={audioLevel}
+            isActive={isListening}
+            primaryColor={theme.primaryColor}
+            barCount={7}
+          />
+          <span style={{ color: '#fff', fontSize: '12px', fontWeight: 500 }}>
+            Listening...
+          </span>
         </div>
       )}
 
@@ -191,6 +231,10 @@ export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }
             @keyframes pulse {
               0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
               50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+            }
+            @keyframes pulse-dot {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.5; }
             }
           `}
         </style>
