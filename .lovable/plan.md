@@ -1,174 +1,192 @@
 
-# Plan: Stripe Subscription Integration for Kernel Pro
+
+# Plan: Additional AI Voice Provider Options
 
 ## Overview
-Implement a complete Stripe subscription system that unlocks all premium features (ElevenLabs voice, credits, and future features) when users subscribe to Kernel Pro. The integration will use your existing products and prices in Stripe.
 
-## Architecture
+Expand the voice assistant with additional AI voice providers to offer users more choices, specialized capabilities, and competitive differentiation. The newly added `VAPI_API_KEY` enables immediate integration of VAPI, with opportunities for 3 more premium providers.
+
+## Suggested Providers
+
+### 1. VAPI - AI Voice Agents Platform
+**Priority: High** (API key already configured)
+
+| Feature | Details |
+|---------|---------|
+| **Key Strength** | Full-stack voice AI with phone calling, outbound/inbound support |
+| **Unique Capabilities** | Phone number integration, call transfers, voicemail detection |
+| **Connection Type** | WebSocket / WebRTC |
+| **Use Case** | Business automation, customer service, appointment scheduling |
+| **Tier** | Premium (Kernel Pro) |
+
+**Implementation Notes:**
+- Uses `@vapi-ai/client-sdk-react` SDK
+- Supports real-time voice with function calling
+- Can connect to phone lines (PSTN integration)
+- Requires `VAPI_API_KEY` (already configured)
+
+### 2. Deepgram - Fastest STT + TTS
+**Priority: Medium**
+
+| Feature | Details |
+|---------|---------|
+| **Key Strength** | Industry-leading transcription speed and accuracy |
+| **Unique Capabilities** | <300ms latency, speaker diarization, custom vocabulary |
+| **Connection Type** | WebSocket streaming |
+| **Use Case** | Transcription-heavy workflows, multi-speaker scenarios |
+| **Tier** | Premium (Kernel Pro) |
+| **Required Secret** | `DEEPGRAM_API_KEY` |
+
+**Implementation Notes:**
+- Uses `@deepgram/sdk` 
+- Best-in-class speech-to-text accuracy
+- Multiple TTS voice options (Aura voices)
+- Can be used as STT layer for other providers
+
+### 3. Hume AI - Emotion-Aware Voice
+**Priority: Medium**
+
+| Feature | Details |
+|---------|---------|
+| **Key Strength** | Empathic Voice Interface (EVI) - understands and responds to emotional cues |
+| **Unique Capabilities** | Real-time emotion detection, prosody analysis, adaptive responses |
+| **Connection Type** | WebSocket |
+| **Use Case** | Mental health support, coaching, emotionally-intelligent assistants |
+| **Tier** | Premium (Kernel Pro) |
+| **Required Secrets** | `HUME_API_KEY`, `HUME_SECRET_KEY` |
+
+**Implementation Notes:**
+- Uses `@humeai/voice-react` SDK
+- Detects 48+ emotional expressions in voice
+- Responds with emotional intelligence
+- Unique differentiator in the market
+
+### 4. Azure AI Speech - Enterprise Grade
+**Priority: Low**
+
+| Feature | Details |
+|---------|---------|
+| **Key Strength** | Enterprise reliability, compliance, multi-region |
+| **Unique Capabilities** | Custom Neural Voice, pronunciation assessment, keyword spotting |
+| **Connection Type** | WebSocket / REST |
+| **Use Case** | Enterprise deployments, education, accessibility |
+| **Tier** | Premium (Kernel Pro) |
+| **Required Secrets** | `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` |
+
+**Implementation Notes:**
+- Uses `microsoft-cognitiveservices-speech-sdk`
+- 400+ voices across 140+ languages
+- HIPAA, SOC 2, ISO 27001 compliant
+- Custom voice cloning available
+
+## Recommended Implementation Order
 
 ```text
-User Flow:
-┌─────────────────────────────────────────────────────────────────────┐
-│                                                                     │
-│  Free User                     →    Clicks "Upgrade"                │
-│       ↓                                    ↓                        │
-│  Sees upgrade prompts          →    Redirected to Stripe Checkout  │
-│       ↓                                    ↓                        │
-│  Limited features              →    Completes payment               │
-│                                            ↓                        │
-│                                    Redirected to success page       │
-│                                            ↓                        │
-│                                    check-subscription called        │
-│                                            ↓                        │
-│                                    Premium features unlocked        │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+Phase 1 (Immediate):
+┌─────────────────────────────────────────────┐
+│  VAPI Integration                           │
+│  • API key already configured               │
+│  • Strong business use case                 │
+│  • Phone calling differentiator             │
+└─────────────────────────────────────────────┘
 
-Subscription Check Flow:
-┌─────────────┐    ┌──────────────────┐    ┌─────────────┐
-│   Frontend  │───→│ check-subscription│───→│   Stripe    │
-│             │    │   Edge Function   │    │     API     │
-└─────────────┘    └──────────────────┘    └─────────────┘
-                            │
-                            ↓
-                   Returns: subscribed, 
-                   product_id, end_date
+Phase 2 (Near-term):
+┌─────────────────────────────────────────────┐
+│  Deepgram Integration                       │
+│  • Can serve as universal STT layer         │
+│  • Improves transcription quality           │
+│  • Fast integration                         │
+└─────────────────────────────────────────────┘
+
+Phase 3 (Future):
+┌─────────────────────────────────────────────┐
+│  Hume AI (Empathic Voice)                   │
+│  • Unique market positioning                │
+│  • Premium differentiator                   │
+│  • Longer integration timeline              │
+└─────────────────────────────────────────────┘
 ```
 
-## Existing Stripe Products
+## Technical Changes for VAPI Integration
 
-Your Stripe account already has these products configured:
+### 1. Update Voice Types
 
-| Product | Price ID | Amount | Interval |
-|---------|----------|--------|----------|
-| Kernel Pro Monthly | price_1SgV4E2MfT7Ozvjxa9RyAT59 | $19/month | Monthly |
-| Kernel Pro Yearly | price_1SgV4F2MfT7OzvjxHgQYF1vC | $190/year | Yearly |
+Add VAPI as a new provider in `src/components/voice/voiceTypes.ts`:
 
-## Implementation Steps
+```typescript
+export type VoiceProvider = 'elevenlabs' | 'openai' | 'vapi';
 
-### 1. Create Edge Functions
+export interface VAPISettings {
+  assistantId: string;
+  enableRecording: boolean;
+  hipaaEnabled: boolean;
+  backgroundDenoisingEnabled: boolean;
+}
 
-**a) `create-checkout` function**
-- Creates a Stripe Checkout session for authenticated users
-- Checks if user already has a Stripe customer record
-- Redirects to Stripe's hosted checkout page
+export const DEFAULT_VAPI_SETTINGS: VAPISettings = {
+  assistantId: '',
+  enableRecording: false,
+  hipaaEnabled: false,
+  backgroundDenoisingEnabled: true,
+};
+```
 
-**b) `check-subscription` function**
-- Verifies if user has an active Stripe subscription
-- Returns subscription status, product ID, and end date
-- Called on page load, after checkout, and periodically
+### 2. Create Edge Function
 
-**c) `customer-portal` function**
-- Creates a Stripe Customer Portal session
-- Allows users to manage billing, cancel, or upgrade plans
+New `supabase/functions/vapi-session/index.ts` to authenticate and create VAPI sessions.
 
-### 2. Create Subscription Context/Hook
+### 3. Create VAPI Conversation Hook
 
-Create a `useSubscription` hook that:
-- Checks subscription status on login and page load
-- Auto-refreshes every 60 seconds while connected
-- Provides `isSubscribed`, `subscriptionTier`, `subscriptionEnd`
-- Integrates with existing `useUserFeatures` for feature checks
+New `src/hooks/useVAPIConversation.ts` mirroring the pattern of `useOpenAIConversation.ts`.
 
-### 3. Create Pricing/Subscription Page
+### 4. Create Settings Panel
 
-New `/pricing` or `/subscribe` page with:
-- Plan comparison (Free vs Pro)
-- Monthly/yearly toggle
-- Feature list highlighting what's included
-- Upgrade buttons that trigger checkout
+New `src/components/voice/VAPISettingsPanel.tsx` for provider-specific configuration.
 
-### 4. Update Feature Gating
+### 5. Update Provider Selector
 
-Modify `useUserFeatures` to also check subscription status:
-- If subscribed to Pro → all premium features enabled
-- If not subscribed → use existing `user_features` table for admin-granted features
-
-### 5. Add Upgrade Prompts
-
-Show upgrade CTAs in relevant places:
-- Voice provider selector (when trying to select ElevenLabs)
-- Settings panel
-- Optional: in-app banner for free users
-
-### 6. Create Success/Cancel Pages
-
-- `/subscription-success`: Thank you page with confirmation
-- `/subscription-canceled`: Encourage to try again later
+Modify `VoiceProviderSelector.tsx` to include VAPI as an option with appropriate feature badges.
 
 ## File Changes Summary
 
 | File | Action | Description |
 |------|--------|-------------|
-| `supabase/functions/create-checkout/index.ts` | Create | Stripe checkout session creation |
-| `supabase/functions/check-subscription/index.ts` | Create | Subscription status verification |
-| `supabase/functions/customer-portal/index.ts` | Create | Billing management portal |
-| `src/hooks/useSubscription.ts` | Create | Subscription state management |
-| `src/hooks/useUserFeatures.ts` | Modify | Integrate subscription check |
-| `src/pages/Pricing.tsx` | Create | Pricing page with plan comparison |
-| `src/pages/SubscriptionSuccess.tsx` | Create | Post-checkout success page |
-| `src/components/subscription/UpgradeButton.tsx` | Create | Reusable upgrade CTA component |
-| `src/components/subscription/PricingCard.tsx` | Create | Plan display card component |
-| `src/components/voice/VoiceProviderSelector.tsx` | Modify | Add upgrade prompt for ElevenLabs |
-| `src/App.tsx` | Modify | Add new routes |
-| `supabase/config.toml` | Modify | Add new function configs |
+| `src/components/voice/voiceTypes.ts` | Modify | Add VAPI type definitions |
+| `supabase/functions/vapi-session/index.ts` | Create | VAPI authentication endpoint |
+| `src/hooks/useVAPIConversation.ts` | Create | VAPI conversation management |
+| `src/components/voice/VAPISettingsPanel.tsx` | Create | VAPI settings UI |
+| `src/hooks/useVoiceAssistant.ts` | Modify | Integrate VAPI provider |
+| `src/components/voice/VoiceProviderSelector.tsx` | Modify | Add VAPI option |
+| `supabase/config.toml` | Modify | Add vapi-session function config |
 
-## Technical Details
+## Provider Comparison Matrix
 
-### Price IDs Configuration
-```typescript
-// src/lib/stripe.ts
-export const STRIPE_PRICES = {
-  PRO_MONTHLY: 'price_1SgV4E2MfT7Ozvjxa9RyAT59',
-  PRO_YEARLY: 'price_1SgV4F2MfT7OzvjxHgQYF1vC',
-} as const;
+| Feature | 3ʙɪ (OpenAI) | ElevenLabs | VAPI | Deepgram | Hume |
+|---------|--------------|------------|------|----------|------|
+| Realtime Voice | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Languages | 1 | 29+ | 20+ | 36+ | 1 |
+| Emotion Detection | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Phone Integration | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Tool Calling | ✅ | ✅ | ✅ | ❌ | ✅ |
+| STT Accuracy | Good | Excellent | Good | Best | Good |
+| Latency | ~200ms | ~300ms | ~400ms | ~150ms | ~400ms |
+| Tier | Free | Pro | Pro | Pro | Pro |
 
-export const STRIPE_PRODUCTS = {
-  KERNEL_PRO_MONTHLY: 'prod_TdmdVkA3JmKFhQ',
-  KERNEL_PRO_YEARLY: 'prod_Tdmd0XQ3F3Lhx9',
-} as const;
-```
+## Security Considerations
 
-### Subscription Hook Interface
-```typescript
-interface UseSubscriptionReturn {
-  isSubscribed: boolean;
-  isLoading: boolean;
-  productId: string | null;
-  subscriptionEnd: string | null;
-  refetch: () => void;
-}
-```
-
-### Feature Access Logic
-```typescript
-// Combined check: subscription OR admin-granted feature
-const hasPremiumVoice = isSubscribed || hasFeature('elevenlabs_voice');
-```
+1. All new API keys stored as Supabase secrets
+2. Edge functions validate JWT before issuing session tokens
+3. Feature gating via `user_features` table (like ElevenLabs)
+4. Rate limiting at edge function level
 
 ## User Experience
 
 ### Free Users
-- Can use 3ʙɪ voice provider (included)
-- See "Pro" badges on premium features
-- See pricing prompts in relevant locations
+- Access to 3ʙɪ (OpenAI Realtime) only
+- See "Pro" badges on all premium providers
 
 ### Pro Subscribers
-- Full access to ElevenLabs premium voice
-- All current and future Pro features
-- Can manage billing via Stripe portal
-- See subscription status in profile/settings
+- Full access to ElevenLabs, VAPI, and future providers
+- Provider switching in settings panel
+- Provider-specific customization options
 
-## Security Considerations
-
-1. **Server-side verification**: Subscription status is always verified via edge function, never trusted from client
-2. **JWT validation**: All edge functions validate the user's JWT before proceeding
-3. **No webhooks needed**: Using polling approach per your existing architecture
-4. **Customer email matching**: Uses authenticated user's email to find Stripe customer
-
-## Notes
-
-- The Stripe secret key is already configured as `STRIPE_SECRET_KEY`
-- No webhooks are used - subscription status is checked on-demand
-- The monthly price is $19 and yearly is $190 (save ~17%)
-- Portal must be activated in Stripe dashboard before users can manage subscriptions
