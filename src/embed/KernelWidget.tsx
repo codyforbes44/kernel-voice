@@ -162,9 +162,11 @@ function WidgetContent() {
             enableTTS={shouldUseTTS}
             isSpeaking={tts.isSpeaking}
             isTTSEnabled={tts.isEnabled}
+            volume={tts.volume}
             onToggleTTS={tts.toggleEnabled}
             onStopSpeaking={tts.stop}
             onSpeak={tts.speak}
+            onVolumeChange={tts.setVolume}
           />
           <WidgetInput 
             onSend={handleSend} 

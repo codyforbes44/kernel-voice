@@ -1,7 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { WidgetMessage } from './types';
 import { useWidgetTheme } from './WidgetTheme';
-import { Bot, User, Volume2, VolumeX } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX, Volume1 } from 'lucide-react';
 
 interface WidgetChatProps {
   messages: WidgetMessage[];
@@ -9,9 +9,11 @@ interface WidgetChatProps {
   enableTTS?: boolean;
   isSpeaking?: boolean;
   isTTSEnabled?: boolean;
+  volume?: number;
   onToggleTTS?: () => void;
   onStopSpeaking?: () => void;
   onSpeak?: (text: string) => void;
+  onVolumeChange?: (volume: number) => void;
 }
 
 export function WidgetChat({ 
@@ -20,9 +22,11 @@ export function WidgetChat({
   enableTTS = false,
   isSpeaking = false,
   isTTSEnabled = true,
+  volume = 0.8,
   onToggleTTS,
   onStopSpeaking,
   onSpeak,
+  onVolumeChange,
 }: WidgetChatProps) {
   const { theme } = useWidgetTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -47,56 +51,17 @@ export function WidgetChat({
         position: 'relative',
       }}
     >
-      {/* TTS toggle button */}
+      {/* TTS controls */}
       {enableTTS && (
-        <div
-          style={{
-            position: 'sticky',
-            top: 0,
-            display: 'flex',
-            justifyContent: 'flex-end',
-            marginBottom: '4px',
-            zIndex: 10,
-          }}
-        >
-          <button
-            onClick={isSpeaking ? onStopSpeaking : onToggleTTS}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              borderRadius: '16px',
-              border: 'none',
-              background: isSpeaking ? '#ef4444' : (isTTSEnabled ? theme.primaryColor : '#e5e5e5'),
-              color: isSpeaking || isTTSEnabled ? '#fff' : '#666',
-              fontSize: '12px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: isSpeaking ? `0 0 0 3px ${theme.primaryColor}40, 0 2px 8px rgba(0,0,0,0.1)` : '0 2px 8px rgba(0,0,0,0.1)',
-              animation: isSpeaking ? 'speaking-pulse 1.5s ease-in-out infinite' : 'none',
-            }}
-            title={isSpeaking ? 'Stop speaking' : (isTTSEnabled ? 'Voice responses on' : 'Voice responses off')}
-          >
-            {isSpeaking ? (
-              <>
-                <SpeakingWaveform color="#fff" />
-                Speaking
-              </>
-            ) : isTTSEnabled ? (
-              <>
-                <Volume2 size={14} />
-                Voice On
-              </>
-            ) : (
-              <>
-                <VolumeX size={14} />
-                Voice Off
-              </>
-            )}
-          </button>
-        </div>
+        <TTSControls
+          theme={theme}
+          isSpeaking={isSpeaking}
+          isTTSEnabled={isTTSEnabled}
+          volume={volume}
+          onToggleTTS={onToggleTTS}
+          onStopSpeaking={onStopSpeaking}
+          onVolumeChange={onVolumeChange}
+        />
       )}
 
       {messages.map((message) => (
@@ -257,6 +222,157 @@ function LoadingIndicator({ theme }: { theme: { accentColor: string } }) {
           }
         `}
       </style>
+    </div>
+  );
+}
+
+// TTS Controls with volume slider
+interface TTSControlsProps {
+  theme: { primaryColor: string };
+  isSpeaking: boolean;
+  isTTSEnabled: boolean;
+  volume: number;
+  onToggleTTS?: () => void;
+  onStopSpeaking?: () => void;
+  onVolumeChange?: (volume: number) => void;
+}
+
+function TTSControls({
+  theme,
+  isSpeaking,
+  isTTSEnabled,
+  volume,
+  onToggleTTS,
+  onStopSpeaking,
+  onVolumeChange,
+}: TTSControlsProps) {
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+
+  const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+
+  return (
+    <div
+      style={{
+        position: 'sticky',
+        top: 0,
+        display: 'flex',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        gap: '8px',
+        marginBottom: '4px',
+        zIndex: 10,
+      }}
+    >
+      {/* Volume slider */}
+      {isTTSEnabled && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 10px',
+            borderRadius: '16px',
+            background: 'rgba(0,0,0,0.05)',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={() => setShowVolumeSlider(true)}
+          onMouseLeave={() => setShowVolumeSlider(false)}
+        >
+          <button
+            onClick={() => onVolumeChange?.(volume === 0 ? 0.8 : 0)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '2px',
+              color: theme.primaryColor,
+            }}
+            title={volume === 0 ? 'Unmute' : 'Mute'}
+          >
+            <VolumeIcon size={16} />
+          </button>
+          
+          <div
+            style={{
+              overflow: 'hidden',
+              width: showVolumeSlider ? '80px' : '0px',
+              transition: 'width 0.2s ease-out',
+            }}
+          >
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={volume}
+              onChange={(e) => onVolumeChange?.(parseFloat(e.target.value))}
+              style={{
+                width: '80px',
+                height: '4px',
+                appearance: 'none',
+                background: `linear-gradient(to right, ${theme.primaryColor} ${volume * 100}%, #ddd ${volume * 100}%)`,
+                borderRadius: '2px',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            />
+          </div>
+          
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 500,
+              color: '#666',
+              minWidth: '28px',
+              textAlign: 'center',
+            }}
+          >
+            {Math.round(volume * 100)}%
+          </span>
+        </div>
+      )}
+
+      {/* TTS toggle button */}
+      <button
+        onClick={isSpeaking ? onStopSpeaking : onToggleTTS}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '6px 12px',
+          borderRadius: '16px',
+          border: 'none',
+          background: isSpeaking ? '#ef4444' : (isTTSEnabled ? theme.primaryColor : '#e5e5e5'),
+          color: isSpeaking || isTTSEnabled ? '#fff' : '#666',
+          fontSize: '12px',
+          fontWeight: 500,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          boxShadow: isSpeaking ? `0 0 0 3px ${theme.primaryColor}40, 0 2px 8px rgba(0,0,0,0.1)` : '0 2px 8px rgba(0,0,0,0.1)',
+          animation: isSpeaking ? 'speaking-pulse 1.5s ease-in-out infinite' : 'none',
+        }}
+        title={isSpeaking ? 'Stop speaking' : (isTTSEnabled ? 'Voice responses on' : 'Voice responses off')}
+      >
+        {isSpeaking ? (
+          <>
+            <SpeakingWaveform color="#fff" />
+            Speaking
+          </>
+        ) : isTTSEnabled ? (
+          <>
+            <Volume2 size={14} />
+            Voice On
+          </>
+        ) : (
+          <>
+            <VolumeX size={14} />
+            Voice Off
+          </>
+        )}
+      </button>
     </div>
   );
 }
