@@ -504,6 +504,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
               position={position}
               enableVoice={enableVoice}
               voiceProvider={voiceProvider}
+              waveformStyle={waveformStyle}
               enableTTS={enableTTS}
             />
           </div>

@@ -11,18 +11,21 @@ interface WidgetPreviewProps {
   position: 'bottom-right' | 'bottom-left';
   enableVoice?: boolean;
   voiceProvider?: 'native' | 'elevenlabs';
+  waveformStyle?: 'bars' | 'wave' | 'circular';
   enableTTS?: boolean;
 }
 
 // Simulated audio level bars for preview
-function PreviewAudioBars({ color, isActive }: { color: string; isActive: boolean }) {
+function PreviewAudioBars({ color, isActive, style = 'bars' }: { color: string; isActive: boolean; style?: 'bars' | 'wave' | 'circular' }) {
   const [levels, setLevels] = useState([0.3, 0.5, 0.7, 0.5, 0.3]);
+  const [phase, setPhase] = useState(0);
 
   useEffect(() => {
     if (!isActive) return;
     
     const interval = setInterval(() => {
       setLevels(prev => prev.map(() => 0.2 + Math.random() * 0.8));
+      setPhase(p => (p + 0.3) % (Math.PI * 2));
     }, 100);
     
     return () => clearInterval(interval);
@@ -30,18 +33,67 @@ function PreviewAudioBars({ color, isActive }: { color: string; isActive: boolea
 
   if (!isActive) return null;
 
-  return (
-    <div className="flex items-center justify-center gap-0.5 h-4">
-      {levels.map((level, i) => (
-        <div
-          key={i}
-          className="w-0.5 rounded-full transition-all duration-75"
-          style={{
-            height: `${4 + level * 12}px`,
-            backgroundColor: color,
-          }}
+  // Bars style (classic equalizer)
+  if (style === 'bars') {
+    return (
+      <div className="flex items-center justify-center gap-0.5 h-4">
+        {levels.map((level, i) => (
+          <div
+            key={i}
+            className="w-0.5 rounded-full transition-all duration-75"
+            style={{
+              height: `${4 + level * 12}px`,
+              backgroundColor: color,
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // Wave style (flowing sine wave)
+  if (style === 'wave') {
+    const points = Array.from({ length: 20 }, (_, i) => {
+      const x = i * 2;
+      const y = 8 + Math.sin(phase + i * 0.5) * levels[i % 5] * 6;
+      return `${x},${y}`;
+    }).join(' ');
+    
+    return (
+      <svg width="40" height="16" className="overflow-visible">
+        <polyline
+          points={points}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
-      ))}
+      </svg>
+    );
+  }
+
+  // Circular style (pulsing ring)
+  const avgLevel = levels.reduce((a, b) => a + b, 0) / levels.length;
+  return (
+    <div className="relative w-4 h-4 flex items-center justify-center">
+      <div
+        className="absolute rounded-full transition-all duration-75"
+        style={{
+          width: `${8 + avgLevel * 8}px`,
+          height: `${8 + avgLevel * 8}px`,
+          border: `2px solid ${color}`,
+          opacity: 0.4,
+        }}
+      />
+      <div
+        className="rounded-full"
+        style={{
+          width: '6px',
+          height: '6px',
+          backgroundColor: color,
+        }}
+      />
     </div>
   );
 }
@@ -84,6 +136,7 @@ export function WidgetPreview({
   position,
   enableVoice = false,
   voiceProvider = 'native',
+  waveformStyle = 'bars',
   enableTTS = false,
 }: WidgetPreviewProps) {
   const [isRecording, setIsRecording] = useState(false);
@@ -174,7 +227,7 @@ export function WidgetPreview({
               className="w-2 h-2 rounded-full animate-pulse"
               style={{ backgroundColor: '#ef4444' }}
             />
-            <PreviewAudioBars color={brandColor} isActive={isRecording} />
+            <PreviewAudioBars color={brandColor} isActive={isRecording} style={waveformStyle} />
             <span className="text-white text-xs font-medium">Listening...</span>
           </div>
         )}
