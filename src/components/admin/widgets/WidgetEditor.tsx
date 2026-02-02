@@ -10,8 +10,59 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { WidgetPreview } from './WidgetPreview';
+
+// System prompt presets for quick configuration
+const SYSTEM_PROMPT_PRESETS = [
+  {
+    id: 'friendly-support',
+    name: 'Friendly Support',
+    prompt: `You are a friendly and helpful customer support assistant. Your personality is warm, professional, and concise.
+
+Guidelines:
+- Keep responses brief and conversational (1-3 sentences when possible)
+- Use natural, spoken language—avoid bullet points and markdown
+- If you don't know something, say so and offer to help find the answer
+- Be helpful, not robotic`,
+  },
+  {
+    id: 'sales-assistant',
+    name: 'Sales Assistant',
+    prompt: `You are a knowledgeable sales assistant helping customers find the right products or services.
+
+Guidelines:
+- Ask clarifying questions to understand customer needs
+- Highlight benefits and value, not just features
+- Be consultative rather than pushy
+- Guide customers toward solutions that fit their requirements
+- Keep responses conversational and natural`,
+  },
+  {
+    id: 'technical-expert',
+    name: 'Technical Expert',
+    prompt: `You are a technical support specialist with deep product knowledge.
+
+Guidelines:
+- Provide clear, step-by-step instructions when troubleshooting
+- Use simple language to explain technical concepts
+- Ask diagnostic questions to identify the root cause
+- Offer alternative solutions when the first approach doesn't work
+- Confirm the issue is resolved before ending the conversation`,
+  },
+  {
+    id: 'concierge',
+    name: 'Concierge',
+    prompt: `You are an elegant, professional concierge assistant. Your tone is refined yet approachable.
+
+Guidelines:
+- Anticipate needs and offer proactive suggestions
+- Provide personalized recommendations based on preferences
+- Maintain a sophisticated but warm demeanor
+- Handle requests with discretion and efficiency
+- Make every interaction feel special and exclusive`,
+  },
+];
 
 interface WidgetConfig {
   id: string;
@@ -425,18 +476,57 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="systemPrompt">System Prompt</Label>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="systemPrompt" className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  AI Personality & Instructions
+                </Label>
+                <Select
+                  value=""
+                  onValueChange={(presetId) => {
+                    const preset = SYSTEM_PROMPT_PRESETS.find(p => p.id === presetId);
+                    if (preset) {
+                      setSystemPrompt(preset.prompt);
+                      toast.success(`Applied "${preset.name}" preset`);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[180px] h-8">
+                    <div className="flex items-center gap-2">
+                      <Wand2 className="h-3.5 w-3.5" />
+                      <span className="text-sm">Use Preset</span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SYSTEM_PROMPT_PRESETS.map((preset) => (
+                      <SelectItem key={preset.id} value={preset.id}>
+                        {preset.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <Textarea
                 id="systemPrompt"
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
-                placeholder="You are a helpful AI assistant..."
-                rows={4}
+                placeholder="You are a helpful AI assistant. Define your widget's personality, tone, and instructions here..."
+                rows={8}
+                className="font-mono text-sm"
               />
-              <p className="text-xs text-muted-foreground">
-                Instructions for the AI on how to respond
-              </p>
+              <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                <Sparkles className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p><strong>Tips for effective prompts:</strong></p>
+                  <ul className="list-disc list-inside space-y-0.5 ml-1">
+                    <li>Define the assistant's personality and tone</li>
+                    <li>Specify what topics it should focus on</li>
+                    <li>Include any company-specific information</li>
+                    <li>Set boundaries for what it shouldn't discuss</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </TabsContent>
 
