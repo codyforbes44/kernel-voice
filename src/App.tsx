@@ -20,6 +20,7 @@ import AdminDocuments from "./pages/admin/Documents";
 import AdminKnowledgeBase from "./pages/admin/KnowledgeBase";
 import AdminAuditLogs from "./pages/admin/AuditLogs";
 import AdminSettings from "./pages/admin/Settings";
+import AdminWidgets from "./pages/admin/Widgets";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/admin/knowledge-base" element={<AdminKnowledgeBase />} />
               <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/widgets" element={<AdminWidgets />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

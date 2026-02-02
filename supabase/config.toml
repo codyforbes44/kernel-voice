@@ -26,3 +26,6 @@ verify_jwt = true
 
 [functions.admin-operations]
 verify_jwt = false
+
+[functions.widget-chat]
+verify_jwt = false
