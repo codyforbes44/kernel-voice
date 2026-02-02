@@ -73,8 +73,8 @@ export const providerInfo: Record<VoiceProvider, {
   isPremium: boolean;
 }> = {
   openai: {
-    name: 'OpenAI',
-    description: 'GPT-4o Realtime, low latency',
+    name: '3ʙɪ',
+    description: 'Realtime AI, low latency',
     features: ['WebRTC', 'Fast response', 'Tool calling'],
     isPremium: false,
   },

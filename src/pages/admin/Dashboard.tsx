@@ -84,7 +84,7 @@ export default function AdminDashboard() {
 
     const voiceProviderUsage = [
       { name: 'ElevenLabs', value: 65 },
-      { name: 'OpenAI', value: 35 },
+      { name: '3ʙɪ', value: 35 },
     ];
 
     const weeklyActivity = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({

@@ -157,12 +157,12 @@ export default function AdminSettings() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Default Provider</Label>
-                  <div className="flex gap-2">
+                <div className="flex gap-2">
                     <Badge variant={settings.voice_providers.default === 'elevenlabs' ? 'default' : 'outline'}>
                       ElevenLabs
                     </Badge>
                     <Badge variant={settings.voice_providers.default === 'openai' ? 'default' : 'outline'}>
-                      OpenAI
+                      3ʙɪ
                     </Badge>
                   </div>
                 </div>
