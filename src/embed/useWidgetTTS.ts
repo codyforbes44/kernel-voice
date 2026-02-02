@@ -14,6 +14,8 @@ interface UseWidgetTTSReturn {
   stop: () => void;
   toggleEnabled: () => void;
   isEnabled: boolean;
+  volume: number;
+  setVolume: (volume: number) => void;
 }
 
 export function useWidgetTTS({
@@ -25,6 +27,7 @@ export function useWidgetTTS({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isEnabled, setIsEnabled] = useState(true);
+  const [volume, setVolumeState] = useState(0.8);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const stop = useCallback(() => {
@@ -35,6 +38,14 @@ export function useWidgetTTS({
     }
     setIsSpeaking(false);
     setIsLoading(false);
+  }, []);
+
+  const setVolume = useCallback((newVolume: number) => {
+    const clampedVolume = Math.max(0, Math.min(1, newVolume));
+    setVolumeState(clampedVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = clampedVolume;
+    }
   }, []);
 
   const speak = useCallback(async (text: string) => {
@@ -72,6 +83,7 @@ export function useWidgetTTS({
       // Use data URI for playback
       const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
       const audio = new Audio(audioUrl);
+      audio.volume = volume;
       audioRef.current = audio;
 
       audio.onplay = () => {
@@ -97,7 +109,7 @@ export function useWidgetTTS({
       setIsSpeaking(false);
       onError?.(error instanceof Error ? error.message : 'TTS failed');
     }
-  }, [isEnabled, supabaseUrl, supabaseKey, voiceId, stop, onError]);
+  }, [isEnabled, supabaseUrl, supabaseKey, voiceId, volume, stop, onError]);
 
   const toggleEnabled = useCallback(() => {
     if (isSpeaking) {
@@ -113,5 +125,7 @@ export function useWidgetTTS({
     stop,
     toggleEnabled,
     isEnabled,
+    volume,
+    setVolume,
   };
 }
