@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MessageCircle, X, Send, Mic, MicOff } from 'lucide-react';
+import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Volume1 } from 'lucide-react';
 
 interface WidgetPreviewProps {
   brandName: string;
@@ -11,6 +11,7 @@ interface WidgetPreviewProps {
   position: 'bottom-right' | 'bottom-left';
   enableVoice?: boolean;
   voiceProvider?: 'native' | 'elevenlabs';
+  enableTTS?: boolean;
 }
 
 // Simulated audio level bars for preview
@@ -45,6 +46,34 @@ function PreviewAudioBars({ color, isActive }: { color: string; isActive: boolea
   );
 }
 
+// Simulated speaking waveform for TTS demo
+function PreviewSpeakingWaveform({ color }: { color: string }) {
+  return (
+    <div className="flex items-center gap-0.5 h-3">
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="w-0.5 rounded-full"
+          style={{
+            height: '100%',
+            backgroundColor: color,
+            animation: `speaking-bar-preview 0.8s ease-in-out ${i * 0.1}s infinite`,
+            transformOrigin: 'center',
+          }}
+        />
+      ))}
+      <style>
+        {`
+          @keyframes speaking-bar-preview {
+            0%, 100% { transform: scaleY(0.4); }
+            50% { transform: scaleY(1); }
+          }
+        `}
+      </style>
+    </div>
+  );
+}
+
 export function WidgetPreview({
   brandName,
   brandLogo,
@@ -55,8 +84,13 @@ export function WidgetPreview({
   position,
   enableVoice = false,
   voiceProvider = 'native',
+  enableTTS = false,
 }: WidgetPreviewProps) {
   const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [volume, setVolume] = useState(0.8);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   // Auto-demo the recording animation when voice is enabled
   useEffect(() => {
@@ -82,6 +116,31 @@ export function WidgetPreview({
       clearTimeout(initialTimeout);
     };
   }, [enableVoice]);
+
+  // Auto-demo the TTS speaking animation when TTS is enabled
+  useEffect(() => {
+    if (!enableTTS || !ttsEnabled) {
+      setIsSpeaking(false);
+      return;
+    }
+    
+    // Demo the speaking state periodically (offset from recording demo)
+    const demoInterval = setInterval(() => {
+      setIsSpeaking(true);
+      setTimeout(() => setIsSpeaking(false), 2500);
+    }, 10000);
+    
+    // Initial demo after a delay
+    const initialTimeout = setTimeout(() => {
+      setIsSpeaking(true);
+      setTimeout(() => setIsSpeaking(false), 2500);
+    }, 3000);
+    
+    return () => {
+      clearInterval(demoInterval);
+      clearTimeout(initialTimeout);
+    };
+  }, [enableTTS, ttsEnabled]);
 
   return (
     <div className="relative bg-muted/30 rounded-lg p-4 min-h-[400px] border">
@@ -158,7 +217,84 @@ export function WidgetPreview({
           </div>
 
           {/* Messages area */}
-          <div className="p-3 space-y-3 bg-gray-50" style={{ minHeight: '140px' }}>
+          <div className="p-3 space-y-3 bg-gray-50" style={{ minHeight: '160px' }}>
+            {/* TTS Controls */}
+            {enableTTS && (
+              <div className="flex justify-end items-center gap-2 mb-1">
+                {/* Volume control */}
+                {ttsEnabled && (
+                  <div
+                    className="flex items-center gap-1 px-2 py-1 rounded-full transition-all"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}
+                    onMouseEnter={() => setShowVolumeSlider(true)}
+                    onMouseLeave={() => setShowVolumeSlider(false)}
+                  >
+                    <button
+                      onClick={() => setVolume(volume === 0 ? 0.8 : 0)}
+                      className="p-0.5"
+                      style={{ color: brandColor }}
+                    >
+                      {volume === 0 ? <VolumeX className="w-3 h-3" /> : volume < 0.5 ? <Volume1 className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+                    </button>
+                    <div
+                      className="overflow-hidden transition-all duration-200"
+                      style={{ width: showVolumeSlider ? '50px' : '0px' }}
+                    >
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={volume}
+                        onChange={(e) => setVolume(parseFloat(e.target.value))}
+                        className="w-[50px] h-1 cursor-pointer"
+                        style={{
+                          accentColor: brandColor,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-gray-500 min-w-[24px] text-center">
+                      {Math.round(volume * 100)}%
+                    </span>
+                  </div>
+                )}
+                
+                {/* TTS toggle */}
+                <button
+                  onClick={() => {
+                    if (isSpeaking) {
+                      setIsSpeaking(false);
+                    } else {
+                      setTtsEnabled(!ttsEnabled);
+                    }
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-all"
+                  style={{
+                    backgroundColor: isSpeaking ? '#ef4444' : (ttsEnabled ? brandColor : '#e5e5e5'),
+                    color: isSpeaking || ttsEnabled ? '#fff' : '#666',
+                    boxShadow: isSpeaking ? `0 0 0 2px ${brandColor}40` : 'none',
+                  }}
+                >
+                  {isSpeaking ? (
+                    <>
+                      <PreviewSpeakingWaveform color="#fff" />
+                      <span>Speaking</span>
+                    </>
+                  ) : ttsEnabled ? (
+                    <>
+                      <Volume2 className="w-3 h-3" />
+                      <span>Voice On</span>
+                    </>
+                  ) : (
+                    <>
+                      <VolumeX className="w-3 h-3" />
+                      <span>Voice Off</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
             {/* Greeting message */}
             <div className="flex gap-2">
               <div
