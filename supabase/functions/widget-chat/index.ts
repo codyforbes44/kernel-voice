@@ -14,9 +14,112 @@ interface WidgetConfig {
     systemPrompt?: string;
     enableKB?: boolean;
     kbDocumentIds?: string[];
+    rateLimit?: {
+      messagesPerMinute?: number;
+      messagesPerHour?: number;
+    };
   };
   allowed_domains: string[];
   is_active: boolean;
+}
+
+// Rate limiting configuration
+const DEFAULT_RATE_LIMITS = {
+  messagesPerMinute: 10,
+  messagesPerHour: 100,
+};
+
+// In-memory rate limit tracking
+// Key format: `${widgetId}:${sessionId || ip}`
+const rateLimitStore = new Map<string, { timestamps: number[] }>();
+
+// Cleanup old entries periodically (every 5 minutes)
+const CLEANUP_INTERVAL = 5 * 60 * 1000;
+let lastCleanup = Date.now();
+
+function cleanupRateLimitStore() {
+  const now = Date.now();
+  if (now - lastCleanup < CLEANUP_INTERVAL) return;
+  
+  lastCleanup = now;
+  const oneHourAgo = now - 60 * 60 * 1000;
+  
+  for (const [key, data] of rateLimitStore.entries()) {
+    // Remove timestamps older than 1 hour
+    data.timestamps = data.timestamps.filter(ts => ts > oneHourAgo);
+    // Remove entry if no recent timestamps
+    if (data.timestamps.length === 0) {
+      rateLimitStore.delete(key);
+    }
+  }
+}
+
+function checkRateLimit(
+  widgetId: string,
+  identifier: string,
+  limits: { messagesPerMinute: number; messagesPerHour: number }
+): { allowed: boolean; retryAfter?: number; reason?: string } {
+  const key = `${widgetId}:${identifier}`;
+  const now = Date.now();
+  const oneMinuteAgo = now - 60 * 1000;
+  const oneHourAgo = now - 60 * 60 * 1000;
+
+  // Get or create rate limit entry
+  let entry = rateLimitStore.get(key);
+  if (!entry) {
+    entry = { timestamps: [] };
+    rateLimitStore.set(key, entry);
+  }
+
+  // Clean old timestamps
+  entry.timestamps = entry.timestamps.filter(ts => ts > oneHourAgo);
+
+  // Count requests in last minute and hour
+  const requestsLastMinute = entry.timestamps.filter(ts => ts > oneMinuteAgo).length;
+  const requestsLastHour = entry.timestamps.length;
+
+  // Check minute limit
+  if (requestsLastMinute >= limits.messagesPerMinute) {
+    const oldestInMinute = entry.timestamps.filter(ts => ts > oneMinuteAgo)[0];
+    const retryAfter = Math.ceil((oldestInMinute + 60 * 1000 - now) / 1000);
+    return {
+      allowed: false,
+      retryAfter,
+      reason: `Rate limit exceeded: ${limits.messagesPerMinute} messages per minute`,
+    };
+  }
+
+  // Check hour limit
+  if (requestsLastHour >= limits.messagesPerHour) {
+    const oldestInHour = entry.timestamps[0];
+    const retryAfter = Math.ceil((oldestInHour + 60 * 60 * 1000 - now) / 1000);
+    return {
+      allowed: false,
+      retryAfter,
+      reason: `Rate limit exceeded: ${limits.messagesPerHour} messages per hour`,
+    };
+  }
+
+  // Record this request
+  entry.timestamps.push(now);
+
+  return { allowed: true };
+}
+
+function getClientIdentifier(req: Request, sessionId?: string): string {
+  // Prefer session ID, then forwarded IP, then connection info
+  if (sessionId) return sessionId;
+  
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0].trim();
+  
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp) return realIp;
+  
+  // Fallback to a hash of user-agent + origin for some uniqueness
+  const ua = req.headers.get('user-agent') || 'unknown';
+  const origin = req.headers.get('origin') || 'unknown';
+  return `${ua.slice(0, 50)}:${origin}`;
 }
 
 Deno.serve(async (req) => {
@@ -24,6 +127,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Periodic cleanup
+  cleanupRateLimitStore();
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -70,7 +176,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Handle analytics tracking
+    // Handle analytics tracking (no rate limit for tracking events)
     if (action === 'track') {
       await supabase.from('widget_analytics').insert({
         widget_id: widgetConfig.id,
@@ -83,6 +189,41 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ success: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Apply rate limiting for chat messages
+    const clientIdentifier = getClientIdentifier(req, sessionId);
+    const rateLimits = {
+      messagesPerMinute: widgetConfig.config.rateLimit?.messagesPerMinute ?? DEFAULT_RATE_LIMITS.messagesPerMinute,
+      messagesPerHour: widgetConfig.config.rateLimit?.messagesPerHour ?? DEFAULT_RATE_LIMITS.messagesPerHour,
+    };
+
+    const rateLimitResult = checkRateLimit(widgetConfig.id, clientIdentifier, rateLimits);
+
+    if (!rateLimitResult.allowed) {
+      // Track rate limit event
+      await supabase.from('widget_analytics').insert({
+        widget_id: widgetConfig.id,
+        event_type: 'rate_limit',
+        event_data: { reason: rateLimitResult.reason },
+        referrer_domain: originDomain,
+        session_id: sessionId,
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          error: 'Rate limit exceeded. Please slow down.',
+          retryAfter: rateLimitResult.retryAfter,
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+          } 
+        }
       );
     }
 
