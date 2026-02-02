@@ -252,21 +252,21 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   // OpenAI conversation hook
   const openaiConversation = useOpenAIConversation({
     onConnect: () => {
-      console.log('Connected to OpenAI Realtime voice service');
+      console.log('Connected to 3ʙɪ Realtime voice service');
       clearTranscripts();
       toast({
         title: 'Connected',
-        description: 'Voice assistant is ready (OpenAI)',
+        description: 'Voice assistant is ready (3ʙɪ)',
       });
     },
     onDisconnect: () => {
-      console.log('Disconnected from OpenAI voice service');
+      console.log('Disconnected from 3ʙɪ voice service');
     },
     onMessage: (message) => {
-      console.log('OpenAI message received:', message);
+      console.log('3ʙɪ message received:', message);
     },
     onError: (error) => {
-      console.error('OpenAI voice service error:', error);
+      console.error('3ʙɪ voice service error:', error);
       toast({
         title: 'Error',
         description: error.message || 'Voice connection error',
@@ -274,7 +274,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
       });
     },
     onTranscript: (transcript) => {
-      console.log('OpenAI transcript:', transcript);
+      console.log('3ʙɪ transcript:', transcript);
       if (transcript.role === 'assistant') {
         addTranscript('assistant', transcript.text, true);
       } else {
@@ -364,7 +364,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
           ...(data.overrides && { overrides: data.overrides }),
         });
       } else {
-        console.log('Starting OpenAI Realtime voice session');
+        console.log('Starting 3ʙɪ Realtime voice session');
         await openaiConversationRef.current.startSession();
       }
     } catch (error) {

@@ -59,7 +59,7 @@ export function OpenAISettingsPanel({
   return (
     <div className="space-y-2 pt-2 border-t border-border">
       <Label htmlFor="openai-voice" className="text-sm font-medium">
-        OpenAI Voice
+        3ʙɪ Voice
       </Label>
       <Select
         value={openaiVoice}
@@ -214,7 +214,7 @@ export function OpenAISettingsPanel({
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Reset OpenAI Settings?</AlertDialogTitle>
+                  <AlertDialogTitle>Reset 3ʙɪ Settings?</AlertDialogTitle>
                   <AlertDialogDescription>
                     This will reset your voice and all settings to their default values. This action cannot be undone.
                   </AlertDialogDescription>

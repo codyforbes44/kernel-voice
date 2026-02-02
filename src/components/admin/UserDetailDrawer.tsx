@@ -306,7 +306,7 @@ export const UserDetailDrawer = ({
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Provider</span>
-                  <Badge variant="secondary">{profile.voice_provider || 'OpenAI'}</Badge>
+                  <Badge variant="secondary">{profile.voice_provider || '3ʙɪ'}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Voice</span>

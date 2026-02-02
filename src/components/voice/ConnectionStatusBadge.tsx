@@ -89,8 +89,8 @@ export const ConnectionStatusBadge = ({
   const status = getStatus();
   const Icon = status.icon;
 
-  const providerLabel = provider === 'elevenlabs' ? 'EL' : 'OpenAI';
-  const providerFullName = provider === 'elevenlabs' ? 'ElevenLabs' : 'OpenAI Realtime';
+  const providerLabel = provider === 'elevenlabs' ? 'EL' : '3ʙɪ';
+  const providerFullName = provider === 'elevenlabs' ? 'ElevenLabs' : '3ʙɪ Realtime';
   const authLabel = isConnected && authMethod ? `:${authMethod}` : '';
 
   const tooltipContent = (
@@ -113,7 +113,7 @@ export const ConnectionStatusBadge = ({
           <div className="space-y-1.5">
             {[
               { step: 1, label: 'Get session token' },
-              { step: 2, label: 'Connect to OpenAI' },
+              { step: 2, label: 'Connect to 3ʙɪ' },
               { step: 3, label: 'Configure session' },
               { step: 4, label: 'Ready to talk' },
             ].map(({ step, label }) => (

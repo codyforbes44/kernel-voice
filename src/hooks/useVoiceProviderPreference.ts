@@ -103,10 +103,10 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     loadPreference();
   }, [isAuthenticated]);
 
-  // Fallback to OpenAI if user loses ElevenLabs access
+  // Fallback to 3ʙɪ if user loses ElevenLabs access
   useEffect(() => {
     if (!featuresLoading && provider === 'elevenlabs' && !hasFeature('elevenlabs_voice')) {
-      console.log('User does not have ElevenLabs access, falling back to OpenAI');
+      console.log('User does not have ElevenLabs access, falling back to 3ʙɪ');
       setProvider('openai');
       if (!isAuthenticated) {
         localStorage.setItem('voice_provider', 'openai');
