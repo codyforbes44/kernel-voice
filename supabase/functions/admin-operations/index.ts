@@ -6,12 +6,13 @@ const corsHeaders = {
 }
 
 interface AdminOperation {
-  action: 'deleteUser' | 'updateUserRole' | 'deleteConversation' | 'deleteDocument' | 'bulkDelete' | 'exportData'
+  action: 'deleteUser' | 'updateUserRole' | 'deleteConversation' | 'deleteDocument' | 'bulkDelete' | 'exportData' | 'grantFeature' | 'revokeFeature' | 'listUserFeatures'
   targetUserId?: string
   targetResourceId?: string
   targetResourceIds?: string[]
   resourceType?: 'user' | 'conversation' | 'document'
   newRole?: 'admin' | 'moderator' | 'user'
+  featureKey?: string
   metadata?: Record<string, unknown>
 }
 
@@ -290,6 +291,93 @@ Deno.serve(async (req) => {
         })
 
         result = { success: true, data: exportData, count: exportData.length }
+        break
+      }
+
+      case 'grantFeature': {
+        if (!operation.targetUserId || !operation.featureKey) {
+          throw new Error('targetUserId and featureKey are required')
+        }
+
+        // Upsert the feature (enable it)
+        const { error: featureError } = await adminClient
+          .from('user_features')
+          .upsert({
+            user_id: operation.targetUserId,
+            feature_key: operation.featureKey,
+            enabled: true,
+            granted_by: user.id,
+            granted_at: new Date().toISOString(),
+            revoked_at: null,
+            metadata: operation.metadata || {},
+          }, {
+            onConflict: 'user_id,feature_key',
+          })
+
+        if (featureError) throw featureError
+
+        // Log the action
+        await adminClient.from('admin_audit_log').insert({
+          admin_id: user.id,
+          action: 'grant_feature',
+          target_user_id: operation.targetUserId,
+          ip_address: clientIp,
+          metadata: { 
+            feature_key: operation.featureKey,
+            ...operation.metadata 
+          },
+        })
+
+        result = { success: true, message: `Feature ${operation.featureKey} granted` }
+        break
+      }
+
+      case 'revokeFeature': {
+        if (!operation.targetUserId || !operation.featureKey) {
+          throw new Error('targetUserId and featureKey are required')
+        }
+
+        // Update the feature to disabled and set revoked_at
+        const { error: featureError } = await adminClient
+          .from('user_features')
+          .update({
+            enabled: false,
+            revoked_at: new Date().toISOString(),
+          })
+          .eq('user_id', operation.targetUserId)
+          .eq('feature_key', operation.featureKey)
+
+        if (featureError) throw featureError
+
+        // Log the action
+        await adminClient.from('admin_audit_log').insert({
+          admin_id: user.id,
+          action: 'revoke_feature',
+          target_user_id: operation.targetUserId,
+          ip_address: clientIp,
+          metadata: { 
+            feature_key: operation.featureKey,
+            ...operation.metadata 
+          },
+        })
+
+        result = { success: true, message: `Feature ${operation.featureKey} revoked` }
+        break
+      }
+
+      case 'listUserFeatures': {
+        if (!operation.targetUserId) {
+          throw new Error('targetUserId is required')
+        }
+
+        const { data: features, error: fetchError } = await adminClient
+          .from('user_features')
+          .select('*')
+          .eq('user_id', operation.targetUserId)
+
+        if (fetchError) throw fetchError
+
+        result = { success: true, features: features || [] }
         break
       }
 

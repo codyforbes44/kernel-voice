@@ -9,9 +9,10 @@ import {
 } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -27,10 +28,12 @@ import {
   FileText, 
   Shield, 
   Mic,
-  Settings
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useUserFeaturesAdmin } from '@/hooks/useUserFeatures';
 
 interface UserProfile {
   id: string;
@@ -69,6 +72,9 @@ export const UserDetailDrawer = ({
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState(currentRole);
+  const [togglingFeature, setTogglingFeature] = useState<string | null>(null);
+  
+  const { features, loading: featuresLoading, refetch: refetchFeatures } = useUserFeaturesAdmin(userId);
 
   useEffect(() => {
     if (userId && open) {
@@ -139,6 +145,52 @@ export const UserDetailDrawer = ({
     if (userId && onRoleChange) {
       setRole(newRole);
       await onRoleChange(userId, newRole);
+    }
+  };
+
+  const hasFeature = (featureKey: string) => {
+    return features.some((f: { feature_key: string; enabled: boolean; revoked_at: string | null }) => 
+      f.feature_key === featureKey && f.enabled && !f.revoked_at
+    );
+  };
+
+  const handleFeatureToggle = async (featureKey: string, enabled: boolean) => {
+    if (!userId) return;
+    
+    setTogglingFeature(featureKey);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Not authenticated');
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-operations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          action: enabled ? 'grantFeature' : 'revokeFeature',
+          targetUserId: userId,
+          featureKey,
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update feature');
+      }
+
+      toast.success(enabled ? 'Feature granted' : 'Feature revoked');
+      refetchFeatures();
+    } catch (error) {
+      console.error('Feature toggle error:', error);
+      toast.error('Failed to update feature');
+    } finally {
+      setTogglingFeature(null);
     }
   };
 
@@ -254,7 +306,7 @@ export const UserDetailDrawer = ({
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Provider</span>
-                  <Badge variant="secondary">{profile.voice_provider || 'ElevenLabs'}</Badge>
+                  <Badge variant="secondary">{profile.voice_provider || 'OpenAI'}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Voice</span>
@@ -265,6 +317,49 @@ export const UserDetailDrawer = ({
                   <span className="capitalize">{profile.input_mode || 'Combined'}</span>
                 </div>
               </div>
+            </div>
+
+            <Separator />
+
+            {/* Feature Upgrades */}
+            <div className="space-y-4">
+              <h4 className="font-medium flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Feature Upgrades
+              </h4>
+              
+              {featuresLoading ? (
+                <Skeleton className="h-12 w-full" />
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Mic className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <Label htmlFor="elevenlabs-toggle" className="font-medium">
+                          Premium Voice (ElevenLabs)
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          29+ languages, auto-detection, knowledge base
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {togglingFeature === 'elevenlabs_voice' && (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      )}
+                      <Switch
+                        id="elevenlabs-toggle"
+                        checked={hasFeature('elevenlabs_voice')}
+                        onCheckedChange={(checked) => handleFeatureToggle('elevenlabs_voice', checked)}
+                        disabled={togglingFeature === 'elevenlabs_voice'}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <Separator />

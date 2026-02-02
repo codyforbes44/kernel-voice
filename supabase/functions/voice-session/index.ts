@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +14,8 @@ serve(async (req) => {
   try {
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
     const agentId = Deno.env.get('VITE_ELEVENLABS_AGENT_ID');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
     if (!ELEVENLABS_API_KEY) {
       throw new Error('Voice service not configured');
@@ -20,6 +23,41 @@ serve(async (req) => {
 
     if (!agentId) {
       throw new Error('Voice agent not configured');
+    }
+
+    // Check if user has elevenlabs_voice feature
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader) {
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+      const userClient = createClient(supabaseUrl, supabaseServiceKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const { data: { user } } = await userClient.auth.getUser();
+      
+      if (user) {
+        // Check if user has the elevenlabs_voice feature
+        const { data: feature } = await adminClient
+          .from('user_features')
+          .select('enabled')
+          .eq('user_id', user.id)
+          .eq('feature_key', 'elevenlabs_voice')
+          .eq('enabled', true)
+          .is('revoked_at', null)
+          .maybeSingle();
+
+        if (!feature) {
+          console.log('User does not have ElevenLabs access:', user.id);
+          return new Response(JSON.stringify({ 
+            error: 'Premium voice feature not enabled for this account' 
+          }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        console.log('User has ElevenLabs access:', user.id);
+      }
     }
 
     // Parse request body for options

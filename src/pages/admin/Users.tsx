@@ -35,9 +35,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Search, Trash2, Shield, Eye, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Search, Trash2, Shield, Eye, ChevronLeft, ChevronRight, RefreshCw, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+
+interface UserFeature {
+  user_id: string;
+  feature_key: string;
+  enabled: boolean;
+  revoked_at: string | null;
+}
 
 interface UserWithRole {
   id: string;
@@ -46,6 +53,7 @@ interface UserWithRole {
   created_at: string;
   updated_at: string | null;
   role: 'admin' | 'moderator' | 'user';
+  hasElevenLabs?: boolean;
 }
 
 const PAGE_SIZE = 20;
@@ -72,6 +80,21 @@ export default function AdminUsers() {
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (profiles) {
+        // Fetch all user features for the displayed users
+        const userIds = profiles.map(p => p.id);
+        const { data: allFeatures } = await supabase
+          .from('user_features')
+          .select('user_id, feature_key, enabled, revoked_at')
+          .in('user_id', userIds)
+          .eq('feature_key', 'elevenlabs_voice')
+          .eq('enabled', true)
+          .is('revoked_at', null);
+
+        const featureMap = new Map<string, boolean>();
+        (allFeatures || []).forEach((f: UserFeature) => {
+          featureMap.set(f.user_id, true);
+        });
+
         const usersWithRoles = await Promise.all(
           profiles.map(async (profile) => {
             const { data: roleData } = await supabase
@@ -85,6 +108,7 @@ export default function AdminUsers() {
             return {
               ...profile,
               role: (roleData?.role as 'admin' | 'moderator' | 'user') || 'user',
+              hasElevenLabs: featureMap.get(profile.id) || false,
             };
           })
         );
@@ -306,6 +330,7 @@ export default function AdminUsers() {
                   <TableHead>User</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Features</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -314,13 +339,13 @@ export default function AdminUsers() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       Loading users...
                     </TableCell>
                   </TableRow>
                 ) : filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -371,6 +396,14 @@ export default function AdminUsers() {
                               </SelectItem>
                             </SelectContent>
                           </Select>
+                        </TableCell>
+                        <TableCell>
+                          {user.hasElevenLabs && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              Premium
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant={isRecent ? 'default' : 'secondary'}>

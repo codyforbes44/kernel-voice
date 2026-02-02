@@ -66,16 +66,23 @@ export const OPENAI_PRESETS: Record<Exclude<OpenAISettingsPreset, 'custom'>, { s
 export const DEFAULT_OPENAI_SETTINGS: OpenAIVoiceSettings = OPENAI_PRESETS.balanced.settings;
 
 // Provider info
-export const providerInfo = {
-  elevenlabs: {
-    name: 'ElevenLabs',
-    description: 'Premium voices, auto-language',
-    features: ['29+ Languages', 'Auto-detect', 'Knowledge Base'],
-  },
+export const providerInfo: Record<VoiceProvider, {
+  name: string;
+  description: string;
+  features: string[];
+  isPremium: boolean;
+}> = {
   openai: {
     name: 'OpenAI',
     description: 'GPT-4o Realtime, low latency',
     features: ['WebRTC', 'Fast response', 'Tool calling'],
+    isPremium: false,
+  },
+  elevenlabs: {
+    name: 'ElevenLabs',
+    description: 'Premium voices, auto-language',
+    features: ['29+ Languages', 'Auto-detect', 'Knowledge Base'],
+    isPremium: true,
   },
 };
 
