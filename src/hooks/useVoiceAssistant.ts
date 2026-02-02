@@ -4,8 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 import { useVoiceProviderPreference } from '@/hooks/useVoiceProviderPreference';
-import { type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings, type ElevenLabsSettings, type ConnectionPhase, type ToolExecution } from '@/components/voice/voiceTypes';
+import { type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings, type ElevenLabsSettings, type VAPISettings, type ConnectionPhase, type ToolExecution } from '@/components/voice/voiceTypes';
 import { useOpenAIConversation } from '@/hooks/useOpenAIConversation';
+import { useVAPIConversation } from '@/hooks/useVAPIConversation';
 import { type InputMode } from '@/components/voice/InputModeSelector';
 import { useInputModePreference } from '@/hooks/useInputModePreference';
 import { useTranscriptManager } from '@/hooks/useTranscriptManager';
@@ -35,6 +36,8 @@ interface UseVoiceAssistantReturn {
   setOpenAISettings: (settings: OpenAIVoiceSettings) => void;
   elevenlabsSettings: ElevenLabsSettings;
   setElevenLabsSettings: (settings: ElevenLabsSettings) => void;
+  vapiSettings: VAPISettings;
+  setVapiSettings: (settings: VAPISettings) => void;
   systemPrompt: string;
   setSystemPrompt: (prompt: string) => void;
   providerLoading: boolean;
@@ -116,6 +119,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setOpenAISettings,
     elevenlabsSettings,
     setElevenLabsSettings,
+    vapiSettings,
+    setVapiSettings,
     systemPrompt,
     setSystemPrompt,
     loading: providerLoading 
@@ -288,35 +293,87 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     firstMessage: openaiSettings.firstMessage,
   });
 
+  // VAPI conversation hook
+  const vapiConversation = useVAPIConversation({
+    onConnect: () => {
+      console.log('Connected to VAPI voice service');
+      clearTranscripts();
+      toast({
+        title: 'Connected',
+        description: 'Voice assistant is ready (VAPI)',
+      });
+    },
+    onDisconnect: () => {
+      console.log('Disconnected from VAPI voice service');
+    },
+    onMessage: (message) => {
+      console.log('VAPI message received:', message);
+    },
+    onError: (error) => {
+      console.error('VAPI voice service error:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Voice connection error',
+        variant: 'destructive',
+      });
+    },
+    onTranscript: (transcript) => {
+      console.log('VAPI transcript:', transcript);
+      if (transcript.role === 'assistant') {
+        addTranscript('assistant', transcript.text, true);
+      } else {
+        addTranscript('user', transcript.text);
+      }
+    },
+    clientTools,
+    settings: vapiSettings,
+    systemPrompt,
+    firstMessage: openaiSettings.firstMessage, // Reuse firstMessage setting
+  });
+
   // Use the selected provider's conversation
   const conversation = voiceProvider === 'elevenlabs' 
     ? elevenlabsConversation 
-    : openaiConversation;
+    : voiceProvider === 'vapi'
+      ? vapiConversation
+      : openaiConversation;
   const isConnected = conversation.status === 'connected';
-  const isConnecting = voiceProvider === 'openai' 
-    ? openaiConversation.status === 'connecting' 
+  const isConnecting = (voiceProvider === 'openai' || voiceProvider === 'vapi')
+    ? (voiceProvider === 'openai' ? openaiConversation : vapiConversation).status === 'connecting' 
     : false;
   const connectionError = voiceProvider === 'openai' 
     ? openaiConversation.connectionError 
-    : null;
+    : voiceProvider === 'vapi'
+      ? vapiConversation.connectionError
+      : null;
   const connectionAuthMethod = voiceProvider === 'openai'
     ? openaiConversation.connectionInfo?.tokenParam 
-    : undefined;
+    : voiceProvider === 'vapi'
+      ? vapiConversation.connectionInfo?.tokenParam
+      : undefined;
   const connectionPhase = voiceProvider === 'openai' 
     ? openaiConversation.connectionPhase 
-    : undefined;
+    : voiceProvider === 'vapi'
+      ? vapiConversation.connectionPhase
+      : undefined;
   const inputAudioLevel = voiceProvider === 'openai'
     ? openaiConversation.inputAudioLevel 
-    : 0;
+    : voiceProvider === 'vapi'
+      ? vapiConversation.inputAudioLevel
+      : 0;
   const outputAudioLevel = voiceProvider === 'openai'
     ? openaiConversation.outputAudioLevel 
-    : 0;
+    : voiceProvider === 'vapi'
+      ? vapiConversation.outputAudioLevel
+      : 0;
 
   // Use refs to stabilize the startConversation callback
   const voiceProviderRef = useRef(voiceProvider);
   const elevenlabsConversationRef = useRef(elevenlabsConversation);
   const elevenlabsSettingsRef = useRef(elevenlabsSettings);
   const openaiConversationRef = useRef(openaiConversation);
+  const vapiConversationRef = useRef(vapiConversation);
+  const vapiSettingsRef = useRef(vapiSettings);
   
   useEffect(() => {
     voiceProviderRef.current = voiceProvider;
@@ -330,6 +387,12 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   useEffect(() => {
     openaiConversationRef.current = openaiConversation;
   }, [openaiConversation]);
+  useEffect(() => {
+    vapiConversationRef.current = vapiConversation;
+  }, [vapiConversation]);
+  useEffect(() => {
+    vapiSettingsRef.current = vapiSettings;
+  }, [vapiSettings]);
 
   // Ref to track if a start is in progress
   const isStartingConversationRef = useRef(false);
@@ -364,6 +427,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
           signedUrl: data.signedUrl,
           ...(data.overrides && { overrides: data.overrides }),
         });
+      } else if (voiceProviderRef.current === 'vapi') {
+        console.log('Starting VAPI voice session');
+        await vapiConversationRef.current.startSession();
       } else {
         console.log('Starting 3ʙɪ Realtime voice session');
         await openaiConversationRef.current.startSession();
@@ -383,6 +449,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const endConversation = async () => {
     if (voiceProvider === 'elevenlabs') {
       await elevenlabsConversation.endSession();
+    } else if (voiceProvider === 'vapi') {
+      await vapiConversation.endSession();
     } else {
       await openaiConversation.endSession();
     }
@@ -395,6 +463,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const retryConnection = async () => {
     if (voiceProvider === 'openai') {
       openaiConversation.clearError();
+    } else if (voiceProvider === 'vapi') {
+      vapiConversation.clearError();
     }
     await startConversation();
   };
@@ -402,6 +472,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const clearConnectionError = () => {
     if (voiceProvider === 'openai') {
       openaiConversation.clearError();
+    } else if (voiceProvider === 'vapi') {
+      vapiConversation.clearError();
     }
   };
 
@@ -421,9 +493,15 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setIsProcessingText(true);
     
     try {
-      // If connected to OpenAI and it's the active provider, send via data channel
+      // If connected to OpenAI/VAPI and it's the active provider, send via data channel
       if (voiceProvider === 'openai' && isConnected && openaiConversation.sendTextMessage) {
         openaiConversation.sendTextMessage(text);
+        setIsProcessingText(false);
+        return;
+      }
+      
+      if (voiceProvider === 'vapi' && isConnected && vapiConversation.sendTextMessage) {
+        vapiConversation.sendTextMessage(text);
         setIsProcessingText(false);
         return;
       }
@@ -443,7 +521,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     } finally {
       setIsProcessingText(false);
     }
-  }, [voiceProvider, isConnected, openaiConversation, addTranscript, clientTools]);
+  }, [voiceProvider, isConnected, openaiConversation, vapiConversation, addTranscript, clientTools]);
 
   return {
     // Auth state
@@ -464,6 +542,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setOpenAISettings,
     elevenlabsSettings,
     setElevenLabsSettings,
+    vapiSettings,
+    setVapiSettings,
     systemPrompt,
     setSystemPrompt,
     providerLoading,
@@ -497,7 +577,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     // Tool execution
     activeToolCall: voiceProvider === 'openai' 
       ? openaiConversation.activeToolCall 
-      : null,
+      : voiceProvider === 'vapi'
+        ? vapiConversation.activeToolCall
+        : null,
     
     // Transcripts
     liveTranscripts,

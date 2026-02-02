@@ -15,13 +15,16 @@ import { Button } from '@/components/ui/button';
 import { Cloud, Loader2, Sparkles, Crown } from 'lucide-react';
 import { OpenAISettingsPanel } from './OpenAISettingsPanel';
 import { ElevenLabsSettingsPanel } from './ElevenLabsSettingsPanel';
+import { VAPISettingsPanel } from './VAPISettingsPanel';
 import {
   VoiceProvider,
   OpenAIVoice,
   OpenAIVoiceSettings,
   ElevenLabsSettings,
+  VAPISettings,
   DEFAULT_OPENAI_SETTINGS,
   DEFAULT_ELEVENLABS_SETTINGS,
+  DEFAULT_VAPI_SETTINGS,
   providerInfo,
 } from './voiceTypes';
 import { useUserFeatures } from '@/hooks/useUserFeatures';
@@ -32,6 +35,7 @@ export type {
   OpenAIVoice,
   OpenAIVoiceSettings,
   ElevenLabsSettings,
+  VAPISettings,
   ConnectionPhase,
   ToolExecution,
 } from './voiceTypes';
@@ -42,6 +46,7 @@ export {
   OPENAI_PRESETS,
   DEFAULT_OPENAI_SETTINGS,
   DEFAULT_ELEVENLABS_SETTINGS,
+  DEFAULT_VAPI_SETTINGS,
 } from './voiceTypes';
 
 // Re-export hook for backwards compatibility
@@ -56,6 +61,8 @@ interface VoiceProviderSelectorProps {
   onOpenAISettingsChange: (settings: OpenAIVoiceSettings) => void;
   elevenlabsSettings: ElevenLabsSettings;
   onElevenLabsSettingsChange: (settings: ElevenLabsSettings) => void;
+  vapiSettings?: VAPISettings;
+  onVapiSettingsChange?: (settings: VAPISettings) => void;
   systemPrompt: string;
   onSystemPromptChange: (prompt: string) => void;
   disabled?: boolean;
@@ -71,6 +78,8 @@ export function VoiceProviderSelector({
   onOpenAISettingsChange,
   elevenlabsSettings,
   onElevenLabsSettingsChange,
+  vapiSettings,
+  onVapiSettingsChange,
   systemPrompt,
   onSystemPromptChange,
   disabled = false,
@@ -86,15 +95,16 @@ export function VoiceProviderSelector({
   const availableProviders = useMemo(() => {
     const providers: VoiceProvider[] = ['openai'];
     
-    // Only add ElevenLabs if user has the feature
+    // Add premium providers if user has the feature (Pro tier grants access to all)
     if (hasFeature('elevenlabs_voice')) {
       providers.push('elevenlabs');
+      providers.push('vapi');
     }
     
     return providers;
   }, [hasFeature]);
 
-  const hasElevenLabsAccess = hasFeature('elevenlabs_voice');
+  const hasPremiumAccess = hasFeature('elevenlabs_voice');
 
   const withSync = async (fn: () => Promise<void>) => {
     if (!isAuthenticated) {
@@ -199,6 +209,11 @@ export function VoiceProviderSelector({
     });
   };
 
+  const handleVapiSettingsChange = async (newSettings: VAPISettings) => {
+    onVapiSettingsChange?.(newSettings);
+    localStorage.setItem('vapi_settings', JSON.stringify(newSettings));
+  };
+
   const handleElevenLabsSettingsChange = async (newSettings: ElevenLabsSettings) => {
     onElevenLabsSettingsChange(newSettings);
     localStorage.setItem('elevenlabs_settings', JSON.stringify(newSettings));
@@ -259,8 +274,8 @@ export function VoiceProviderSelector({
           </SelectContent>
         </Select>
         
-        {/* Show upgrade prompt if ElevenLabs is not available */}
-        {!hasElevenLabsAccess && isAuthenticated && (
+        {/* Show upgrade prompt if premium providers are not available */}
+        {!hasPremiumAccess && isAuthenticated && (
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground flex items-center">
               <Crown className="h-3 w-3 mr-1 text-primary" />
@@ -307,6 +322,16 @@ export function VoiceProviderSelector({
         <ElevenLabsSettingsPanel
           settings={elevenlabsSettings}
           onSettingsChange={handleElevenLabsSettingsChange}
+          systemPrompt={systemPrompt}
+          onSystemPromptChange={onSystemPromptChange}
+          disabled={disabled}
+        />
+      )}
+      
+      {value === 'vapi' && vapiSettings && (
+        <VAPISettingsPanel
+          settings={vapiSettings}
+          onSettingsChange={handleVapiSettingsChange}
           systemPrompt={systemPrompt}
           onSystemPromptChange={onSystemPromptChange}
           disabled={disabled}

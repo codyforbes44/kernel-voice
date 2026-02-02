@@ -3,14 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Wifi, WifiOff, Loader2, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ConnectionPhase } from '@/components/voice/voiceTypes';
+import { ConnectionPhase, VoiceProvider } from '@/components/voice/voiceTypes';
 
 interface ConnectionStatusBadgeProps {
   isConnected: boolean;
   isConnecting: boolean;
   hasError: boolean;
   errorMessage?: string;
-  provider: 'elevenlabs' | 'openai';
+  provider: VoiceProvider;
   authMethod?: string;
   connectionPhase?: ConnectionPhase;
   onRetry?: () => void;
@@ -28,15 +28,15 @@ export const ConnectionStatusBadge = ({
   onRetry,
   className,
 }: ConnectionStatusBadgeProps) => {
-  // Get phase-specific status for OpenAI
+  // Get phase-specific status for OpenAI/VAPI
   const getPhaseInfo = () => {
-    if (provider !== 'openai' || !connectionPhase) return null;
+    if ((provider !== 'openai' && provider !== 'vapi') || !connectionPhase) return null;
     
     switch (connectionPhase) {
       case 'getting_token':
         return { label: 'Getting token...', step: 1 };
       case 'connecting_webrtc':
-        return { label: 'Connecting to OpenAI...', step: 2 };
+        return { label: provider === 'vapi' ? 'Connecting to VAPI...' : 'Connecting to OpenAI...', step: 2 };
       case 'configuring':
         return { label: 'Configuring session...', step: 3 };
       case 'ready':
@@ -89,8 +89,8 @@ export const ConnectionStatusBadge = ({
   const status = getStatus();
   const Icon = status.icon;
 
-  const providerLabel = provider === 'elevenlabs' ? 'EL' : '3ʙɪ';
-  const providerFullName = provider === 'elevenlabs' ? 'ElevenLabs' : '3ʙɪ Realtime';
+  const providerLabel = provider === 'elevenlabs' ? 'EL' : provider === 'vapi' ? 'VAPI' : '3ʙɪ';
+  const providerFullName = provider === 'elevenlabs' ? 'ElevenLabs' : provider === 'vapi' ? 'VAPI Voice' : '3ʙɪ Realtime';
   const authLabel = isConnected && authMethod ? `:${authMethod}` : '';
 
   const tooltipContent = (
@@ -107,13 +107,13 @@ export const ConnectionStatusBadge = ({
           <span className="text-foreground">Auth param:</span> {authMethod}
         </div>
       )}
-      {isConnecting && provider === 'openai' && phaseInfo && (
+      {isConnecting && (provider === 'openai' || provider === 'vapi') && phaseInfo && (
         <div className="mt-2 pt-2 border-t border-border/30 space-y-2">
           <div className="font-medium text-foreground">Connection Progress</div>
           <div className="space-y-1.5">
             {[
               { step: 1, label: 'Get session token' },
-              { step: 2, label: 'Connect to 3ʙɪ' },
+              { step: 2, label: provider === 'vapi' ? 'Connect to VAPI' : 'Connect to 3ʙɪ' },
               { step: 3, label: 'Configure session' },
               { step: 4, label: 'Ready to talk' },
             ].map(({ step, label }) => (
