@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Cloud, Loader2 } from 'lucide-react';
+import { Cloud, Loader2, Sparkles } from 'lucide-react';
 import { OpenAISettingsPanel } from './OpenAISettingsPanel';
 import { ElevenLabsSettingsPanel } from './ElevenLabsSettingsPanel';
 import {
@@ -22,6 +22,7 @@ import {
   DEFAULT_ELEVENLABS_SETTINGS,
   providerInfo,
 } from './voiceTypes';
+import { useUserFeatures } from '@/hooks/useUserFeatures';
 
 // Re-export types for backwards compatibility
 export type {
@@ -76,6 +77,21 @@ export function VoiceProviderSelector({
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { hasFeature, loading: featuresLoading } = useUserFeatures();
+
+  // Determine available providers based on user features
+  const availableProviders = useMemo(() => {
+    const providers: VoiceProvider[] = ['openai'];
+    
+    // Only add ElevenLabs if user has the feature
+    if (hasFeature('elevenlabs_voice')) {
+      providers.push('elevenlabs');
+    }
+    
+    return providers;
+  }, [hasFeature]);
+
+  const hasElevenLabsAccess = hasFeature('elevenlabs_voice');
 
   const withSync = async (fn: () => Promise<void>) => {
     if (!isAuthenticated) {
@@ -212,24 +228,41 @@ export function VoiceProviderSelector({
         <Select
           value={value}
           onValueChange={(v) => handleProviderChange(v as VoiceProvider)}
-          disabled={disabled || saving}
+          disabled={disabled || saving || featuresLoading}
         >
           <SelectTrigger id="voice-provider" className="w-full">
             <SelectValue placeholder="Select voice provider" />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(providerInfo).map(([key, info]) => (
-              <SelectItem key={key} value={key}>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{info.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    - {info.description}
-                  </span>
-                </div>
-              </SelectItem>
-            ))}
+            {availableProviders.map((key) => {
+              const info = providerInfo[key];
+              return (
+                <SelectItem key={key} value={key}>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{info.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      - {info.description}
+                    </span>
+                    {info.isPremium && (
+                      <Badge variant="secondary" className="text-xs ml-1">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Premium
+                      </Badge>
+                    )}
+                  </div>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
+        
+        {/* Show upgrade prompt if ElevenLabs is not available */}
+        {!hasElevenLabsAccess && isAuthenticated && (
+          <p className="text-xs text-muted-foreground">
+            <Sparkles className="h-3 w-3 inline mr-1" />
+            Premium voices available with ElevenLabs upgrade
+          </p>
+        )}
         
         {/* Feature badges */}
         <div className="flex flex-wrap gap-1">

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSystemPromptPreference } from '@/components/voice/SystemPromptEditor';
+import { useUserFeatures } from '@/hooks/useUserFeatures';
 import {
   VoiceProvider,
   OpenAIVoice,
@@ -19,6 +20,7 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
   const [elevenlabsSettings, setElevenLabsSettings] = useState<ElevenLabsSettings>(DEFAULT_ELEVENLABS_SETTINGS);
   const [loading, setLoading] = useState(true);
   const { systemPrompt, setSystemPrompt, loading: promptLoading } = useSystemPromptPreference();
+  const { hasFeature, loading: featuresLoading } = useUserFeatures();
 
   useEffect(() => {
     const loadPreference = async () => {
@@ -101,12 +103,29 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     loadPreference();
   }, [isAuthenticated]);
 
-  const updateProvider = (newProvider: VoiceProvider) => {
+  // Fallback to OpenAI if user loses ElevenLabs access
+  useEffect(() => {
+    if (!featuresLoading && provider === 'elevenlabs' && !hasFeature('elevenlabs_voice')) {
+      console.log('User does not have ElevenLabs access, falling back to OpenAI');
+      setProvider('openai');
+      if (!isAuthenticated) {
+        localStorage.setItem('voice_provider', 'openai');
+      }
+    }
+  }, [featuresLoading, provider, hasFeature, isAuthenticated]);
+
+  const updateProvider = useCallback((newProvider: VoiceProvider) => {
+    // Validate access before switching to premium provider
+    if (newProvider === 'elevenlabs' && !hasFeature('elevenlabs_voice')) {
+      console.warn('User does not have access to ElevenLabs');
+      return;
+    }
+    
     setProvider(newProvider);
     if (!isAuthenticated) {
       localStorage.setItem('voice_provider', newProvider);
     }
-  };
+  }, [hasFeature, isAuthenticated]);
 
   const updateOpenAIVoice = (newVoice: OpenAIVoice) => {
     setOpenAIVoice(newVoice);
@@ -134,6 +153,7 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     setElevenLabsSettings: updateElevenLabsSettings,
     systemPrompt,
     setSystemPrompt,
-    loading: loading || promptLoading,
+    loading: loading || promptLoading || featuresLoading,
+    hasElevenLabsAccess: hasFeature('elevenlabs_voice'),
   };
 }

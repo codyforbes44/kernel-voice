@@ -453,6 +453,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_features: {
+        Row: {
+          enabled: boolean
+          feature_key: string
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          metadata: Json | null
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          feature_key: string
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          metadata?: Json | null
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          feature_key?: string
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          metadata?: Json | null
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
