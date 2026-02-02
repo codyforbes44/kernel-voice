@@ -56,6 +56,7 @@ interface UseWidgetVoiceReturn {
   isListening: boolean;
   isSupported: boolean;
   audioLevel: number;
+  partialTranscript: string;
   startListening: () => void;
   stopListening: () => void;
   toggleListening: () => void;
@@ -73,6 +74,7 @@ export function useWidgetVoice({
   const [isListening, setIsListening] = useState(false);
   const [isSupported] = useState(isSpeechRecognitionSupported);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [partialTranscript, setPartialTranscript] = useState('');
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const transcriptRef = useRef<string>('');
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -155,11 +157,13 @@ export function useWidgetVoice({
     recognition.onstart = () => {
       setIsListening(true);
       transcriptRef.current = '';
+      setPartialTranscript('');
     };
 
     recognition.onend = () => {
       setIsListening(false);
       cleanupAudioAnalysis();
+      setPartialTranscript('');
       // If we have accumulated transcript, send it
       if (transcriptRef.current.trim()) {
         onTranscript(transcriptRef.current.trim());
@@ -194,9 +198,13 @@ export function useWidgetVoice({
         }
       }
 
+      // Update partial transcript for real-time display
+      setPartialTranscript(transcriptRef.current + interimTranscript);
+
       // Accumulate final transcripts
       if (finalTranscript) {
         transcriptRef.current += finalTranscript;
+        setPartialTranscript(transcriptRef.current);
       }
     };
 
@@ -244,6 +252,7 @@ export function useWidgetVoice({
     isListening,
     isSupported,
     audioLevel,
+    partialTranscript,
     startListening,
     stopListening,
     toggleListening,
