@@ -1,4 +1,5 @@
-import { MessageCircle, X, Send, Mic } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MessageCircle, X, Send, Mic, MicOff } from 'lucide-react';
 
 interface WidgetPreviewProps {
   brandName: string;
@@ -11,6 +12,38 @@ interface WidgetPreviewProps {
   enableVoice?: boolean;
 }
 
+// Simulated audio level bars for preview
+function PreviewAudioBars({ color, isActive }: { color: string; isActive: boolean }) {
+  const [levels, setLevels] = useState([0.3, 0.5, 0.7, 0.5, 0.3]);
+
+  useEffect(() => {
+    if (!isActive) return;
+    
+    const interval = setInterval(() => {
+      setLevels(prev => prev.map(() => 0.2 + Math.random() * 0.8));
+    }, 100);
+    
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  if (!isActive) return null;
+
+  return (
+    <div className="flex items-center justify-center gap-0.5 h-4">
+      {levels.map((level, i) => (
+        <div
+          key={i}
+          className="w-0.5 rounded-full transition-all duration-75"
+          style={{
+            height: `${4 + level * 12}px`,
+            backgroundColor: color,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function WidgetPreview({
   brandName,
   brandLogo,
@@ -21,6 +54,33 @@ export function WidgetPreview({
   position,
   enableVoice = false,
 }: WidgetPreviewProps) {
+  const [isRecording, setIsRecording] = useState(false);
+
+  // Auto-demo the recording animation when voice is enabled
+  useEffect(() => {
+    if (!enableVoice) {
+      setIsRecording(false);
+      return;
+    }
+    
+    // Demo the recording state periodically
+    const demoInterval = setInterval(() => {
+      setIsRecording(true);
+      setTimeout(() => setIsRecording(false), 3000);
+    }, 8000);
+    
+    // Initial demo after a short delay
+    const initialTimeout = setTimeout(() => {
+      setIsRecording(true);
+      setTimeout(() => setIsRecording(false), 3000);
+    }, 1500);
+    
+    return () => {
+      clearInterval(demoInterval);
+      clearTimeout(initialTimeout);
+    };
+  }, [enableVoice]);
+
   return (
     <div className="relative bg-muted/30 rounded-lg p-4 min-h-[400px] border">
       {/* Preview label */}
@@ -43,6 +103,21 @@ export function WidgetPreview({
         className={`absolute bottom-4 ${position === 'bottom-right' ? 'right-4' : 'left-4'}`}
         style={{ width: '280px' }}
       >
+        {/* Audio level indicator tooltip - shows when recording */}
+        {isRecording && (
+          <div
+            className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg z-10"
+            style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+          >
+            <div
+              className="w-2 h-2 rounded-full animate-pulse"
+              style={{ backgroundColor: '#ef4444' }}
+            />
+            <PreviewAudioBars color={brandColor} isActive={isRecording} />
+            <span className="text-white text-xs font-medium">Listening...</span>
+          </div>
+        )}
+
         {/* Chat window */}
         <div
           className="rounded-xl shadow-2xl overflow-hidden border"
@@ -130,17 +205,27 @@ export function WidgetPreview({
             <div className="flex items-center gap-2">
               {enableVoice && (
                 <button
-                  className="p-2 rounded-full"
-                  style={{ backgroundColor: '#f3f4f6', color: brandColor }}
+                  className="p-2 rounded-full transition-all"
+                  style={{
+                    backgroundColor: isRecording ? '#ef4444' : '#f3f4f6',
+                    color: isRecording ? '#ffffff' : brandColor,
+                    boxShadow: isRecording ? '0 0 0 4px rgba(239, 68, 68, 0.2)' : 'none',
+                  }}
+                  onClick={() => setIsRecording(!isRecording)}
                 >
-                  <Mic className="w-4 h-4" />
+                  {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                 </button>
               )}
               <input
                 type="text"
-                placeholder={placeholder}
+                placeholder={isRecording ? 'Listening...' : placeholder}
                 disabled
-                className="flex-1 px-3 py-2 text-sm border rounded-lg bg-gray-50 text-muted-foreground"
+                className="flex-1 px-3 py-2 text-sm border rounded-lg text-muted-foreground transition-all"
+                style={{
+                  backgroundColor: isRecording ? '#f0fdf4' : '#fafafa',
+                  borderColor: isRecording ? brandColor : '#e5e5e5',
+                  borderWidth: isRecording ? '2px' : '1px',
+                }}
               />
               <button
                 className="p-2 rounded-lg text-white"
