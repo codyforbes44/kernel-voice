@@ -53,6 +53,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
   const [enableKB, setEnableKB] = useState(false);
   const [enableVoice, setEnableVoice] = useState(false);
   const [voiceProvider, setVoiceProvider] = useState<'native' | 'elevenlabs'>('native');
+  const [waveformStyle, setWaveformStyle] = useState<'bars' | 'wave' | 'circular'>('bars');
   const [position, setPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
   const [enableTTS, setEnableTTS] = useState(false);
   const [ttsVoiceId, setTtsVoiceId] = useState('EXAVITQu4vr4xnSDxMaL');
@@ -75,6 +76,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
       setEnableKB((config.enableKB as boolean) || false);
       setEnableVoice((config.enableVoice as boolean) || false);
       setVoiceProvider((config.voiceProvider as 'native' | 'elevenlabs') || 'native');
+      setWaveformStyle((config.waveformStyle as 'bars' | 'wave' | 'circular') || 'bars');
       setPosition((config.position as 'bottom-right' | 'bottom-left') || 'bottom-right');
       setEnableTTS((config.enableTTS as boolean) || false);
       setTtsVoiceId((config.ttsVoiceId as string) || 'EXAVITQu4vr4xnSDxMaL');
@@ -96,6 +98,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
       setEnableKB(false);
       setEnableVoice(false);
       setVoiceProvider('native');
+      setWaveformStyle('bars');
       setPosition('bottom-right');
       setEnableTTS(false);
       setTtsVoiceId('EXAVITQu4vr4xnSDxMaL');
@@ -120,6 +123,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
         enableKB,
         enableVoice,
         voiceProvider,
+        waveformStyle,
         position,
         enableTTS,
         ttsVoiceId,
@@ -248,23 +252,42 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
             </div>
 
             {enableVoice && (
-              <div className="space-y-2 pl-4 border-l-2 border-muted">
-                <Label>Voice Provider</Label>
-                <Select value={voiceProvider} onValueChange={(v) => setVoiceProvider(v as 'native' | 'elevenlabs')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select provider" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="native">Browser Native (Free)</SelectItem>
-                    <SelectItem value="elevenlabs">ElevenLabs (Better Accuracy)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {voiceProvider === 'elevenlabs' 
-                    ? 'Uses ElevenLabs Scribe for higher accuracy transcription'
-                    : 'Uses browser\'s built-in speech recognition (may vary by browser)'}
-                </p>
-              </div>
+              <>
+                <div className="space-y-2 pl-4 border-l-2 border-muted">
+                  <Label>Voice Provider</Label>
+                  <Select value={voiceProvider} onValueChange={(v) => setVoiceProvider(v as 'native' | 'elevenlabs')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="native">Browser Native (Free)</SelectItem>
+                      <SelectItem value="elevenlabs">ElevenLabs (Better Accuracy)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {voiceProvider === 'elevenlabs' 
+                      ? 'Uses ElevenLabs Scribe for higher accuracy transcription'
+                      : 'Uses browser\'s built-in speech recognition (may vary by browser)'}
+                  </p>
+                </div>
+
+                <div className="space-y-2 pl-4 border-l-2 border-muted">
+                  <Label>Waveform Style</Label>
+                  <Select value={waveformStyle} onValueChange={(v) => setWaveformStyle(v as 'bars' | 'wave' | 'circular')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="bars">Bars (Classic)</SelectItem>
+                      <SelectItem value="wave">Wave (Flowing)</SelectItem>
+                      <SelectItem value="circular">Circular (Compact)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Visual style for the audio level indicator while recording
+                  </p>
+                </div>
+              </>
             )}
 
             <div className="flex items-center justify-between">

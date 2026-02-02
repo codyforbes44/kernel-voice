@@ -3,7 +3,7 @@ import { Send, Loader2, Mic, MicOff } from 'lucide-react';
 import { useWidgetTheme } from './WidgetTheme';
 import { useWidgetVoice } from './useWidgetVoice';
 import { useElevenLabsSTT } from './useElevenLabsSTT';
-import { WaveformVisualizer } from './WaveformVisualizer';
+import { WaveformVisualizer, WaveformStyle } from './WaveformVisualizer';
 
 interface WidgetInputProps {
   onSend: (message: string) => void;
@@ -11,6 +11,7 @@ interface WidgetInputProps {
   disabled?: boolean;
   enableVoice?: boolean;
   voiceProvider?: 'native' | 'elevenlabs';
+  waveformStyle?: WaveformStyle;
   supabaseUrl?: string;
   supabaseKey?: string;
 }
@@ -21,6 +22,7 @@ export function WidgetInput({
   disabled, 
   enableVoice = false,
   voiceProvider = 'native',
+  waveformStyle = 'bars',
   supabaseUrl = '',
   supabaseKey = '',
 }: WidgetInputProps) {
@@ -212,6 +214,7 @@ export function WidgetInput({
               audioLevel={voice.audioLevel}
               isActive={voice.isListening}
               primaryColor={theme.primaryColor}
+              style={waveformStyle}
               barCount={9}
             />
             
