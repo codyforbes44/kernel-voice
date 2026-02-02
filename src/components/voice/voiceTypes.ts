@@ -8,16 +8,24 @@ export interface OpenAIVoiceSettings {
 
 export type ElevenLabsLanguage = 'auto' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'pl' | 'hi' | 'ar' | 'zh' | 'ja' | 'ko';
 
+export type AgentPersonality = 'friendly' | 'professional' | 'technical' | 'empathetic' | 'custom';
+
 export interface ElevenLabsSettings {
   language: ElevenLabsLanguage;
   autoLanguageDetection: boolean;
   enableRAG: boolean;
+  personality: AgentPersonality;
+  customPrompt: string;
+  customFirstMessage: string;
 }
 
 export const DEFAULT_ELEVENLABS_SETTINGS: ElevenLabsSettings = {
   language: 'en',
   autoLanguageDetection: true,
   enableRAG: true,
+  personality: 'friendly',
+  customPrompt: '',
+  customFirstMessage: '',
 };
 
 export type OpenAISettingsPreset = 'fast' | 'balanced' | 'relaxed' | 'custom';

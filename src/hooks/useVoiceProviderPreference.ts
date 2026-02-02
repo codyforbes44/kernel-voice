@@ -44,7 +44,15 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
       if (savedElevenLabsSettings) {
         try {
           const parsed = JSON.parse(savedElevenLabsSettings);
-          setElevenLabsSettings({ ...DEFAULT_ELEVENLABS_SETTINGS, ...parsed });
+          // Merge with defaults to ensure new fields are present
+          setElevenLabsSettings({ 
+            ...DEFAULT_ELEVENLABS_SETTINGS, 
+            ...parsed,
+            // Ensure personality fields exist
+            personality: parsed.personality || 'friendly',
+            customPrompt: parsed.customPrompt || '',
+            customFirstMessage: parsed.customFirstMessage || '',
+          });
         } catch (e) {
           console.error('Error parsing ElevenLabs settings:', e);
         }
