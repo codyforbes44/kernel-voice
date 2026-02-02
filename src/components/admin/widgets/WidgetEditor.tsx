@@ -7,11 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Sparkles, Wand2 } from 'lucide-react';
+import { Loader2, Sparkles, Wand2, Save, Trash2, Users } from 'lucide-react';
 import { WidgetPreview } from './WidgetPreview';
+import { SavePresetDialog } from './SavePresetDialog';
+import { useCustomPromptPresets, type CustomPromptPreset } from '@/hooks/useCustomPromptPresets';
 
 // System prompt presets for quick configuration
 const SYSTEM_PROMPT_PRESETS = [
@@ -110,6 +112,9 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
   const [ttsVoiceId, setTtsVoiceId] = useState('EXAVITQu4vr4xnSDxMaL');
   const [rateLimitPerMinute, setRateLimitPerMinute] = useState(10);
   const [rateLimitPerHour, setRateLimitPerHour] = useState(100);
+  const [showSavePresetDialog, setShowSavePresetDialog] = useState(false);
+
+  const { presets: customPresets, createPreset, deletePreset, isLoading: presetsLoading } = useCustomPromptPresets();
 
   useEffect(() => {
     if (widget) {
@@ -482,30 +487,81 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
                   <Sparkles className="h-4 w-4 text-primary" />
                   AI Personality & Instructions
                 </Label>
-                <Select
-                  value=""
-                  onValueChange={(presetId) => {
-                    const preset = SYSTEM_PROMPT_PRESETS.find(p => p.id === presetId);
-                    if (preset) {
-                      setSystemPrompt(preset.prompt);
-                      toast.success(`Applied "${preset.name}" preset`);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-[180px] h-8">
-                    <div className="flex items-center gap-2">
-                      <Wand2 className="h-3.5 w-3.5" />
-                      <span className="text-sm">Use Preset</span>
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SYSTEM_PROMPT_PRESETS.map((preset) => (
-                      <SelectItem key={preset.id} value={preset.id}>
-                        {preset.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value=""
+                    onValueChange={(value) => {
+                      // Check if it's a built-in preset
+                      const builtInPreset = SYSTEM_PROMPT_PRESETS.find(p => p.id === value);
+                      if (builtInPreset) {
+                        setSystemPrompt(builtInPreset.prompt);
+                        toast.success(`Applied "${builtInPreset.name}" preset`);
+                        return;
+                      }
+                      
+                      // Check if it's a custom preset
+                      const customPreset = customPresets.find(p => p.id === value);
+                      if (customPreset) {
+                        setSystemPrompt(customPreset.system_prompt);
+                        if (customPreset.first_message) {
+                          setGreeting(customPreset.first_message);
+                        }
+                        toast.success(`Applied "${customPreset.name}" preset`);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-[180px] h-8">
+                      <div className="flex items-center gap-2">
+                        <Wand2 className="h-3.5 w-3.5" />
+                        <span className="text-sm">Use Preset</span>
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Built-in Presets</SelectLabel>
+                        {SYSTEM_PROMPT_PRESETS.map((preset) => (
+                          <SelectItem key={preset.id} value={preset.id}>
+                            {preset.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                      
+                      {customPresets.length > 0 && (
+                        <>
+                          <SelectSeparator />
+                          <SelectGroup>
+                            <SelectLabel className="flex items-center gap-1">
+                              <Save className="h-3 w-3" />
+                              Saved Presets
+                            </SelectLabel>
+                            {customPresets.map((preset) => (
+                              <SelectItem key={preset.id} value={preset.id}>
+                                <div className="flex items-center gap-2">
+                                  <span>{preset.name}</span>
+                                  {preset.is_shared && (
+                                    <Users className="h-3 w-3 text-muted-foreground" />
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSavePresetDialog(true)}
+                    disabled={!systemPrompt.trim()}
+                    className="h-8"
+                  >
+                    <Save className="h-3.5 w-3.5 mr-1.5" />
+                    Save
+                  </Button>
+                </div>
               </div>
               <Textarea
                 id="systemPrompt"
@@ -612,6 +668,24 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
             {widget ? 'Save Changes' : 'Create Widget'}
           </Button>
         </div>
+
+        {/* Save Preset Dialog */}
+        <SavePresetDialog
+          open={showSavePresetDialog}
+          onClose={() => setShowSavePresetDialog(false)}
+          onSave={async ({ name, description, isShared }) => {
+            await createPreset.mutateAsync({
+              name,
+              description,
+              system_prompt: systemPrompt,
+              first_message: greeting,
+              is_shared: isShared,
+            });
+          }}
+          systemPrompt={systemPrompt}
+          firstMessage={greeting}
+          isLoading={createPreset.isPending}
+        />
       </DialogContent>
     </Dialog>
   );

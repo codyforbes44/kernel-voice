@@ -101,6 +101,42 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_prompt_presets: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          first_message: string | null
+          id: string
+          is_shared: boolean | null
+          name: string
+          system_prompt: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          first_message?: string | null
+          id?: string
+          is_shared?: boolean | null
+          name: string
+          system_prompt: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          first_message?: string | null
+          id?: string
+          is_shared?: boolean | null
+          name?: string
+          system_prompt?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_chunks: {
         Row: {
           chunk_index: number
