@@ -1,4 +1,4 @@
-import { MessageCircle, X, Send } from 'lucide-react';
+import { MessageCircle, X, Send, Mic } from 'lucide-react';
 
 interface WidgetPreviewProps {
   brandName: string;
@@ -8,6 +8,7 @@ interface WidgetPreviewProps {
   greeting: string;
   placeholder: string;
   position: 'bottom-right' | 'bottom-left';
+  enableVoice?: boolean;
 }
 
 export function WidgetPreview({
@@ -18,6 +19,7 @@ export function WidgetPreview({
   greeting,
   placeholder,
   position,
+  enableVoice = false,
 }: WidgetPreviewProps) {
   return (
     <div className="relative bg-muted/30 rounded-lg p-4 min-h-[400px] border">
@@ -126,6 +128,14 @@ export function WidgetPreview({
           {/* Input area */}
           <div className="p-3 border-t bg-white">
             <div className="flex items-center gap-2">
+              {enableVoice && (
+                <button
+                  className="p-2 rounded-full"
+                  style={{ backgroundColor: '#f3f4f6', color: brandColor }}
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+              )}
               <input
                 type="text"
                 placeholder={placeholder}

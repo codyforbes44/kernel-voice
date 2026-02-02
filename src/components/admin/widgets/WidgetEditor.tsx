@@ -50,6 +50,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
   const [allowedDomains, setAllowedDomains] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [enableKB, setEnableKB] = useState(false);
+  const [enableVoice, setEnableVoice] = useState(false);
   const [position, setPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
       setAllowedDomains(widget.allowed_domains.join(', '));
       setIsActive(widget.is_active);
       setEnableKB((config.enableKB as boolean) || false);
+      setEnableVoice((config.enableVoice as boolean) || false);
       setPosition((config.position as 'bottom-right' | 'bottom-left') || 'bottom-right');
     } else {
       // Reset for new widget
@@ -80,6 +82,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
       setAllowedDomains('');
       setIsActive(true);
       setEnableKB(false);
+      setEnableVoice(false);
       setPosition('bottom-right');
     }
   }, [widget, open]);
@@ -98,6 +101,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
         placeholder,
         systemPrompt,
         enableKB,
+        enableVoice,
         position,
       };
 
@@ -206,6 +210,16 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
                 </p>
               </div>
               <Switch checked={enableKB} onCheckedChange={setEnableKB} />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Enable Voice Input</Label>
+                <p className="text-xs text-muted-foreground">
+                  Allow users to speak instead of typing (browser speech recognition)
+                </p>
+              </div>
+              <Switch checked={enableVoice} onCheckedChange={setEnableVoice} />
             </div>
           </TabsContent>
 
@@ -340,6 +354,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
               greeting={greeting}
               placeholder={placeholder}
               position={position}
+              enableVoice={enableVoice}
             />
           </div>
         </div>
