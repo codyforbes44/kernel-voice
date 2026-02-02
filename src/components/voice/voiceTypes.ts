@@ -31,8 +31,23 @@ export const DEFAULT_ELEVENLABS_SETTINGS: ElevenLabsSettings = {
 
 export type OpenAISettingsPreset = 'fast' | 'balanced' | 'relaxed' | 'custom';
 
-export type VoiceProvider = 'elevenlabs' | 'openai';
+export type VoiceProvider = 'elevenlabs' | 'openai' | 'vapi';
 export type OpenAIVoice = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse' | 'cedar' | 'marin';
+
+// VAPI Settings
+export interface VAPISettings {
+  assistantId: string;
+  enableRecording: boolean;
+  hipaaEnabled: boolean;
+  backgroundDenoisingEnabled: boolean;
+}
+
+export const DEFAULT_VAPI_SETTINGS: VAPISettings = {
+  assistantId: '',
+  enableRecording: false,
+  hipaaEnabled: false,
+  backgroundDenoisingEnabled: true,
+};
 
 // Connection phase type (used by OpenAI)
 export type ConnectionPhase = 'idle' | 'getting_token' | 'connecting_webrtc' | 'configuring' | 'ready' | 'error';
@@ -95,6 +110,12 @@ export const providerInfo: Record<VoiceProvider, {
     features: ['29+ Languages', 'Auto-detect', 'Knowledge Base'],
     isPremium: true,
   },
+  vapi: {
+    name: 'VAPI',
+    description: 'Voice agents, phone calling',
+    features: ['Phone Integration', '20+ Languages', 'Tool calling'],
+    isPremium: true,
+  },
 };
 
 // Voice options - organized by category
@@ -115,4 +136,4 @@ export const openaiVoices: { id: OpenAIVoice; name: string; type: string; tone: 
 
 // Valid voice values for validation
 export const VALID_OPENAI_VOICES: OpenAIVoice[] = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'cedar', 'marin'];
-export const VALID_PROVIDERS: VoiceProvider[] = ['elevenlabs', 'openai'];
+export const VALID_PROVIDERS: VoiceProvider[] = ['elevenlabs', 'openai', 'vapi'];

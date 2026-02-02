@@ -7,8 +7,10 @@ import {
   OpenAIVoice,
   OpenAIVoiceSettings,
   ElevenLabsSettings,
+  VAPISettings,
   DEFAULT_OPENAI_SETTINGS,
   DEFAULT_ELEVENLABS_SETTINGS,
+  DEFAULT_VAPI_SETTINGS,
   VALID_OPENAI_VOICES,
   VALID_PROVIDERS,
 } from '@/components/voice/voiceTypes';
@@ -18,6 +20,7 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
   const [openaiVoice, setOpenAIVoice] = useState<OpenAIVoice>('alloy');
   const [openaiSettings, setOpenAISettings] = useState<OpenAIVoiceSettings>(DEFAULT_OPENAI_SETTINGS);
   const [elevenlabsSettings, setElevenLabsSettings] = useState<ElevenLabsSettings>(DEFAULT_ELEVENLABS_SETTINGS);
+  const [vapiSettings, setVapiSettings] = useState<VAPISettings>(DEFAULT_VAPI_SETTINGS);
   const [loading, setLoading] = useState(true);
   const { systemPrompt, setSystemPrompt, loading: promptLoading } = useSystemPromptPreference();
   const { hasFeature, loading: featuresLoading } = useUserFeatures();
@@ -57,6 +60,17 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
           });
         } catch (e) {
           console.error('Error parsing ElevenLabs settings:', e);
+        }
+      }
+
+      // Load VAPI settings from localStorage
+      const savedVapiSettings = localStorage.getItem('vapi_settings');
+      if (savedVapiSettings) {
+        try {
+          const parsed = JSON.parse(savedVapiSettings);
+          setVapiSettings({ ...DEFAULT_VAPI_SETTINGS, ...parsed });
+        } catch (e) {
+          console.error('Error parsing VAPI settings:', e);
         }
       }
 
@@ -103,21 +117,29 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     loadPreference();
   }, [isAuthenticated]);
 
-  // Fallback to 3ʙɪ if user loses ElevenLabs access
+  // Fallback to 3ʙɪ if user loses premium access
   useEffect(() => {
-    if (!featuresLoading && provider === 'elevenlabs' && !hasFeature('elevenlabs_voice')) {
-      console.log('User does not have ElevenLabs access, falling back to 3ʙɪ');
-      setProvider('openai');
-      if (!isAuthenticated) {
-        localStorage.setItem('voice_provider', 'openai');
+    if (!featuresLoading) {
+      const isPremiumProvider = provider === 'elevenlabs' || provider === 'vapi';
+      const hasPremiumAccess = hasFeature('elevenlabs_voice'); // Pro tier grants all premium
+      
+      if (isPremiumProvider && !hasPremiumAccess) {
+        console.log('User does not have premium access, falling back to 3ʙɪ');
+        setProvider('openai');
+        if (!isAuthenticated) {
+          localStorage.setItem('voice_provider', 'openai');
+        }
       }
     }
   }, [featuresLoading, provider, hasFeature, isAuthenticated]);
 
   const updateProvider = useCallback((newProvider: VoiceProvider) => {
     // Validate access before switching to premium provider
-    if (newProvider === 'elevenlabs' && !hasFeature('elevenlabs_voice')) {
-      console.warn('User does not have access to ElevenLabs');
+    const isPremiumProvider = newProvider === 'elevenlabs' || newProvider === 'vapi';
+    const hasPremiumAccess = hasFeature('elevenlabs_voice'); // Pro tier grants all premium
+    
+    if (isPremiumProvider && !hasPremiumAccess) {
+      console.warn('User does not have access to premium providers');
       return;
     }
     
@@ -137,6 +159,11 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     localStorage.setItem('openai_settings', JSON.stringify(newSettings));
   };
 
+  const updateVapiSettings = (newSettings: VAPISettings) => {
+    setVapiSettings(newSettings);
+    localStorage.setItem('vapi_settings', JSON.stringify(newSettings));
+  };
+
   const updateElevenLabsSettings = (newSettings: ElevenLabsSettings) => {
     setElevenLabsSettings(newSettings);
     localStorage.setItem('elevenlabs_settings', JSON.stringify(newSettings));
@@ -151,6 +178,8 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     setOpenAISettings: updateOpenAISettings,
     elevenlabsSettings,
     setElevenLabsSettings: updateElevenLabsSettings,
+    vapiSettings,
+    setVapiSettings: updateVapiSettings,
     systemPrompt,
     setSystemPrompt,
     loading: loading || promptLoading || featuresLoading,
