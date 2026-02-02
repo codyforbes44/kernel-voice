@@ -20,8 +20,13 @@ export interface KernelWidgetConfig {
 
   // Features
   enableVoice?: boolean;
+  voiceProvider?: 'native' | 'elevenlabs';
   enableKB?: boolean;
   kbDocumentIds?: string[];
+
+  // Backend config (set automatically when embedding)
+  supabaseUrl?: string;
+  supabaseKey?: string;
 
   // Analytics callbacks
   onConversationStart?: () => void;
@@ -63,6 +68,7 @@ export const DEFAULT_CONFIG: Partial<KernelWidgetConfig> = {
   greeting: 'Hi! How can I help you today?',
   placeholder: 'Type your message...',
   enableVoice: false,
+  voiceProvider: 'native',
   enableKB: false,
 };
 

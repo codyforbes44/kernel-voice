@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, Mic, MicOff } from 'lucide-react';
 import { useWidgetTheme } from './WidgetTheme';
 import { useWidgetVoice } from './useWidgetVoice';
+import { useElevenLabsSTT } from './useElevenLabsSTT';
 import { AudioLevelIndicator } from './AudioLevelIndicator';
 
 interface WidgetInputProps {
@@ -9,17 +10,28 @@ interface WidgetInputProps {
   isLoading: boolean;
   disabled?: boolean;
   enableVoice?: boolean;
+  voiceProvider?: 'native' | 'elevenlabs';
+  supabaseUrl?: string;
+  supabaseKey?: string;
 }
 
-export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }: WidgetInputProps) {
+export function WidgetInput({ 
+  onSend, 
+  isLoading, 
+  disabled, 
+  enableVoice = false,
+  voiceProvider = 'native',
+  supabaseUrl = '',
+  supabaseKey = '',
+}: WidgetInputProps) {
   const { config, theme } = useWidgetTheme();
   const [message, setMessage] = useState('');
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { isListening, isSupported, audioLevel, toggleListening } = useWidgetVoice({
+  // Native browser speech recognition
+  const nativeVoice = useWidgetVoice({
     onTranscript: (text) => {
-      // Send the transcribed text directly
       if (text.trim()) {
         onSend(text.trim());
       }
@@ -29,6 +41,42 @@ export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }
       setTimeout(() => setVoiceError(null), 3000);
     },
   });
+
+  // ElevenLabs speech-to-text
+  const elevenLabsVoice = useElevenLabsSTT({
+    onTranscript: (text) => {
+      if (text.trim()) {
+        onSend(text.trim());
+      }
+    },
+    onPartialTranscript: (text) => {
+      // Could show partial transcript in UI if desired
+    },
+    onError: (error) => {
+      setVoiceError(error);
+      setTimeout(() => setVoiceError(null), 3000);
+    },
+    supabaseUrl,
+    supabaseKey,
+  });
+
+  // Select the appropriate voice hook based on provider
+  const useElevenLabs = voiceProvider === 'elevenlabs' && supabaseUrl && supabaseKey;
+  const voice = useElevenLabs ? {
+    isListening: elevenLabsVoice.isListening || elevenLabsVoice.isConnecting,
+    isSupported: true, // ElevenLabs works in all browsers with WebSocket support
+    audioLevel: elevenLabsVoice.audioLevel,
+    toggleListening: elevenLabsVoice.toggleListening,
+    isConnecting: elevenLabsVoice.isConnecting,
+    partialTranscript: elevenLabsVoice.partialTranscript,
+  } : {
+    isListening: nativeVoice.isListening,
+    isSupported: nativeVoice.isSupported,
+    audioLevel: nativeVoice.audioLevel,
+    toggleListening: nativeVoice.toggleListening,
+    isConnecting: false,
+    partialTranscript: '',
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,12 +88,12 @@ export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }
   };
 
   useEffect(() => {
-    if (!isLoading && inputRef.current && !isListening) {
+    if (!isLoading && inputRef.current && !voice.isListening) {
       inputRef.current.focus();
     }
-  }, [isLoading, isListening]);
+  }, [isLoading, voice.isListening]);
 
-  const showVoiceButton = enableVoice && isSupported;
+  const showVoiceButton = enableVoice && voice.isSupported;
 
   return (
     <div style={{ position: 'relative' }}>
@@ -71,7 +119,7 @@ export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }
       )}
 
       {/* Audio level indicator - shows above input when recording */}
-      {isListening && (
+      {voice.isListening && (
         <div
           style={{
             position: 'absolute',
@@ -98,13 +146,13 @@ export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }
             }}
           />
           <AudioLevelIndicator
-            level={audioLevel}
-            isActive={isListening}
+            level={voice.audioLevel}
+            isActive={voice.isListening}
             primaryColor={theme.primaryColor}
             barCount={7}
           />
           <span style={{ color: '#fff', fontSize: '12px', fontWeight: 500 }}>
-            Listening...
+            {voice.isConnecting ? 'Connecting...' : (voice.partialTranscript || 'Listening...')}
           </span>
         </div>
       )}
@@ -125,7 +173,7 @@ export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }
         {showVoiceButton && (
           <button
             type="button"
-            onClick={toggleListening}
+            onClick={voice.toggleListening}
             disabled={isLoading || disabled}
             style={{
               display: 'flex',
@@ -135,16 +183,16 @@ export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }
               height: '40px',
               borderRadius: '50%',
               border: 'none',
-              background: isListening ? '#ef4444' : '#f3f4f6',
-              color: isListening ? '#ffffff' : theme.primaryColor,
+              background: voice.isListening ? '#ef4444' : '#f3f4f6',
+              color: voice.isListening ? '#ffffff' : theme.primaryColor,
               cursor: isLoading || disabled ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s',
               flexShrink: 0,
-              animation: isListening ? 'pulse 1.5s ease-in-out infinite' : 'none',
+              animation: voice.isListening ? 'pulse 1.5s ease-in-out infinite' : 'none',
             }}
-            aria-label={isListening ? 'Stop recording' : 'Start voice input'}
+            aria-label={voice.isListening ? 'Stop recording' : 'Start voice input'}
           >
-            {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+            {voice.isListening ? <MicOff size={18} /> : <Mic size={18} />}
           </button>
         )}
 
@@ -153,26 +201,26 @@ export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder={isListening ? 'Listening...' : (config.placeholder || 'Type your message...')}
-          disabled={isLoading || disabled || isListening}
+          placeholder={voice.isListening ? 'Listening...' : (config.placeholder || 'Type your message...')}
+          disabled={isLoading || disabled || voice.isListening}
           style={{
             flex: 1,
             padding: '10px 14px',
-            border: isListening ? `2px solid ${theme.primaryColor}` : '1px solid #e5e5e5',
+            border: voice.isListening ? `2px solid ${theme.primaryColor}` : '1px solid #e5e5e5',
             borderRadius: '20px',
             fontSize: '14px',
             outline: 'none',
             transition: 'border-color 0.2s',
             color: theme.textColor,
-            background: isListening ? '#f0fdf4' : '#fafafa',
+            background: voice.isListening ? '#f0fdf4' : '#fafafa',
           }}
           onFocus={(e) => {
-            if (!isListening) {
+            if (!voice.isListening) {
               e.currentTarget.style.borderColor = theme.primaryColor;
             }
           }}
           onBlur={(e) => {
-            if (!isListening) {
+            if (!voice.isListening) {
               e.currentTarget.style.borderColor = '#e5e5e5';
             }
           }}
@@ -181,7 +229,7 @@ export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }
 
         <button
           type="submit"
-          disabled={!message.trim() || isLoading || disabled || isListening}
+          disabled={!message.trim() || isLoading || disabled || voice.isListening}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -190,20 +238,20 @@ export function WidgetInput({ onSend, isLoading, disabled, enableVoice = false }
             height: '40px',
             borderRadius: '50%',
             border: 'none',
-            background: !message.trim() || isLoading || disabled || isListening
+            background: !message.trim() || isLoading || disabled || voice.isListening
               ? '#e5e5e5'
               : theme.primaryColor,
-            color: !message.trim() || isLoading || disabled || isListening
+            color: !message.trim() || isLoading || disabled || voice.isListening
               ? '#a0a0a0'
               : '#ffffff',
-            cursor: !message.trim() || isLoading || disabled || isListening
+            cursor: !message.trim() || isLoading || disabled || voice.isListening
               ? 'not-allowed'
               : 'pointer',
             transition: 'background 0.2s, transform 0.1s',
             flexShrink: 0,
           }}
           onMouseDown={(e) => {
-            if (!(!message.trim() || isLoading || disabled || isListening)) {
+            if (!(!message.trim() || isLoading || disabled || voice.isListening)) {
               e.currentTarget.style.transform = 'scale(0.95)';
             }
           }}

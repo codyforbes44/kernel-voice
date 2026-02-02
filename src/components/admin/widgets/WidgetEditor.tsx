@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -51,6 +52,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
   const [isActive, setIsActive] = useState(true);
   const [enableKB, setEnableKB] = useState(false);
   const [enableVoice, setEnableVoice] = useState(false);
+  const [voiceProvider, setVoiceProvider] = useState<'native' | 'elevenlabs'>('native');
   const [position, setPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
 
   useEffect(() => {
@@ -68,6 +70,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
       setIsActive(widget.is_active);
       setEnableKB((config.enableKB as boolean) || false);
       setEnableVoice((config.enableVoice as boolean) || false);
+      setVoiceProvider((config.voiceProvider as 'native' | 'elevenlabs') || 'native');
       setPosition((config.position as 'bottom-right' | 'bottom-left') || 'bottom-right');
     } else {
       // Reset for new widget
@@ -83,6 +86,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
       setIsActive(true);
       setEnableKB(false);
       setEnableVoice(false);
+      setVoiceProvider('native');
       setPosition('bottom-right');
     }
   }, [widget, open]);
@@ -102,6 +106,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
         systemPrompt,
         enableKB,
         enableVoice,
+        voiceProvider,
         position,
       };
 
@@ -216,11 +221,31 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
               <div className="space-y-0.5">
                 <Label>Enable Voice Input</Label>
                 <p className="text-xs text-muted-foreground">
-                  Allow users to speak instead of typing (browser speech recognition)
+                  Allow users to speak instead of typing
                 </p>
               </div>
               <Switch checked={enableVoice} onCheckedChange={setEnableVoice} />
             </div>
+
+            {enableVoice && (
+              <div className="space-y-2 pl-4 border-l-2 border-muted">
+                <Label>Voice Provider</Label>
+                <Select value={voiceProvider} onValueChange={(v) => setVoiceProvider(v as 'native' | 'elevenlabs')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="native">Browser Native (Free)</SelectItem>
+                    <SelectItem value="elevenlabs">ElevenLabs (Better Accuracy)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {voiceProvider === 'elevenlabs' 
+                    ? 'Uses ElevenLabs Scribe for higher accuracy transcription'
+                    : 'Uses browser\'s built-in speech recognition (may vary by browser)'}
+                </p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="branding" className="space-y-4 mt-4">
@@ -355,6 +380,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
               placeholder={placeholder}
               position={position}
               enableVoice={enableVoice}
+              voiceProvider={voiceProvider}
             />
           </div>
         </div>

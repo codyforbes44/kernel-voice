@@ -145,6 +145,9 @@ function WidgetContent() {
             onSend={handleSend} 
             isLoading={isLoading} 
             enableVoice={config.enableVoice}
+            voiceProvider={config.voiceProvider}
+            supabaseUrl={config.supabaseUrl}
+            supabaseKey={config.supabaseKey}
           />
         </div>
       )}
