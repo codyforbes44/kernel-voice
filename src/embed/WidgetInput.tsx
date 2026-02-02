@@ -75,7 +75,7 @@ export function WidgetInput({
     audioLevel: nativeVoice.audioLevel,
     toggleListening: nativeVoice.toggleListening,
     isConnecting: false,
-    partialTranscript: '',
+    partialTranscript: nativeVoice.partialTranscript,
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -118,73 +118,112 @@ export function WidgetInput({
         </div>
       )}
 
-      {/* Waveform visualizer - shows above input when recording */}
+      {/* Waveform visualizer and transcript - shows above input when recording */}
       {voice.isListening && (
         <div
           style={{
             position: 'absolute',
             bottom: '100%',
-            left: '50%',
-            transform: 'translateX(-50%)',
+            left: '12px',
+            right: '12px',
             marginBottom: '12px',
-            padding: '12px 20px',
-            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(30, 30, 30, 0.95) 100%)',
-            borderRadius: '24px',
             display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            boxShadow: `0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1), 0 0 20px ${theme.primaryColor}33`,
-            backdropFilter: 'blur(8px)',
+            flexDirection: 'column',
+            gap: '8px',
           }}
         >
-          {/* Pulsing record indicator */}
+          {/* Interim transcript bubble */}
+          {voice.partialTranscript && (
+            <div
+              style={{
+                alignSelf: 'flex-end',
+                maxWidth: '85%',
+                padding: '10px 14px',
+                background: theme.primaryColor,
+                color: '#fff',
+                borderRadius: '16px 16px 4px 16px',
+                fontSize: '14px',
+                lineHeight: '1.4',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                animation: 'fadeIn 0.2s ease-out',
+              }}
+            >
+              {voice.partialTranscript}
+              <span 
+                style={{ 
+                  display: 'inline-block',
+                  width: '2px',
+                  height: '14px',
+                  marginLeft: '2px',
+                  background: 'rgba(255,255,255,0.7)',
+                  animation: 'blink 1s infinite',
+                  verticalAlign: 'middle',
+                }}
+              />
+            </div>
+          )}
+
+          {/* Waveform indicator pill */}
           <div
             style={{
-              position: 'relative',
-              width: '12px',
-              height: '12px',
+              alignSelf: 'center',
+              padding: '10px 18px',
+              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(30, 30, 30, 0.95) 100%)',
+              borderRadius: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              boxShadow: `0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1), 0 0 20px ${theme.primaryColor}33`,
+              backdropFilter: 'blur(8px)',
             }}
           >
+            {/* Pulsing record indicator */}
             <div
               style={{
-                position: 'absolute',
-                inset: 0,
-                borderRadius: '50%',
-                background: '#ef4444',
-                animation: 'pulse-dot 1s ease-in-out infinite',
+                position: 'relative',
+                width: '10px',
+                height: '10px',
               }}
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  borderRadius: '50%',
+                  background: '#ef4444',
+                  animation: 'pulse-dot 1s ease-in-out infinite',
+                }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: '-4px',
+                  borderRadius: '50%',
+                  background: 'transparent',
+                  border: '2px solid #ef4444',
+                  opacity: 0.5,
+                  animation: 'pulse-ring 1.5s ease-out infinite',
+                }}
+              />
+            </div>
+            
+            {/* Waveform */}
+            <WaveformVisualizer
+              audioLevel={voice.audioLevel}
+              isActive={voice.isListening}
+              primaryColor={theme.primaryColor}
+              barCount={9}
             />
-            <div
-              style={{
-                position: 'absolute',
-                inset: '-4px',
-                borderRadius: '50%',
-                background: 'transparent',
-                border: '2px solid #ef4444',
-                opacity: 0.5,
-                animation: 'pulse-ring 1.5s ease-out infinite',
-              }}
-            />
+            
+            {/* Status text */}
+            <span style={{ 
+              color: '#fff', 
+              fontSize: '12px', 
+              fontWeight: 500,
+            }}>
+              {voice.isConnecting ? 'Connecting...' : 'Listening'}
+            </span>
           </div>
-          
-          {/* Waveform */}
-          <WaveformVisualizer
-            audioLevel={voice.audioLevel}
-            isActive={voice.isListening}
-            primaryColor={theme.primaryColor}
-            barCount={11}
-          />
-          
-          {/* Status text */}
-          <span style={{ 
-            color: '#fff', 
-            fontSize: '13px', 
-            fontWeight: 500,
-            minWidth: '80px',
-            textAlign: 'left',
-          }}>
-            {voice.isConnecting ? 'Connecting...' : (voice.partialTranscript || 'Listening...')}
-          </span>
         </div>
       )}
 
@@ -318,6 +357,14 @@ export function WidgetInput({
             @keyframes pulse-ring {
               0% { transform: scale(1); opacity: 0.6; }
               100% { transform: scale(2); opacity: 0; }
+            }
+            @keyframes fadeIn {
+              from { opacity: 0; transform: translateY(8px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes blink {
+              0%, 50% { opacity: 1; }
+              51%, 100% { opacity: 0; }
             }
           `}
         </style>
