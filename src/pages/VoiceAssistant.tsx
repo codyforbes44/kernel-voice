@@ -25,6 +25,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useCallback, useMemo } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { UpgradeBanner } from '@/components/subscription/UpgradeBanner';
 
 /**
  * Voice Assistant page - main interface for AI voice conversations.
@@ -185,6 +186,9 @@ const VoiceAssistant = () => {
         <div className="flex flex-col min-h-screen bg-background safe-area-inset">
           <Header />
           <div className="flex-1 flex flex-col px-3 pt-2 pb-4">
+            {/* Upgrade Banner for free users */}
+            {isAuthenticated && <UpgradeBanner className="mb-2" />}
+
             {/* Guest Banner */}
             {!isAuthenticated && <GuestModeBanner variant="compact" className="mb-2" />}
 
@@ -304,6 +308,9 @@ const VoiceAssistant = () => {
 
             <SidebarInset>
               <div className="container mx-auto px-4 py-8">
+                {/* Upgrade Banner for free users */}
+                {isAuthenticated && <UpgradeBanner className="mb-4" />}
+
                 {/* Guest Banner */}
                 {!isAuthenticated && <GuestModeBanner className="mb-4" />}
 
