@@ -1,14 +1,29 @@
 import React, { useRef, useEffect } from 'react';
 import { WidgetMessage } from './types';
 import { useWidgetTheme } from './WidgetTheme';
-import { Bot, User } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX, Square } from 'lucide-react';
 
 interface WidgetChatProps {
   messages: WidgetMessage[];
   isLoading: boolean;
+  enableTTS?: boolean;
+  isSpeaking?: boolean;
+  isTTSEnabled?: boolean;
+  onToggleTTS?: () => void;
+  onStopSpeaking?: () => void;
+  onSpeak?: (text: string) => void;
 }
 
-export function WidgetChat({ messages, isLoading }: WidgetChatProps) {
+export function WidgetChat({ 
+  messages, 
+  isLoading,
+  enableTTS = false,
+  isSpeaking = false,
+  isTTSEnabled = true,
+  onToggleTTS,
+  onStopSpeaking,
+  onSpeak,
+}: WidgetChatProps) {
   const { theme } = useWidgetTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -29,10 +44,68 @@ export function WidgetChat({ messages, isLoading }: WidgetChatProps) {
         flexDirection: 'column',
         gap: '12px',
         background: theme.backgroundColor,
+        position: 'relative',
       }}
     >
+      {/* TTS toggle button */}
+      {enableTTS && (
+        <div
+          style={{
+            position: 'sticky',
+            top: 0,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            marginBottom: '4px',
+            zIndex: 10,
+          }}
+        >
+          <button
+            onClick={isSpeaking ? onStopSpeaking : onToggleTTS}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '16px',
+              border: 'none',
+              background: isSpeaking ? '#ef4444' : (isTTSEnabled ? theme.primaryColor : '#e5e5e5'),
+              color: isSpeaking || isTTSEnabled ? '#fff' : '#666',
+              fontSize: '12px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            }}
+            title={isSpeaking ? 'Stop speaking' : (isTTSEnabled ? 'Voice responses on' : 'Voice responses off')}
+          >
+            {isSpeaking ? (
+              <>
+                <Square size={12} fill="currentColor" />
+                Stop
+              </>
+            ) : isTTSEnabled ? (
+              <>
+                <Volume2 size={14} />
+                Voice On
+              </>
+            ) : (
+              <>
+                <VolumeX size={14} />
+                Voice Off
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} theme={theme} />
+        <MessageBubble 
+          key={message.id} 
+          message={message} 
+          theme={theme}
+          enableTTS={enableTTS && isTTSEnabled}
+          onSpeak={onSpeak}
+        />
       ))}
 
       {isLoading && <LoadingIndicator theme={theme} />}
@@ -43,10 +116,18 @@ export function WidgetChat({ messages, isLoading }: WidgetChatProps) {
 interface MessageBubbleProps {
   message: WidgetMessage;
   theme: { primaryColor: string; textColor: string; accentColor: string };
+  enableTTS?: boolean;
+  onSpeak?: (text: string) => void;
 }
 
-function MessageBubble({ message, theme }: MessageBubbleProps) {
+function MessageBubble({ message, theme, enableTTS, onSpeak }: MessageBubbleProps) {
   const isUser = message.role === 'user';
+
+  const handleSpeak = () => {
+    if (enableTTS && onSpeak && !isUser) {
+      onSpeak(message.content);
+    }
+  };
 
   return (
     <div
@@ -83,9 +164,46 @@ function MessageBubble({ message, theme }: MessageBubbleProps) {
           fontSize: '14px',
           lineHeight: '1.4',
           wordBreak: 'break-word',
+          position: 'relative',
         }}
       >
         {message.content}
+        
+        {/* Speak button for assistant messages */}
+        {enableTTS && !isUser && (
+          <button
+            onClick={handleSpeak}
+            style={{
+              position: 'absolute',
+              bottom: '-8px',
+              right: '-8px',
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              border: 'none',
+              background: theme.primaryColor,
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+              opacity: 0.8,
+              transition: 'opacity 0.2s, transform 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '1';
+              e.currentTarget.style.transform = 'scale(1.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '0.8';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+            title="Play this message"
+          >
+            <Volume2 size={12} />
+          </button>
+        )}
       </div>
     </div>
   );

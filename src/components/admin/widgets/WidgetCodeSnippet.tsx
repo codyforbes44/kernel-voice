@@ -29,7 +29,9 @@ export function WidgetCodeSnippet({ widget, open, onClose }: WidgetCodeSnippetPr
   
   const enableVoice = config.enableVoice === true;
   const voiceProvider = config.voiceProvider || 'native';
-  const usesElevenLabs = enableVoice && voiceProvider === 'elevenlabs';
+  const enableTTS = config.enableTTS === true;
+  const ttsVoiceId = config.ttsVoiceId || 'EXAVITQu4vr4xnSDxMaL';
+  const needsSupabaseCredentials = (enableVoice && voiceProvider === 'elevenlabs') || enableTTS;
 
   const scriptEmbed = `<!-- Kernel AI Widget -->
 <script>
@@ -42,7 +44,9 @@ export function WidgetCodeSnippet({ widget, open, onClose }: WidgetCodeSnippetPr
     position: '${config.position || 'bottom-right'}'${config.brandLogo ? `,
     brandLogo: '${config.brandLogo}'` : ''}${enableVoice ? `,
     enableVoice: true,
-    voiceProvider: '${voiceProvider}'` : ''}${usesElevenLabs ? `,
+    voiceProvider: '${voiceProvider}'` : ''}${enableTTS ? `,
+    enableTTS: true,
+    ttsVoiceId: '${ttsVoiceId}'` : ''}${needsSupabaseCredentials ? `,
     supabaseUrl: '${supabaseUrl}',
     supabaseKey: '${supabaseKey}'` : ''}
   };
@@ -51,7 +55,7 @@ export function WidgetCodeSnippet({ widget, open, onClose }: WidgetCodeSnippetPr
 
   const iframeEmbed = `<!-- Kernel AI Widget (iframe) -->
 <iframe
-  src="${baseUrl}/widget.html?apiKey=${widget.api_key}${enableVoice ? `&enableVoice=true&voiceProvider=${voiceProvider}` : ''}${usesElevenLabs ? `&supabaseUrl=${encodeURIComponent(supabaseUrl)}&supabaseKey=${encodeURIComponent(supabaseKey)}` : ''}"
+  src="${baseUrl}/widget.html?apiKey=${widget.api_key}${enableVoice ? `&enableVoice=true&voiceProvider=${voiceProvider}` : ''}${enableTTS ? `&enableTTS=true&ttsVoiceId=${ttsVoiceId}` : ''}${needsSupabaseCredentials ? `&supabaseUrl=${encodeURIComponent(supabaseUrl)}&supabaseKey=${encodeURIComponent(supabaseKey)}` : ''}"
   style="
     position: fixed;
     bottom: 20px;
@@ -76,7 +80,9 @@ function App() {
       brandColor: '${config.brandColor || '#00CED1'}',
       position: '${config.position || 'bottom-right'}'${enableVoice ? `,
       enableVoice: true,
-      voiceProvider: '${voiceProvider}'` : ''}${usesElevenLabs ? `,
+      voiceProvider: '${voiceProvider}'` : ''}${enableTTS ? `,
+      enableTTS: true,
+      ttsVoiceId: '${ttsVoiceId}'` : ''}${needsSupabaseCredentials ? `,
       supabaseUrl: '${supabaseUrl}',
       supabaseKey: '${supabaseKey}'` : ''}
     };
@@ -110,11 +116,11 @@ function App() {
           <DialogTitle>Embed Code for "{widget.name}"</DialogTitle>
         </DialogHeader>
 
-        {usesElevenLabs && (
+        {needsSupabaseCredentials && (
           <Alert className="mt-4">
             <Info className="h-4 w-4" />
             <AlertDescription>
-              This widget uses ElevenLabs for voice input. The embed code includes the necessary API credentials for transcription to work.
+              This widget uses ElevenLabs for {enableTTS ? 'text-to-speech' : ''}{enableTTS && enableVoice && voiceProvider === 'elevenlabs' ? ' and ' : ''}{enableVoice && voiceProvider === 'elevenlabs' ? 'voice input' : ''}. The embed code includes the necessary API credentials.
             </AlertDescription>
           </Alert>
         )}

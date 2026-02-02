@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { WidgetThemeProvider, useWidgetTheme } from './WidgetTheme';
 import { WidgetHeader } from './WidgetHeader';
 import { WidgetChat } from './WidgetChat';
@@ -6,6 +6,7 @@ import { WidgetInput } from './WidgetInput';
 import { WidgetButton } from './WidgetButton';
 import { sendWidgetMessage, trackWidgetEvent } from './api';
 import { KernelWidgetConfig, WidgetMessage, generateSessionId } from './types';
+import { useWidgetTTS } from './useWidgetTTS';
 
 interface KernelWidgetProps {
   config: KernelWidgetConfig;
@@ -27,6 +28,16 @@ function WidgetContent() {
   const [messages, setMessages] = useState<WidgetMessage[]>([]);
   const [sessionId] = useState(() => generateSessionId());
   const [hasStarted, setHasStarted] = useState(false);
+
+  // TTS hook for speaking responses
+  const tts = useWidgetTTS({
+    supabaseUrl: config.supabaseUrl || '',
+    supabaseKey: config.supabaseKey || '',
+    voiceId: config.ttsVoiceId,
+    onError: (error) => console.error('[Widget TTS]', error),
+  });
+  
+  const shouldUseTTS = Boolean(config.enableTTS && config.supabaseUrl && config.supabaseKey);
 
   // Add greeting message on first open
   useEffect(() => {
@@ -82,6 +93,11 @@ function WidgetContent() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Speak the response if TTS is enabled
+      if (shouldUseTTS && tts.isEnabled) {
+        tts.speak(result.response);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An error occurred';
       
@@ -97,7 +113,7 @@ function WidgetContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [config, sessionId]);
+  }, [config, sessionId, shouldUseTTS, tts]);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
@@ -140,7 +156,16 @@ function WidgetContent() {
           }}
         >
           <WidgetHeader onClose={handleClose} onMinimize={handleMinimize} />
-          <WidgetChat messages={messages} isLoading={isLoading} />
+          <WidgetChat 
+            messages={messages} 
+            isLoading={isLoading}
+            enableTTS={shouldUseTTS}
+            isSpeaking={tts.isSpeaking}
+            isTTSEnabled={tts.isEnabled}
+            onToggleTTS={tts.toggleEnabled}
+            onStopSpeaking={tts.stop}
+            onSpeak={tts.speak}
+          />
           <WidgetInput 
             onSend={handleSend} 
             isLoading={isLoading} 
