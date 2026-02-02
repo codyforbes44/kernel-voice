@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface WidgetConfig {
   id: string;
@@ -23,6 +24,12 @@ export function WidgetCodeSnippet({ widget, open, onClose }: WidgetCodeSnippetPr
 
   const config = widget.config as Record<string, unknown>;
   const baseUrl = window.location.origin;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
+  
+  const enableVoice = config.enableVoice === true;
+  const voiceProvider = config.voiceProvider || 'native';
+  const usesElevenLabs = enableVoice && voiceProvider === 'elevenlabs';
 
   const scriptEmbed = `<!-- Kernel AI Widget -->
 <script>
@@ -33,14 +40,18 @@ export function WidgetCodeSnippet({ widget, open, onClose }: WidgetCodeSnippetPr
     accentColor: '${config.accentColor || '#00B4D8'}',
     greeting: '${config.greeting || 'Hi! How can I help you today?'}',
     position: '${config.position || 'bottom-right'}'${config.brandLogo ? `,
-    brandLogo: '${config.brandLogo}'` : ''}
+    brandLogo: '${config.brandLogo}'` : ''}${enableVoice ? `,
+    enableVoice: true,
+    voiceProvider: '${voiceProvider}'` : ''}${usesElevenLabs ? `,
+    supabaseUrl: '${supabaseUrl}',
+    supabaseKey: '${supabaseKey}'` : ''}
   };
 </script>
 <script src="${baseUrl}/embed.js" async></script>`;
 
   const iframeEmbed = `<!-- Kernel AI Widget (iframe) -->
 <iframe
-  src="${baseUrl}/widget.html?apiKey=${widget.api_key}"
+  src="${baseUrl}/widget.html?apiKey=${widget.api_key}${enableVoice ? `&enableVoice=true&voiceProvider=${voiceProvider}` : ''}${usesElevenLabs ? `&supabaseUrl=${encodeURIComponent(supabaseUrl)}&supabaseKey=${encodeURIComponent(supabaseKey)}` : ''}"
   style="
     position: fixed;
     bottom: 20px;
@@ -63,7 +74,11 @@ function App() {
       apiKey: '${widget.api_key}',
       brandName: '${config.brandName || widget.name}',
       brandColor: '${config.brandColor || '#00CED1'}',
-      position: '${config.position || 'bottom-right'}'
+      position: '${config.position || 'bottom-right'}'${enableVoice ? `,
+      enableVoice: true,
+      voiceProvider: '${voiceProvider}'` : ''}${usesElevenLabs ? `,
+      supabaseUrl: '${supabaseUrl}',
+      supabaseKey: '${supabaseKey}'` : ''}
     };
 
     // Load widget script
@@ -94,6 +109,15 @@ function App() {
         <DialogHeader>
           <DialogTitle>Embed Code for "{widget.name}"</DialogTitle>
         </DialogHeader>
+
+        {usesElevenLabs && (
+          <Alert className="mt-4">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              This widget uses ElevenLabs for voice input. The embed code includes the necessary API credentials for transcription to work.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Tabs defaultValue="script" className="mt-4">
           <TabsList className="grid w-full grid-cols-3">
@@ -182,6 +206,8 @@ function App() {
             <p><code>accentColor</code> - Secondary color (hex)</p>
             <p><code>greeting</code> - Initial message from the assistant</p>
             <p><code>position</code> - "bottom-right" or "bottom-left"</p>
+            <p><code>enableVoice</code> - Enable voice input (true/false)</p>
+            <p><code>voiceProvider</code> - "native" or "elevenlabs"</p>
           </div>
         </div>
 

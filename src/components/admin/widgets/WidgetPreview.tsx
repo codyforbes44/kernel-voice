@@ -10,6 +10,7 @@ interface WidgetPreviewProps {
   placeholder: string;
   position: 'bottom-right' | 'bottom-left';
   enableVoice?: boolean;
+  voiceProvider?: 'native' | 'elevenlabs';
 }
 
 // Simulated audio level bars for preview
@@ -53,6 +54,7 @@ export function WidgetPreview({
   placeholder,
   position,
   enableVoice = false,
+  voiceProvider = 'native',
 }: WidgetPreviewProps) {
   const [isRecording, setIsRecording] = useState(false);
 
