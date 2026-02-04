@@ -6,13 +6,15 @@ const corsHeaders = {
 }
 
 interface AdminOperation {
-  action: 'deleteUser' | 'updateUserRole' | 'deleteConversation' | 'deleteDocument' | 'bulkDelete' | 'exportData' | 'grantFeature' | 'revokeFeature' | 'listUserFeatures'
+  action: 'deleteUser' | 'updateUserRole' | 'deleteConversation' | 'deleteDocument' | 'bulkDelete' | 'exportData' | 'grantFeature' | 'revokeFeature' | 'listUserFeatures' | 'resetPassword'
   targetUserId?: string
+  targetEmail?: string
   targetResourceId?: string
   targetResourceIds?: string[]
   resourceType?: 'user' | 'conversation' | 'document'
   newRole?: 'admin' | 'moderator' | 'user'
   featureKey?: string
+  redirectTo?: string
   metadata?: Record<string, unknown>
 }
 
@@ -378,6 +380,44 @@ Deno.serve(async (req) => {
         if (fetchError) throw fetchError
 
         result = { success: true, features: features || [] }
+        break
+      }
+
+      case 'resetPassword': {
+        if (!operation.targetEmail) {
+          throw new Error('targetEmail is required')
+        }
+
+        const redirectUrl = operation.redirectTo || 'https://kernel-voice.lovable.app/auth'
+
+        // Generate password reset link using admin API
+        const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+          type: 'recovery',
+          email: operation.targetEmail,
+          options: {
+            redirectTo: redirectUrl,
+          },
+        })
+
+        if (linkError) throw linkError
+
+        // Log the action
+        await adminClient.from('admin_audit_log').insert({
+          admin_id: user.id,
+          action: 'reset_password',
+          target_user_id: linkData.user?.id,
+          ip_address: clientIp,
+          metadata: { 
+            email: operation.targetEmail,
+            ...operation.metadata 
+          },
+        })
+
+        result = { 
+          success: true, 
+          message: 'Password reset link generated',
+          resetLink: linkData.properties?.action_link,
+        }
         break
       }
 
