@@ -1,53 +1,98 @@
 
 
-# Plan: Resolve Login Issue for c@3bi.io
+# Plan: Rename "Kernel" to "ƷBI Voice"
 
-## Diagnosis Summary
+## Overview
 
-The user account exists and is properly configured in the database. The `AuthSessionMissingError` in the console is normal when no active session exists - it's not the cause of login failure.
+Global rename of the brand name "Kernel" to "ƷBI Voice" across all user-facing text, metadata, SEO tags, PWA manifest, system prompts, edge functions, and widget embed code. Internal CSS variable names (e.g. `--kernel-primary`) and TypeScript interface names (e.g. `KernelWidgetConfig`) will be kept as-is to avoid breaking changes.
 
-**Account status verified:**
-- Email: c@3bi.io
-- Email confirmed: Yes
-- Account not banned: Confirmed
-- Profile exists: Confirmed
-- Has admin role: Confirmed
+## Naming Conventions
 
-## Most Likely Cause
+| Current | New |
+|---------|-----|
+| Kernel | ƷBI Voice |
+| Kernel Pro | ƷBI Voice Pro |
+| Kernel Voice | ƷBI Voice |
 
-**Password mismatch** - The user may be entering an incorrect password, or the password may not have been set during account creation (if it was auto-confirmed without proper setup).
+## Files to Modify
 
-## Solution
+### Core App Config
+| File | Changes |
+|------|---------|
+| `index.html` | Title, meta tags, og:title, twitter:title, apple-mobile-web-app-title |
+| `vite.config.ts` | PWA manifest `name` and `short_name` |
+| `public/sitemap.xml` | Image titles |
+| `public/widget.html` | Page title |
 
-Send a password reset email to c@3bi.io so the user can set a known, working password.
+### SEO and Metadata
+| File | Changes |
+|------|---------|
+| `src/components/SEO.tsx` | Default title, og:site_name, JSON-LD structured data |
 
-### Implementation Steps
+### Layout Components
+| File | Changes |
+|------|---------|
+| `src/components/layout/Header.tsx` | Logo alt text, brand label |
+| `src/components/layout/Footer.tsx` | Logo alt text, brand label, description |
+| `src/components/layout/LoadingScreen.tsx` | Logo alt text |
 
-1. **Trigger Password Reset**
-   - Use Supabase to send a password reset email to c@3bi.io
-   - The reset link will redirect to `/auth` where the password recovery flow is already implemented
+### Pages
+| File | Changes |
+|------|---------|
+| `src/pages/LandingPage.tsx` | SEO title, hero heading, logo alt |
+| `src/pages/Auth.tsx` | SEO title/desc, card title |
+| `src/pages/Install.tsx` | SEO title/desc, card title |
+| `src/pages/Pricing.tsx` | SEO title/desc, badges, plan names |
+| `src/pages/Privacy.tsx` | SEO title/desc |
+| `src/pages/Terms.tsx` | SEO title/desc, body text references |
+| `src/pages/SubscriptionSuccess.tsx` | SEO title, card title |
 
-2. **User Flow**
-   - User receives email with reset link
-   - Clicks link, redirected to `/auth` with `PASSWORD_RECOVERY` event
-   - Auth page shows "Update Password" form (already implemented in lines 47-49)
-   - User sets new password and can sign in
+### Voice Components
+| File | Changes |
+|------|---------|
+| `src/components/voice/VoiceInterfaceCard.tsx` | Heading text |
+| `src/components/voice/SystemPromptEditor.tsx` | Default system prompt |
+| `src/components/voice/AgentPersonalitySelector.tsx` | All personality preset prompts and first messages |
+| `src/components/voice/VoiceProviderSelector.tsx` | "Kernel Pro" label |
+| `src/components/voice/RegistrationPromptModal.tsx` | "Kernel" references |
 
-### Alternative Quick Fix
+### Subscription Components
+| File | Changes |
+|------|---------|
+| `src/components/subscription/UpgradeBanner.tsx` | "Kernel Pro" text |
 
-If you know the password you want to use, I can directly update the user's password in the database using Supabase Admin API. This bypasses the email flow.
+### Wake Word Detection
+| File | Changes |
+|------|---------|
+| `src/hooks/useWakeWordDetection.ts` | Wake words from "hey kernel" to "hey 3bi" |
 
-## Technical Details
+### Edge Functions
+| File | Changes |
+|------|---------|
+| `supabase/functions/chat/index.ts` | System prompt "You are Kernel" |
+| `supabase/functions/vapi-session/index.ts` | Error message "Kernel Pro" |
+| `supabase/functions/brand-og-image/index.ts` | "Kernel Voice" text |
+| `supabase/functions/admin-operations/index.ts` | Redirect URL (unchanged, it's a domain) |
 
-The Auth page already handles the `PASSWORD_RECOVERY` event correctly:
-```typescript
-if (event === 'PASSWORD_RECOVERY') {
-  setShowUpdatePassword(true);
-  setShowResetPassword(false);
-}
-```
+### Widget Embed (user-facing text only)
+| File | Changes |
+|------|---------|
+| `src/components/admin/widgets/WidgetCodeSnippet.tsx` | HTML comment labels |
 
-## Recommendation
+### Stripe Config (display names only)
+| File | Changes |
+|------|---------|
+| `src/lib/stripe.ts` | Comment text only; variable names `KERNEL_PRO_*` kept for stability |
 
-Proceed with password reset via email, or provide the password you'd like to set for this account.
+## What Will NOT Change
 
+- **CSS variables**: `--kernel-primary`, `--kernel-radius`, etc. (internal, not user-facing)
+- **TypeScript interfaces**: `KernelWidgetConfig`, `KernelWidgetProps`, `KernelWidget` component name
+- **File names**: `KernelWidget.tsx` stays as-is
+- **Published domain**: `kernel-voice.lovable.app` (cannot be changed here)
+- **Window globals**: `window.KernelConfig`, `window.KernelWidget` (embed API contract)
+- **Stripe product IDs**: `KERNEL_PRO_MONTHLY` variable names (code-internal)
+
+## Estimated Scope
+
+Approximately 28 files will be modified with straightforward text replacements. No logic changes, no new dependencies, no database changes.
