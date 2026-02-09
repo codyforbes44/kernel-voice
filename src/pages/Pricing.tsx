@@ -101,8 +101,8 @@ export default function Pricing() {
   return (
     <PageWrapper>
       <SEO 
-        title="Pricing - Kernel Pro" 
-        description="Upgrade to Kernel Pro for premium voice features, ElevenLabs voices, and priority support."
+        title="Pricing - ƷBI Voice Pro" 
+        description="Upgrade to ƷBI Voice Pro for premium voice features, ElevenLabs voices, and priority support."
       />
       
       <div className="container max-w-5xl mx-auto px-4 py-16">
@@ -110,13 +110,13 @@ export default function Pricing() {
         <div className="text-center mb-12">
           <Badge variant="secondary" className="mb-4">
             <Crown className="h-3 w-3 mr-1" />
-            Kernel Pro
+            ƷBI Voice Pro
           </Badge>
           <h1 className="text-4xl font-bold mb-4">
             Upgrade Your Voice Experience
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Unlock premium voices, advanced features, and priority support with Kernel Pro.
+            Unlock premium voices, advanced features, and priority support with ƷBI Voice Pro.
           </p>
         </div>
 
@@ -161,7 +161,7 @@ export default function Pricing() {
 
           {/* Pro Plan */}
           <PricingCard
-            name="Kernel Pro"
+            name="ƷBI Voice Pro"
             description="Premium voice experience"
             price={selectedPricing.amount}
             interval={selectedPricing.interval}

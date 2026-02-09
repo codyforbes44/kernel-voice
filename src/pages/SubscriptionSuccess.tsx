@@ -22,7 +22,7 @@ export default function SubscriptionSuccess() {
   return (
     <PageWrapper>
       <SEO 
-        title="Welcome to Kernel Pro!" 
+        title="Welcome to ƷBI Voice Pro!" 
         description="Your subscription is now active. Enjoy premium voice features."
       />
       
@@ -32,7 +32,7 @@ export default function SubscriptionSuccess() {
             <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
               <CheckCircle className="h-10 w-10 text-green-600" />
             </div>
-            <CardTitle className="text-2xl">Welcome to Kernel Pro!</CardTitle>
+            <CardTitle className="text-2xl">Welcome to ƷBI Voice Pro!</CardTitle>
             <CardDescription className="text-lg">
               Your subscription is now active
             </CardDescription>

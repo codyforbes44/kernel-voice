@@ -219,8 +219,8 @@ const Auth = () => {
   return (
     <>
       <SEO 
-        title="Sign In - Kernel"
-        description="Sign in or create an account to access Kernel. Secure authentication for your conversations and personalized experience."
+        title="Sign In - ƷBI Voice"
+        description="Sign in or create an account to access ƷBI Voice. Secure authentication for your conversations and personalized experience."
         image="/og-auth.png"
         noIndex={true}
       />
@@ -229,7 +229,7 @@ const Auth = () => {
         <div className="flex items-center justify-center py-6 md:py-16 px-4">
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
-              <CardTitle className="text-3xl font-bold">Kernel</CardTitle>
+              <CardTitle className="text-3xl font-bold">ƷBI Voice</CardTitle>
               <CardDescription>
                 {showUpdatePassword
                   ? 'Enter your new password'

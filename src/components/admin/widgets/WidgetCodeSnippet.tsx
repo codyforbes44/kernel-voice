@@ -33,7 +33,7 @@ export function WidgetCodeSnippet({ widget, open, onClose }: WidgetCodeSnippetPr
   const ttsVoiceId = config.ttsVoiceId || 'EXAVITQu4vr4xnSDxMaL';
   const needsSupabaseCredentials = (enableVoice && voiceProvider === 'elevenlabs') || enableTTS;
 
-  const scriptEmbed = `<!-- Kernel AI Widget -->
+  const scriptEmbed = `<!-- ƷBI Voice AI Widget -->
 <script>
   window.KernelConfig = {
     apiKey: '${widget.api_key}',
@@ -53,7 +53,7 @@ export function WidgetCodeSnippet({ widget, open, onClose }: WidgetCodeSnippetPr
 </script>
 <script src="${baseUrl}/embed.js" async></script>`;
 
-  const iframeEmbed = `<!-- Kernel AI Widget (iframe) -->
+  const iframeEmbed = `<!-- ƷBI Voice AI Widget (iframe) -->
 <iframe
   src="${baseUrl}/widget.html?apiKey=${widget.api_key}${enableVoice ? `&enableVoice=true&voiceProvider=${voiceProvider}` : ''}${enableTTS ? `&enableTTS=true&ttsVoiceId=${ttsVoiceId}` : ''}${needsSupabaseCredentials ? `&supabaseUrl=${encodeURIComponent(supabaseUrl)}&supabaseKey=${encodeURIComponent(supabaseKey)}` : ''}"
   style="

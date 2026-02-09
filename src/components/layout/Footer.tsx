@@ -21,8 +21,8 @@ export const Footer = () => {
           {/* Brand */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center space-x-2">
-              <img src="/logo.png" alt="Kernel" className="h-8 w-8" />
-              <span className="font-bold text-lg">Kernel</span>
+              <img src="/logo.png" alt="ƷBI Voice" className="h-8 w-8" />
+              <span className="font-bold text-lg">ƷBI Voice</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs">
               Premium AI assistant with real-time voice conversations and intelligent document analysis.
@@ -69,7 +69,7 @@ export const Footer = () => {
         {/* Bottom */}
         <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © {currentYear} Kernel. All rights reserved.
+            © {currentYear} ƷBI Voice. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <span className="text-xs text-muted-foreground">

@@ -41,7 +41,7 @@ serve(async (req) => {
                 type: "text",
                 text: `Add professional branding to this image for an Open Graph social share card. 
                 
-Add the text "Kernel Voice" in a bold, modern font at the top center of the image. 
+Add the text "ƷBI Voice" in a bold, modern font at the top center of the image. 
 Use a cyan/teal color (#22d3ee or similar bright cyan) for the text that matches the glowing particles in the image.
 Add a subtle text shadow or glow effect to make the text stand out.
 Below the main title, add "Your AI Voice Assistant" in smaller text, also in a light/white color with good contrast.

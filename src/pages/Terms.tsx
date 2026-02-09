@@ -6,8 +6,8 @@ const Terms = () => {
   return (
     <>
       <SEO 
-        title="Terms of Service - Kernel"
-        description="Read Kernel's terms of service and usage guidelines."
+        title="Terms of Service - ƷBI Voice"
+        description="Read ƷBI Voice's terms of service and usage guidelines."
       />
       
       <div className="min-h-screen bg-background flex flex-col">
@@ -22,13 +22,13 @@ const Terms = () => {
 
             <h2>1. Acceptance of Terms</h2>
             <p>
-              By accessing or using Kernel, you agree to be bound by these Terms of Service. 
+              By accessing or using ƷBI Voice, you agree to be bound by these Terms of Service. 
               If you do not agree to these terms, please do not use our services.
             </p>
 
             <h2>2. Description of Service</h2>
             <p>
-              Kernel is an AI-powered voice and text assistant that provides:
+              ƷBI Voice is an AI-powered voice and text assistant that provides:
             </p>
             <ul>
               <li>Real-time voice conversations</li>
@@ -48,7 +48,7 @@ const Terms = () => {
             </ul>
 
             <h2>4. Acceptable Use</h2>
-            <p>You agree not to use Kernel to:</p>
+            <p>You agree not to use ƷBI Voice to:</p>
             <ul>
               <li>Violate any applicable laws or regulations</li>
               <li>Infringe on intellectual property rights</li>
@@ -78,7 +78,7 @@ const Terms = () => {
 
             <h2>8. Limitation of Liability</h2>
             <p>
-              To the fullest extent permitted by law, Kernel shall not be liable for any 
+              To the fullest extent permitted by law, ƷBI Voice shall not be liable for any 
               indirect, incidental, special, consequential, or punitive damages arising 
               from your use of the service.
             </p>
