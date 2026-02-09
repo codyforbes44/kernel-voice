@@ -57,8 +57,8 @@ export const Header = () => {
         <div className="flex h-12 sm:h-14 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
-            <img src="/logo.png" alt="Kernel" className="h-6 w-6 sm:h-7 sm:w-7" />
-            <span className="font-bold text-base sm:text-lg hidden sm:inline-block">Kernel</span>
+            <img src="/logo.png" alt="ƷBI Voice" className="h-6 w-6 sm:h-7 sm:w-7" />
+            <span className="font-bold text-base sm:text-lg hidden sm:inline-block">ƷBI Voice</span>
           </Link>
 
           {/* Desktop Navigation */}

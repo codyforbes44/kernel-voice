@@ -73,7 +73,7 @@ const LandingPage = () => {
   return (
     <>
       <SEO 
-        title="Kernel - Premium Real-Time Voice AI"
+        title="ƷBI Voice - Premium Real-Time Voice AI"
         description="Experience the future of AI interaction with real-time voice conversations, intelligent web search, and advanced document analysis."
         image="/og-home.png"
         keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI"]}
@@ -99,7 +99,7 @@ const LandingPage = () => {
                   <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl scale-150 animate-pulse" />
                   <img 
                     src="/logo.png" 
-                    alt="Kernel" 
+                    alt="ƷBI Voice" 
                     className="relative h-24 w-24 md:h-32 md:w-32 drop-shadow-2xl"
                   />
                 </div>
@@ -108,7 +108,7 @@ const LandingPage = () => {
               {/* Headline */}
               <h1 className={`text-4xl sm:text-5xl md:text-7xl font-display font-bold mb-6 transition-all duration-700 delay-200 ${heroAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                 <span className="bg-gradient-to-r from-primary via-primary to-secondary bg-clip-text text-transparent">
-                  Kernel Voice
+                  ƷBI Voice
                 </span>
               </h1>
               
@@ -228,7 +228,7 @@ const LandingPage = () => {
                 Everything You Need
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Kernel combines cutting-edge AI capabilities into one seamless experience
+                ƷBI Voice combines cutting-edge AI capabilities into one seamless experience
               </p>
             </div>
             
@@ -260,7 +260,7 @@ const LandingPage = () => {
                 Ready to Experience the Future?
               </h2>
               <p className={`text-lg text-muted-foreground mb-8 transition-all duration-700 delay-200 ${ctaAnimation.isVisible ? 'opacity-100' : 'opacity-0'}`}>
-                Join thousands of users who are already using Kernel to enhance their productivity.
+                Join thousands of users who are already using ƷBI Voice to enhance their productivity.
               </p>
               <Button 
                 size="lg" 

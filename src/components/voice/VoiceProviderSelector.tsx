@@ -279,7 +279,7 @@ export function VoiceProviderSelector({
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground flex items-center">
               <Crown className="h-3 w-3 mr-1 text-primary" />
-              Premium voices available with Kernel Pro
+              Premium voices available with ƷBI Voice Pro
             </p>
             <Button 
               variant="link" 

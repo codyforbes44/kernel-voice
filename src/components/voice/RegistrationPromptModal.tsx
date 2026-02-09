@@ -62,7 +62,7 @@ const RegistrationPromptModal = ({ open, onOpenChange, messageCount }: Registrat
               <Sparkles className="h-5 w-5 text-primary mt-0.5" />
               <div>
                 <p className="font-medium">Advanced Features</p>
-                <p className="text-sm text-muted-foreground">Unlock full Kernel capabilities</p>
+                <p className="text-sm text-muted-foreground">Unlock full ƷBI Voice capabilities</p>
               </div>
             </div>
 

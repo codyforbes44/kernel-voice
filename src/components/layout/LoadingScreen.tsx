@@ -13,7 +13,7 @@ export const LoadingScreen = ({ message, showLogo = true }: LoadingScreenProps) 
           <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl scale-150 animate-pulse" />
           <img 
             src="/logo.png" 
-            alt="Kernel" 
+            alt="ƷBI Voice" 
             className="relative h-16 w-16 drop-shadow-lg animate-pulse"
           />
         </div>

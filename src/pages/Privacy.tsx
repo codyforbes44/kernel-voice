@@ -6,8 +6,8 @@ const Privacy = () => {
   return (
     <>
       <SEO 
-        title="Privacy Policy - Kernel"
-        description="Learn how Kernel protects your privacy and handles your data."
+        title="Privacy Policy - ƷBI Voice"
+        description="Learn how ƷBI Voice protects your privacy and handles your data."
       />
       
       <div className="min-h-screen bg-background flex flex-col">

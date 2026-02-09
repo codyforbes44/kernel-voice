@@ -82,7 +82,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
           )}
         </div>
         <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          Kernel
+          ƷBI Voice
         </h1>
         <div className="flex-1 flex justify-end">
           {isMobile ? (
