@@ -66,6 +66,16 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      toast({
+        title: 'Error',
+        description: 'Passwords do not match',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -85,8 +95,8 @@ const Auth = () => {
       if (error) throw error;
 
       toast({
-        title: 'Success!',
-        description: 'Your account has been created. You can now sign in.',
+        title: 'Check your email',
+        description: 'We sent you a verification link. Please verify your email before signing in.',
       });
     } catch (error: any) {
       toast({
@@ -440,6 +450,21 @@ const Auth = () => {
                         <p className="text-xs text-muted-foreground">
                           Password must be at least 6 characters
                         </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+                        <Input
+                          id="signup-confirm-password"
+                          type="password"
+                          placeholder="••••••••"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          required
+                          disabled={isLoading}
+                          minLength={6}
+                          autoComplete="new-password"
+                          className="min-h-[44px]"
+                        />
                       </div>
                       <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
                         {isLoading ? (
