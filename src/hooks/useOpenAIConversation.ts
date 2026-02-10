@@ -29,7 +29,7 @@ interface OpenAIMessage {
   [key: string]: any;
 }
 
-const BUILD_VERSION = '2024-12-22-v1';
+
 
 export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
   const [status, setStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
@@ -236,7 +236,6 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
   const startSession = useCallback(async () => {
     try {
       console.log('[OpenAI] ====== Starting WebRTC connection ======');
-      console.log('[OpenAI] Build version:', BUILD_VERSION);
       console.log('[OpenAI] Timestamp:', new Date().toISOString());
       
       cleanup();

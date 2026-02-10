@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User } from '@supabase/supabase-js';
 import { Camera, Loader2, Save, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { Header } from '@/components/layout/Header';
 import { InputModeSelector, type InputMode } from '@/components/voice/InputModeSelector';
 import SEO from '@/components/SEO';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProfileData {
   display_name: string | null;
@@ -22,8 +22,8 @@ interface ProfileData {
 const Profile = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
   
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -33,16 +33,9 @@ const Profile = () => {
   const [inputMode, setInputMode] = useState<InputMode>('combined');
 
   useEffect(() => {
+    if (!user) return;
+
     const loadProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        navigate('/auth');
-        return;
-      }
-      
-      setUser(user);
-      
       const { data: profile } = await supabase
         .from('profiles')
         .select('display_name, avatar_url, input_mode')
@@ -61,15 +54,7 @@ const Profile = () => {
     };
 
     loadProfile();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        navigate('/auth');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [user]);
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();

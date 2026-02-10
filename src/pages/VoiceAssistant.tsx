@@ -99,7 +99,7 @@ const VoiceAssistant = () => {
     isSupported: isWakeWordSupported,
     lastHeard: wakeWordLastHeard,
   } = useWakeWordDetection({
-    wakeWords: ['hey kernel', 'ok kernel', 'kernel'],
+    wakeWords: ['hey 3bi', 'ok 3bi', '3bi'],
     onWakeWordDetected: handleWakeWordDetected,
     enabled: wakeWordEnabled,
   });
@@ -178,7 +178,7 @@ const VoiceAssistant = () => {
     return (
       <>
         <SEO 
-          title="Kernel - Voice Assistant"
+          title="ƷBI Voice - Voice Assistant"
           description="Experience the future of AI interaction with real-time voice conversations, intelligent web search, and advanced document analysis."
           image="/og-home.png"
           keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI"]}

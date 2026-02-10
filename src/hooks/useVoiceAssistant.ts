@@ -12,6 +12,7 @@ import { useInputModePreference } from '@/hooks/useInputModePreference';
 import { useTranscriptManager } from '@/hooks/useTranscriptManager';
 import { createVoiceClientTools } from '@/lib/voiceClientTools';
 import { type LiveTranscript } from '@/components/voice/LiveTranscripts';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Return type for the useVoiceAssistant hook.
@@ -87,9 +88,7 @@ interface UseVoiceAssistantReturn {
 
 export function useVoiceAssistant(): UseVoiceAssistantReturn {
   const { toast } = useToast();
-  
-  // Auth state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, isAuthenticated } = useAuth();
   
   // Conversation state
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -134,40 +133,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     updateLastAssistantTranscript 
   } = useTranscriptManager();
 
-  // Authentication check
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Session error:', error);
-        setIsAuthenticated(false);
-        return;
-      }
-      setIsAuthenticated(!!session);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('Session refreshed successfully');
-      }
-      if (event === 'SIGNED_OUT') {
-        setIsAuthenticated(false);
-        setGuestMessages([]);
-      }
-      setIsAuthenticated(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   // Auto-load last conversation for authenticated users
   useEffect(() => {
     const loadLastConversation = async () => {
-      if (!isAuthenticated) return;
-      
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
       const { data: lastConv } = await supabase
@@ -185,7 +153,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     };
     
     loadLastConversation();
-  }, [isAuthenticated]);
+  }, [user]);
 
   // Use refs for mutable state that clientTools needs access to
   const guestMessagesRef = useRef(guestMessages);
@@ -331,68 +299,35 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     firstMessage: openaiSettings.firstMessage, // Reuse firstMessage setting
   });
 
-  // Use the selected provider's conversation
-  const conversation = voiceProvider === 'elevenlabs' 
-    ? elevenlabsConversation 
-    : voiceProvider === 'vapi'
-      ? vapiConversation
-      : openaiConversation;
+  // Get the active provider's conversation object — eliminates repeated ternary chains
+  const providerConversations = useMemo(() => ({
+    elevenlabs: elevenlabsConversation,
+    openai: openaiConversation,
+    vapi: vapiConversation,
+  }), [elevenlabsConversation, openaiConversation, vapiConversation]);
+
+  const conversation = providerConversations[voiceProvider];
   const isConnected = conversation.status === 'connected';
-  const isConnecting = (voiceProvider === 'openai' || voiceProvider === 'vapi')
-    ? (voiceProvider === 'openai' ? openaiConversation : vapiConversation).status === 'connecting' 
-    : false;
-  const connectionError = voiceProvider === 'openai' 
-    ? openaiConversation.connectionError 
-    : voiceProvider === 'vapi'
-      ? vapiConversation.connectionError
-      : null;
-  const connectionAuthMethod = voiceProvider === 'openai'
-    ? openaiConversation.connectionInfo?.tokenParam 
-    : voiceProvider === 'vapi'
-      ? vapiConversation.connectionInfo?.tokenParam
-      : undefined;
-  const connectionPhase = voiceProvider === 'openai' 
-    ? openaiConversation.connectionPhase 
-    : voiceProvider === 'vapi'
-      ? vapiConversation.connectionPhase
-      : undefined;
-  const inputAudioLevel = voiceProvider === 'openai'
-    ? openaiConversation.inputAudioLevel 
-    : voiceProvider === 'vapi'
-      ? vapiConversation.inputAudioLevel
-      : 0;
-  const outputAudioLevel = voiceProvider === 'openai'
-    ? openaiConversation.outputAudioLevel 
-    : voiceProvider === 'vapi'
-      ? vapiConversation.outputAudioLevel
-      : 0;
+  const isConnecting = conversation.status === 'connecting';
+  
+  // These properties only exist on openai/vapi providers
+  const activeProviderConv = voiceProvider !== 'elevenlabs' ? providerConversations[voiceProvider] : null;
+  const connectionError = activeProviderConv?.connectionError ?? null;
+  const connectionAuthMethod = activeProviderConv?.connectionInfo?.tokenParam;
+  const connectionPhase = activeProviderConv?.connectionPhase;
+  const inputAudioLevel = activeProviderConv?.inputAudioLevel ?? 0;
+  const outputAudioLevel = activeProviderConv?.outputAudioLevel ?? 0;
 
   // Use refs to stabilize the startConversation callback
   const voiceProviderRef = useRef(voiceProvider);
-  const elevenlabsConversationRef = useRef(elevenlabsConversation);
   const elevenlabsSettingsRef = useRef(elevenlabsSettings);
-  const openaiConversationRef = useRef(openaiConversation);
-  const vapiConversationRef = useRef(vapiConversation);
-  const vapiSettingsRef = useRef(vapiSettings);
   
-  useEffect(() => {
-    voiceProviderRef.current = voiceProvider;
-  }, [voiceProvider]);
-  useEffect(() => {
-    elevenlabsConversationRef.current = elevenlabsConversation;
-  }, [elevenlabsConversation]);
-  useEffect(() => {
-    elevenlabsSettingsRef.current = elevenlabsSettings;
-  }, [elevenlabsSettings]);
-  useEffect(() => {
-    openaiConversationRef.current = openaiConversation;
-  }, [openaiConversation]);
-  useEffect(() => {
-    vapiConversationRef.current = vapiConversation;
-  }, [vapiConversation]);
-  useEffect(() => {
-    vapiSettingsRef.current = vapiSettings;
-  }, [vapiSettings]);
+  useEffect(() => { voiceProviderRef.current = voiceProvider; }, [voiceProvider]);
+  useEffect(() => { elevenlabsSettingsRef.current = elevenlabsSettings; }, [elevenlabsSettings]);
+
+  // Keep refs for conversation objects to avoid stale closures in startConversation
+  const providerConversationsRef = useRef(providerConversations);
+  useEffect(() => { providerConversationsRef.current = providerConversations; }, [providerConversations]);
 
   // Ref to track if a start is in progress
   const isStartingConversationRef = useRef(false);
@@ -423,16 +358,16 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         }
 
         console.log('Starting ElevenLabs voice session with language:', settings.autoLanguageDetection ? 'auto' : settings.language);
-        await elevenlabsConversationRef.current.startSession({ 
+        await providerConversationsRef.current.elevenlabs.startSession({ 
           signedUrl: data.signedUrl,
           ...(data.overrides && { overrides: data.overrides }),
         });
       } else if (voiceProviderRef.current === 'vapi') {
         console.log('Starting VAPI voice session');
-        await vapiConversationRef.current.startSession();
+        await providerConversationsRef.current.vapi.startSession();
       } else {
         console.log('Starting 3ʙɪ Realtime voice session');
-        await openaiConversationRef.current.startSession();
+        await providerConversationsRef.current.openai.startSession();
       }
     } catch (error) {
       console.error('Error starting conversation:', error);
@@ -447,13 +382,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   }, [toast, clearTranscripts]);
 
   const endConversation = async () => {
-    if (voiceProvider === 'elevenlabs') {
-      await elevenlabsConversation.endSession();
-    } else if (voiceProvider === 'vapi') {
-      await vapiConversation.endSession();
-    } else {
-      await openaiConversation.endSession();
-    }
+    await conversation.endSession();
     
     if (!isAuthenticated && guestMessages.length > 0) {
       setShowRegistrationPrompt(true);
@@ -461,20 +390,12 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   };
 
   const retryConnection = async () => {
-    if (voiceProvider === 'openai') {
-      openaiConversation.clearError();
-    } else if (voiceProvider === 'vapi') {
-      vapiConversation.clearError();
-    }
+    activeProviderConv?.clearError?.();
     await startConversation();
   };
 
   const clearConnectionError = () => {
-    if (voiceProvider === 'openai') {
-      openaiConversation.clearError();
-    } else if (voiceProvider === 'vapi') {
-      vapiConversation.clearError();
-    }
+    activeProviderConv?.clearError?.();
   };
 
   const toggleMute = () => {
@@ -493,15 +414,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setIsProcessingText(true);
     
     try {
-      // If connected to OpenAI/VAPI and it's the active provider, send via data channel
-      if (voiceProvider === 'openai' && isConnected && openaiConversation.sendTextMessage) {
-        openaiConversation.sendTextMessage(text);
-        setIsProcessingText(false);
-        return;
-      }
-      
-      if (voiceProvider === 'vapi' && isConnected && vapiConversation.sendTextMessage) {
-        vapiConversation.sendTextMessage(text);
+      // If connected and provider supports text messages, send via data channel
+      if (isConnected && activeProviderConv?.sendTextMessage) {
+        activeProviderConv.sendTextMessage(text);
         setIsProcessingText(false);
         return;
       }
@@ -521,7 +436,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     } finally {
       setIsProcessingText(false);
     }
-  }, [voiceProvider, isConnected, openaiConversation, vapiConversation, addTranscript, clientTools]);
+  }, [isConnected, activeProviderConv, addTranscript, clientTools]);
 
   return {
     // Auth state
@@ -575,11 +490,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     isProcessingText,
     
     // Tool execution
-    activeToolCall: voiceProvider === 'openai' 
-      ? openaiConversation.activeToolCall 
-      : voiceProvider === 'vapi'
-        ? vapiConversation.activeToolCall
-        : null,
+    activeToolCall: activeProviderConv?.activeToolCall ?? null,
     
     // Transcripts
     liveTranscripts,

@@ -179,7 +179,7 @@ export function useVAPIConversation(options: VAPIConversationOptions = {}) {
       
       // Build assistant config
       const assistantConfig: any = {
-        name: 'Kernel Voice Assistant',
+        name: 'ƷBI Voice Assistant',
         voice: {
           provider: 'openai',
           voiceId: 'alloy',

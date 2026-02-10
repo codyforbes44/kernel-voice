@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { PRO_PRODUCT_IDS } from '@/lib/stripe';
 
 interface SubscriptionData {
@@ -20,36 +21,13 @@ export interface UseSubscriptionReturn {
 }
 
 export function useSubscription(): UseSubscriptionReturn {
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user, session } = useAuth();
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
-    };
-    getUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setUserId(session?.user?.id || null);
-      // Refetch subscription status on auth change
-      if (session?.user?.id) {
-        queryClient.invalidateQueries({ queryKey: ['subscription', session.user.id] });
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [queryClient]);
-
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['subscription', userId],
+    queryKey: ['subscription', user?.id],
     queryFn: async (): Promise<SubscriptionData> => {
-      if (!userId) {
-        return { subscribed: false, product_id: null, subscription_end: null };
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!user || !session) {
         return { subscribed: false, product_id: null, subscription_end: null };
       }
 
@@ -66,14 +44,13 @@ export function useSubscription(): UseSubscriptionReturn {
 
       return response.data as SubscriptionData;
     },
-    enabled: !!userId,
-    staleTime: 1000 * 60, // 1 minute
-    refetchInterval: 1000 * 60, // Auto-refresh every minute
+    enabled: !!user,
+    staleTime: 1000 * 60,
+    refetchInterval: 1000 * 60,
     refetchOnWindowFocus: true,
   });
 
   const createCheckout = useCallback(async (priceId: string): Promise<{ url?: string; error?: string }> => {
-    const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       return { error: 'Please sign in to subscribe' };
     }
@@ -94,10 +71,9 @@ export function useSubscription(): UseSubscriptionReturn {
     }
 
     return { url: response.data.url };
-  }, []);
+  }, [session]);
 
   const openCustomerPortal = useCallback(async (): Promise<{ url?: string; error?: string }> => {
-    const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       return { error: 'Please sign in to manage your subscription' };
     }
@@ -117,9 +93,8 @@ export function useSubscription(): UseSubscriptionReturn {
     }
 
     return { url: response.data.url };
-  }, []);
+  }, [session]);
 
-  // Check if the product is a Pro product
   const isProSubscribed = data?.subscribed && 
     data.product_id && 
     PRO_PRODUCT_IDS.includes(data.product_id as typeof PRO_PRODUCT_IDS[number]);

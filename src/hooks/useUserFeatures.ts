@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 
 export type FeatureKey = 'elevenlabs_voice';
@@ -17,32 +18,18 @@ interface UserFeature {
 }
 
 export function useUserFeatures() {
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user } = useAuth();
   const { isSubscribed, isLoading: subscriptionLoading } = useSubscription();
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
-    };
-    getUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setUserId(session?.user?.id || null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   const { data: features = [], isLoading, refetch } = useQuery({
-    queryKey: ['user-features', userId],
+    queryKey: ['user-features', user?.id],
     queryFn: async () => {
-      if (!userId) return [];
+      if (!user) return [];
       
       const { data, error } = await supabase
         .from('user_features')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .eq('enabled', true)
         .is('revoked_at', null);
 
@@ -53,16 +40,12 @@ export function useUserFeatures() {
 
       return (data || []) as UserFeature[];
     },
-    enabled: !!userId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
   });
 
   const hasFeature = useCallback((featureKey: FeatureKey): boolean => {
-    // Pro subscribers get all premium features
-    if (isSubscribed) {
-      return true;
-    }
-    // Otherwise check admin-granted features
+    if (isSubscribed) return true;
     return features.some(f => f.feature_key === featureKey && f.enabled);
   }, [features, isSubscribed]);
 
@@ -71,7 +54,7 @@ export function useUserFeatures() {
     hasFeature,
     loading: isLoading || subscriptionLoading,
     refetch,
-    isAuthenticated: !!userId,
+    isAuthenticated: !!user,
     isSubscribed,
   };
 }
