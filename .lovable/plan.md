@@ -1,64 +1,118 @@
 
 
-# Authentication Review and Refactoring
+# Conversation/Transcript Review + Custom Required Questions
 
-## Issues Found
+## Review Findings
 
-### 1. OAuth Providers Won't Work (Critical)
-The app shows 6 OAuth providers (Twitter, Google, Facebook, GitHub, LinkedIn, Apple) using `supabase.auth.signInWithOAuth()` directly. On Lovable Cloud, only **Google** and **Apple** are supported. The other 4 (Twitter, Facebook, GitHub, LinkedIn) will silently fail or error. The code must switch to `lovable.auth.signInWithOAuth()` and remove unsupported providers.
+### Working Well
+- **Conversation History**: Lists conversations with realtime updates, create/delete with confirmation, auto-loads last conversation on return
+- **Message History**: Loads full message thread with realtime INSERT subscription, auto-scrolls to latest
+- **Live Transcripts**: Real-time partial transcript display with role-based styling
+- **Transcript Manager**: Handles partial transcript merging for streaming assistant responses
 
-### 2. Header Has Redundant Auth Listener (Code Quality)
-`Header.tsx` creates its own `supabase.auth.onAuthStateChange` listener and manages user state independently instead of using the centralized `useAuth()` hook from `AuthContext`. This creates a duplicate listener and inconsistent state.
+### Bug Found: Chat Edge Function Crash
+The `chat` edge function references `MAX_CONTEXT_MESSAGES` on lines 33 and 44, but this constant is **never defined**. This means the text-mode chat will throw a runtime error whenever it tries to load conversation context or send messages. This needs to be fixed by defining the constant (e.g., `const MAX_CONTEXT_MESSAGES = 50;`).
 
-### 3. Sign-Up Success Message Is Misleading (UX)
-The signup toast says "Your account has been created. You can now sign in." but the system requires email verification first. Users will try to sign in immediately and get confused when it fails. The message should say "Check your email to verify your account."
+## New Feature: Custom Required Questions
 
-### 4. Sign-Up Missing Password Confirmation (UX)
-The sign-in form has a "confirm password" field (used only for password reset), but the sign-up form does not ask users to confirm their password. This is a common UX pattern to prevent typos.
+Allow users to define a set of questions that the AI assistant **must** ask and collect valid answers for during a conversation. This is useful for intake forms, lead qualification, customer onboarding, or any structured data collection scenario.
 
-## Changes
+### How It Works
 
-### Step 1: Configure Google and Apple OAuth
-Use the `configure-social-auth` tool to set up Google and Apple OAuth through Lovable Cloud, which will generate the `src/integrations/lovable/` module.
+1. Users configure required questions in the agent settings (via SaveAgentDialog or a dedicated section in the SystemPromptEditor)
+2. Each question has: the question text, expected answer type (text/email/phone/number/yes-no), and whether it's required
+3. When a conversation starts, the questions are injected into the system prompt as structured instructions telling the AI to collect these answers naturally
+4. The collected answers are displayed in a summary panel after the conversation
 
-### Step 2: Update OAuth Components
-**`src/hooks/useOAuthSignIn.ts`**
-- Import `lovable` from `@/integrations/lovable/index`
-- Replace `supabase.auth.signInWithOAuth()` with `lovable.auth.signInWithOAuth()`
-- Update the provider type to only include `google` and `apple`
+### Database Changes
 
-**`src/components/auth/OAuthButtons.tsx`**
-- Remove Twitter (featured), Facebook, GitHub, and LinkedIn buttons
-- Show Google and Apple as equal-weight buttons (no "featured" variant needed, or make Google featured)
+Add a `required_questions` JSONB column to the `saved_agents` table:
 
-**`src/components/auth/OAuthButton.tsx`**
-- Remove provider configs for twitter, facebook, github, linkedin_oidc
+```sql
+ALTER TABLE public.saved_agents 
+ADD COLUMN required_questions jsonb DEFAULT '[]'::jsonb;
+```
 
-### Step 3: Refactor Header to Use useAuth()
-**`src/components/layout/Header.tsx`**
-- Remove the `useState` for user, the `useEffect` with `getSession`/`onAuthStateChange`
-- Import and use `useAuth()` from `@/contexts/AuthContext` instead
-- This eliminates a duplicate auth listener
+The JSONB structure:
+```json
+[
+  {
+    "id": "q1",
+    "question": "What is your full name?",
+    "type": "text",
+    "required": true
+  },
+  {
+    "id": "q2", 
+    "question": "What is your email address?",
+    "type": "email",
+    "required": true
+  },
+  {
+    "id": "q3",
+    "question": "How many employees does your company have?",
+    "type": "number",
+    "required": false
+  }
+]
+```
 
-### Step 4: Fix Sign-Up UX
-**`src/pages/Auth.tsx`**
-- Change the signup success toast to: "Check your email to verify your account before signing in."
-- Add a confirm password field to the sign-up form with validation that passwords match before submitting
+### UI Components
 
-### Step 5: PWA OAuth Compatibility
-**`vite.config.ts`**
-- Add `/~oauth` to the service worker's `navigateFallbackDenylist` so OAuth redirects are never intercepted by the PWA cache
+**RequiredQuestionsEditor** (new component)
+- Rendered inside the SaveAgentDialog (below description field)
+- "Add Question" button to append a new row
+- Each row: question text input, answer type dropdown (text/email/phone/number/yes-no), required toggle, delete button
+- Drag to reorder (optional, can use up/down buttons)
+- Max 10 questions
 
-## Technical Details
+**Integration with System Prompt**
+- When starting a conversation with an agent that has required questions, they are appended to the system prompt as structured instructions:
+  ```
+  IMPORTANT: You must collect answers to the following required questions during this conversation. 
+  Ask them naturally in the flow of conversation. Do not skip required questions.
+  
+  Questions to collect:
+  1. [Required] What is your full name? (expect: text)
+  2. [Required] What is your email address? (expect: email)
+  3. [Optional] How many employees does your company have? (expect: number)
+  ```
 
-### Files Created
-- `src/integrations/lovable/index.ts` (auto-generated by configure-social-auth tool)
+### Files
 
-### Files Modified
-- `src/hooks/useOAuthSignIn.ts` -- switch to lovable.auth, reduce provider list
-- `src/components/auth/OAuthButtons.tsx` -- remove unsupported providers
-- `src/components/auth/OAuthButton.tsx` -- clean up unused provider configs
-- `src/components/layout/Header.tsx` -- use useAuth() hook
-- `src/pages/Auth.tsx` -- fix signup toast, add confirm password to signup
-- `vite.config.ts` -- add navigateFallbackDenylist for OAuth
+**New Files**
+- `src/components/voice/RequiredQuestionsEditor.tsx` -- Editor UI for adding/editing/removing questions
+
+**Modified Files**
+- `supabase/functions/chat/index.ts` -- Fix undefined `MAX_CONTEXT_MESSAGES` (set to 50)
+- `src/hooks/useSavedAgents.ts` -- Add `required_questions` to SavedAgent type and CreateAgentInput
+- `src/components/voice/SaveAgentDialog.tsx` -- Add RequiredQuestionsEditor section
+- `src/pages/VoiceAssistant.tsx` -- When loading an agent with required questions, append them to the system prompt sent to the voice provider
+- `src/components/voice/voiceTypes.ts` -- Add `RequiredQuestion` type interface
+
+### Technical Details
+
+**RequiredQuestion type:**
+```typescript
+export interface RequiredQuestion {
+  id: string;
+  question: string;
+  type: 'text' | 'email' | 'phone' | 'number' | 'yes_no';
+  required: boolean;
+}
+```
+
+**System prompt injection** (in handleLoadAgent):
+When an agent with `required_questions` is loaded, the questions are formatted and appended to `system_prompt` before passing it to `setSystemPrompt()`. This keeps the feature transparent to all voice providers -- no provider-specific changes needed.
+
+**SaveAgentDialog changes:**
+- State: `requiredQuestions` array managed alongside name/description/icon
+- On save: include `required_questions` in the agent payload
+- On edit: pre-populate from `editingAgent.required_questions`
+
+**RequiredQuestionsEditor component:**
+- Props: `questions: RequiredQuestion[]`, `onChange: (questions: RequiredQuestion[]) => void`, `disabled?: boolean`
+- Each question row: Input for question text, Select for answer type, Switch for required, X button to delete
+- "Add Question" button at bottom (disabled if 10 questions already)
+- Generates unique IDs via `crypto.randomUUID()` or timestamp-based
 
