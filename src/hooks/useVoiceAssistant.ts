@@ -4,9 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 import { useVoiceProviderPreference } from '@/hooks/useVoiceProviderPreference';
-import { type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings, type ElevenLabsSettings, type VAPISettings, type ConnectionPhase, type ToolExecution } from '@/components/voice/voiceTypes';
+import { type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings, type ElevenLabsSettings, type VAPISettings, type GeminiLiveSettings, type ConnectionPhase, type ToolExecution } from '@/components/voice/voiceTypes';
 import { useOpenAIConversation } from '@/hooks/useOpenAIConversation';
 import { useVAPIConversation } from '@/hooks/useVAPIConversation';
+import { useGeminiLiveConversation } from '@/hooks/useGeminiLiveConversation';
 import { type InputMode } from '@/components/voice/InputModeSelector';
 import { useInputModePreference } from '@/hooks/useInputModePreference';
 import { useTranscriptManager } from '@/hooks/useTranscriptManager';
@@ -39,6 +40,8 @@ interface UseVoiceAssistantReturn {
   setElevenLabsSettings: (settings: ElevenLabsSettings) => void;
   vapiSettings: VAPISettings;
   setVapiSettings: (settings: VAPISettings) => void;
+  geminiLiveSettings: GeminiLiveSettings;
+  setGeminiLiveSettings: (settings: GeminiLiveSettings) => void;
   systemPrompt: string;
   setSystemPrompt: (prompt: string) => void;
   providerLoading: boolean;
@@ -120,6 +123,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setElevenLabsSettings,
     vapiSettings,
     setVapiSettings,
+    geminiLiveSettings,
+    setGeminiLiveSettings,
     systemPrompt,
     setSystemPrompt,
     loading: providerLoading 
@@ -266,24 +271,13 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     onConnect: () => {
       console.log('Connected to VAPI voice service');
       clearTranscripts();
-      toast({
-        title: 'Connected',
-        description: 'Voice assistant is ready (VAPI)',
-      });
+      toast({ title: 'Connected', description: 'Voice assistant is ready (VAPI)' });
     },
-    onDisconnect: () => {
-      console.log('Disconnected from VAPI voice service');
-    },
-    onMessage: (message) => {
-      console.log('VAPI message received:', message);
-    },
+    onDisconnect: () => { console.log('Disconnected from VAPI voice service'); },
+    onMessage: (message) => { console.log('VAPI message received:', message); },
     onError: (error) => {
       console.error('VAPI voice service error:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Voice connection error',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: error.message || 'Voice connection error', variant: 'destructive' });
     },
     onTranscript: (transcript) => {
       console.log('VAPI transcript:', transcript);
@@ -296,7 +290,33 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     clientTools,
     settings: vapiSettings,
     systemPrompt,
-    firstMessage: openaiSettings.firstMessage, // Reuse firstMessage setting
+    firstMessage: openaiSettings.firstMessage,
+  });
+
+  // Gemini Live conversation hook
+  const geminiConversation = useGeminiLiveConversation({
+    onConnect: () => {
+      console.log('Connected to Gemini Live voice service');
+      clearTranscripts();
+      toast({ title: 'Connected', description: 'Voice assistant is ready (Gemini Live)' });
+    },
+    onDisconnect: () => { console.log('Disconnected from Gemini Live voice service'); },
+    onMessage: (message) => { console.log('Gemini Live message received:', message); },
+    onError: (error) => {
+      console.error('Gemini Live voice service error:', error);
+      toast({ title: 'Error', description: error.message || 'Voice connection error', variant: 'destructive' });
+    },
+    onTranscript: (transcript) => {
+      console.log('Gemini Live transcript:', transcript);
+      if (transcript.role === 'assistant') {
+        addTranscript('assistant', transcript.text, true);
+      } else {
+        addTranscript('user', transcript.text);
+      }
+    },
+    clientTools,
+    settings: geminiLiveSettings,
+    systemPrompt,
   });
 
   // Get the active provider's conversation object — eliminates repeated ternary chains
@@ -304,7 +324,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     elevenlabs: elevenlabsConversation,
     openai: openaiConversation,
     vapi: vapiConversation,
-  }), [elevenlabsConversation, openaiConversation, vapiConversation]);
+    gemini: geminiConversation,
+  }), [elevenlabsConversation, openaiConversation, vapiConversation, geminiConversation]);
 
   const conversation = providerConversations[voiceProvider];
   const isConnected = conversation.status === 'connected';
@@ -362,6 +383,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
           signedUrl: data.signedUrl,
           ...(data.overrides && { overrides: data.overrides }),
         });
+      } else if (voiceProviderRef.current === 'gemini') {
+        console.log('Starting Gemini Live voice session');
+        await providerConversationsRef.current.gemini.startSession();
       } else if (voiceProviderRef.current === 'vapi') {
         console.log('Starting VAPI voice session');
         await providerConversationsRef.current.vapi.startSession();
@@ -459,6 +483,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     setElevenLabsSettings,
     vapiSettings,
     setVapiSettings,
+    geminiLiveSettings,
+    setGeminiLiveSettings,
     systemPrompt,
     setSystemPrompt,
     providerLoading,

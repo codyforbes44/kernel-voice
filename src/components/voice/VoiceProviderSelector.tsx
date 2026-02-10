@@ -16,15 +16,18 @@ import { Cloud, Loader2, Sparkles, Crown } from 'lucide-react';
 import { OpenAISettingsPanel } from './OpenAISettingsPanel';
 import { ElevenLabsSettingsPanel } from './ElevenLabsSettingsPanel';
 import { VAPISettingsPanel } from './VAPISettingsPanel';
+import { GeminiLiveSettingsPanel } from './GeminiLiveSettingsPanel';
 import {
   VoiceProvider,
   OpenAIVoice,
   OpenAIVoiceSettings,
   ElevenLabsSettings,
   VAPISettings,
+  GeminiLiveSettings,
   DEFAULT_OPENAI_SETTINGS,
   DEFAULT_ELEVENLABS_SETTINGS,
   DEFAULT_VAPI_SETTINGS,
+  DEFAULT_GEMINI_LIVE_SETTINGS,
   providerInfo,
 } from './voiceTypes';
 import { useUserFeatures } from '@/hooks/useUserFeatures';
@@ -47,6 +50,7 @@ export {
   DEFAULT_OPENAI_SETTINGS,
   DEFAULT_ELEVENLABS_SETTINGS,
   DEFAULT_VAPI_SETTINGS,
+  DEFAULT_GEMINI_LIVE_SETTINGS,
 } from './voiceTypes';
 
 // Re-export hook for backwards compatibility
@@ -63,6 +67,8 @@ interface VoiceProviderSelectorProps {
   onElevenLabsSettingsChange: (settings: ElevenLabsSettings) => void;
   vapiSettings?: VAPISettings;
   onVapiSettingsChange?: (settings: VAPISettings) => void;
+  geminiLiveSettings?: GeminiLiveSettings;
+  onGeminiLiveSettingsChange?: (settings: GeminiLiveSettings) => void;
   systemPrompt: string;
   onSystemPromptChange: (prompt: string) => void;
   disabled?: boolean;
@@ -80,6 +86,8 @@ export function VoiceProviderSelector({
   onElevenLabsSettingsChange,
   vapiSettings,
   onVapiSettingsChange,
+  geminiLiveSettings,
+  onGeminiLiveSettingsChange,
   systemPrompt,
   onSystemPromptChange,
   disabled = false,
@@ -99,6 +107,7 @@ export function VoiceProviderSelector({
     if (hasFeature('elevenlabs_voice')) {
       providers.push('elevenlabs');
       providers.push('vapi');
+      providers.push('gemini');
     }
     
     return providers;
@@ -219,6 +228,11 @@ export function VoiceProviderSelector({
     localStorage.setItem('elevenlabs_settings', JSON.stringify(newSettings));
   };
 
+  const handleGeminiLiveSettingsChange = async (newSettings: GeminiLiveSettings) => {
+    onGeminiLiveSettingsChange?.(newSettings);
+    localStorage.setItem('gemini_live_settings', JSON.stringify(newSettings));
+  };
+
   return (
     <div className="space-y-4">
       {/* Provider Selection */}
@@ -332,6 +346,16 @@ export function VoiceProviderSelector({
         <VAPISettingsPanel
           settings={vapiSettings}
           onSettingsChange={handleVapiSettingsChange}
+          systemPrompt={systemPrompt}
+          onSystemPromptChange={onSystemPromptChange}
+          disabled={disabled}
+        />
+      )}
+      
+      {value === 'gemini' && geminiLiveSettings && (
+        <GeminiLiveSettingsPanel
+          settings={geminiLiveSettings}
+          onSettingsChange={handleGeminiLiveSettingsChange}
           systemPrompt={systemPrompt}
           onSystemPromptChange={onSystemPromptChange}
           disabled={disabled}

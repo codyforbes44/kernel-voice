@@ -31,8 +31,36 @@ export const DEFAULT_ELEVENLABS_SETTINGS: ElevenLabsSettings = {
 
 export type OpenAISettingsPreset = 'fast' | 'balanced' | 'relaxed' | 'custom';
 
-export type VoiceProvider = 'elevenlabs' | 'openai' | 'vapi';
+export type VoiceProvider = 'elevenlabs' | 'openai' | 'vapi' | 'gemini';
 export type OpenAIVoice = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse' | 'cedar' | 'marin';
+
+// Gemini Live types
+export type GeminiLiveVoice = 'Puck' | 'Charon' | 'Kore' | 'Fenrir' | 'Aoede' | 'Leda' | 'Orus' | 'Zephyr';
+
+export interface GeminiLiveSettings {
+  voice: GeminiLiveVoice;
+  model: string;
+  customPrompt: string;
+  customFirstMessage: string;
+}
+
+export const DEFAULT_GEMINI_LIVE_SETTINGS: GeminiLiveSettings = {
+  voice: 'Puck',
+  model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+  customPrompt: '',
+  customFirstMessage: '',
+};
+
+export const geminiLiveVoices: { id: GeminiLiveVoice; name: string; description: string }[] = [
+  { id: 'Puck', name: 'Puck', description: 'Playful and energetic' },
+  { id: 'Charon', name: 'Charon', description: 'Deep and authoritative' },
+  { id: 'Kore', name: 'Kore', description: 'Warm and natural' },
+  { id: 'Fenrir', name: 'Fenrir', description: 'Bold and confident' },
+  { id: 'Aoede', name: 'Aoede', description: 'Melodic and expressive' },
+  { id: 'Leda', name: 'Leda', description: 'Clear and articulate' },
+  { id: 'Orus', name: 'Orus', description: 'Calm and measured' },
+  { id: 'Zephyr', name: 'Zephyr', description: 'Light and breezy' },
+];
 
 // VAPI Settings
 export interface VAPISettings {
@@ -49,7 +77,7 @@ export const DEFAULT_VAPI_SETTINGS: VAPISettings = {
   backgroundDenoisingEnabled: true,
 };
 
-// Connection phase type (used by OpenAI)
+// Connection phase type (used by OpenAI and Gemini)
 export type ConnectionPhase = 'idle' | 'getting_token' | 'connecting_webrtc' | 'configuring' | 'ready' | 'error';
 
 // Tool execution type
@@ -116,6 +144,12 @@ export const providerInfo: Record<VoiceProvider, {
     features: ['Phone Integration', '20+ Languages', 'Tool calling'],
     isPremium: true,
   },
+  gemini: {
+    name: 'Gemini Live',
+    description: 'Native audio, 30 HD voices',
+    features: ['WebSocket', '24 Languages', 'Native Audio'],
+    isPremium: true,
+  },
 };
 
 // Voice options - organized by category
@@ -136,4 +170,4 @@ export const openaiVoices: { id: OpenAIVoice; name: string; type: string; tone: 
 
 // Valid voice values for validation
 export const VALID_OPENAI_VOICES: OpenAIVoice[] = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'cedar', 'marin'];
-export const VALID_PROVIDERS: VoiceProvider[] = ['elevenlabs', 'openai', 'vapi'];
+export const VALID_PROVIDERS: VoiceProvider[] = ['elevenlabs', 'openai', 'vapi', 'gemini'];

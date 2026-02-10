@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-20250514',
           max_tokens: 1024,
           system: finalSystemPrompt + kbContext,
           messages: [{ role: 'user', content: message }],
@@ -312,7 +312,7 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4.1-mini',
           messages: [
             { role: 'system', content: finalSystemPrompt + kbContext },
             { role: 'user', content: message },

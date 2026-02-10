@@ -8,9 +8,11 @@ import {
   OpenAIVoiceSettings,
   ElevenLabsSettings,
   VAPISettings,
+  GeminiLiveSettings,
   DEFAULT_OPENAI_SETTINGS,
   DEFAULT_ELEVENLABS_SETTINGS,
   DEFAULT_VAPI_SETTINGS,
+  DEFAULT_GEMINI_LIVE_SETTINGS,
   VALID_OPENAI_VOICES,
   VALID_PROVIDERS,
 } from '@/components/voice/voiceTypes';
@@ -21,6 +23,7 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
   const [openaiSettings, setOpenAISettings] = useState<OpenAIVoiceSettings>(DEFAULT_OPENAI_SETTINGS);
   const [elevenlabsSettings, setElevenLabsSettings] = useState<ElevenLabsSettings>(DEFAULT_ELEVENLABS_SETTINGS);
   const [vapiSettings, setVapiSettings] = useState<VAPISettings>(DEFAULT_VAPI_SETTINGS);
+  const [geminiLiveSettings, setGeminiLiveSettings] = useState<GeminiLiveSettings>(DEFAULT_GEMINI_LIVE_SETTINGS);
   const [loading, setLoading] = useState(true);
   const { systemPrompt, setSystemPrompt, loading: promptLoading } = useSystemPromptPreference();
   const { hasFeature, loading: featuresLoading } = useUserFeatures();
@@ -169,6 +172,11 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     localStorage.setItem('elevenlabs_settings', JSON.stringify(newSettings));
   };
 
+  const updateGeminiLiveSettings = (newSettings: GeminiLiveSettings) => {
+    setGeminiLiveSettings(newSettings);
+    localStorage.setItem('gemini_live_settings', JSON.stringify(newSettings));
+  };
+
   return {
     provider, 
     setProvider: updateProvider, 
@@ -180,6 +188,8 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     setElevenLabsSettings: updateElevenLabsSettings,
     vapiSettings,
     setVapiSettings: updateVapiSettings,
+    geminiLiveSettings,
+    setGeminiLiveSettings: updateGeminiLiveSettings,
     systemPrompt,
     setSystemPrompt,
     loading: loading || promptLoading || featuresLoading,
