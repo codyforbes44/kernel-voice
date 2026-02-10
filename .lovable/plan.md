@@ -1,132 +1,64 @@
 
 
-# Save AI Agents Feature
+# Authentication Review and Refactoring
 
-## What This Does
+## Issues Found
 
-Lets registered users save their current voice assistant configuration as a named "AI Agent" they can quickly switch between. For example, a user could save a "Technical Advisor" agent using Gemini Live with the Charon voice and a technical system prompt, and a "Creative Partner" using the default provider with a creative prompt -- then load either one with a single click.
+### 1. OAuth Providers Won't Work (Critical)
+The app shows 6 OAuth providers (Twitter, Google, Facebook, GitHub, LinkedIn, Apple) using `supabase.auth.signInWithOAuth()` directly. On Lovable Cloud, only **Google** and **Apple** are supported. The other 4 (Twitter, Facebook, GitHub, LinkedIn) will silently fail or error. The code must switch to `lovable.auth.signInWithOAuth()` and remove unsupported providers.
 
-## How It Works
+### 2. Header Has Redundant Auth Listener (Code Quality)
+`Header.tsx` creates its own `supabase.auth.onAuthStateChange` listener and manages user state independently instead of using the centralized `useAuth()` hook from `AuthContext`. This creates a duplicate listener and inconsistent state.
 
-1. A "Save as Agent" button appears in the voice settings panel (next to the provider selector)
-2. Users give their agent a name, optional description, and optional icon/emoji
-3. All current settings are captured: provider, voice, provider-specific settings, system prompt, and first message
-4. A "My Agents" section appears above the provider selector showing saved agents as clickable cards
-5. Clicking a saved agent loads all its settings at once
-6. Users can edit, duplicate, or delete their saved agents
+### 3. Sign-Up Success Message Is Misleading (UX)
+The signup toast says "Your account has been created. You can now sign in." but the system requires email verification first. Users will try to sign in immediately and get confused when it fails. The message should say "Check your email to verify your account."
 
-## Database
+### 4. Sign-Up Missing Password Confirmation (UX)
+The sign-in form has a "confirm password" field (used only for password reset), but the sign-up form does not ask users to confirm their password. This is a common UX pattern to prevent typos.
 
-A new `saved_agents` table stores the full agent configuration:
+## Changes
 
-| Column | Type | Description |
-|---|---|---|
-| id | uuid | Primary key |
-| user_id | uuid | Owner (references auth.users) |
-| name | text | Agent name (required) |
-| description | text | Optional description |
-| icon | text | Emoji or icon identifier |
-| voice_provider | text | openai, elevenlabs, vapi, gemini |
-| voice_id | text | Voice selection (e.g. "alloy", "Puck") |
-| provider_settings | jsonb | Provider-specific settings (temperature, VAD, etc.) |
-| system_prompt | text | The system prompt |
-| first_message | text | Initial greeting |
-| is_shared | boolean | Whether other users can see/use this agent |
-| created_at | timestamptz | Auto-set |
-| updated_at | timestamptz | Auto-set |
+### Step 1: Configure Google and Apple OAuth
+Use the `configure-social-auth` tool to set up Google and Apple OAuth through Lovable Cloud, which will generate the `src/integrations/lovable/` module.
 
-RLS policies:
-- Users can CRUD their own agents
-- Users can SELECT shared agents (read-only)
-- Admins can manage all agents
+### Step 2: Update OAuth Components
+**`src/hooks/useOAuthSignIn.ts`**
+- Import `lovable` from `@/integrations/lovable/index`
+- Replace `supabase.auth.signInWithOAuth()` with `lovable.auth.signInWithOAuth()`
+- Update the provider type to only include `google` and `apple`
 
-## UI Components
+**`src/components/auth/OAuthButtons.tsx`**
+- Remove Twitter (featured), Facebook, GitHub, and LinkedIn buttons
+- Show Google and Apple as equal-weight buttons (no "featured" variant needed, or make Google featured)
 
-### SaveAgentDialog
-- Modal triggered by a "Save as Agent" button in the voice settings area
-- Fields: name (required), description, icon picker (emoji grid)
-- Captures current provider, voice, settings, and system prompt automatically
-- "Save" creates the agent; "Update" overwrites an existing one
+**`src/components/auth/OAuthButton.tsx`**
+- Remove provider configs for twitter, facebook, github, linkedin_oidc
 
-### SavedAgentsList
-- Horizontal scrollable card list shown above the provider selector on the voice assistant page
-- Each card shows: icon, name, provider badge
-- Click to load all settings
-- Overflow menu (three dots) for Edit, Duplicate, Delete
-- Empty state: "Save your first AI Agent to quickly switch configurations"
+### Step 3: Refactor Header to Use useAuth()
+**`src/components/layout/Header.tsx`**
+- Remove the `useState` for user, the `useEffect` with `getSession`/`onAuthStateChange`
+- Import and use `useAuth()` from `@/contexts/AuthContext` instead
+- This eliminates a duplicate auth listener
 
-### Integration Points
-- VoiceAssistant page: Add SavedAgentsList above VoiceInterfaceCard
-- VoiceProviderSelector: Add "Save as Agent" button at the bottom of settings
+### Step 4: Fix Sign-Up UX
+**`src/pages/Auth.tsx`**
+- Change the signup success toast to: "Check your email to verify your account before signing in."
+- Add a confirm password field to the sign-up form with validation that passwords match before submitting
+
+### Step 5: PWA OAuth Compatibility
+**`vite.config.ts`**
+- Add `/~oauth` to the service worker's `navigateFallbackDenylist` so OAuth redirects are never intercepted by the PWA cache
 
 ## Technical Details
 
-### New Files
-- `src/components/voice/SaveAgentDialog.tsx` -- Save/edit modal
-- `src/components/voice/SavedAgentsList.tsx` -- Agent cards list
-- `src/hooks/useSavedAgents.ts` -- CRUD hook (similar pattern to useCustomPromptPresets)
+### Files Created
+- `src/integrations/lovable/index.ts` (auto-generated by configure-social-auth tool)
 
-### Modified Files
-- `src/pages/VoiceAssistant.tsx` -- Add SavedAgentsList to both mobile and desktop layouts
-- `src/components/voice/VoiceProviderSelector.tsx` -- Add "Save as Agent" button
-- `src/components/voice/VoiceInterfaceCard.tsx` -- Pass through onLoadAgent callback
-- `src/components/voice/voiceInterfaceTypes.ts` -- Add agent-related props
-
-### Database Migration
-```sql
-CREATE TABLE public.saved_agents (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  name text NOT NULL,
-  description text,
-  icon text DEFAULT '🤖',
-  voice_provider text NOT NULL DEFAULT 'openai',
-  voice_id text,
-  provider_settings jsonb DEFAULT '{}',
-  system_prompt text NOT NULL DEFAULT '',
-  first_message text,
-  is_shared boolean DEFAULT false,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-
-ALTER TABLE public.saved_agents ENABLE ROW LEVEL SECURITY;
-
--- Users can manage their own agents
-CREATE POLICY "Users can manage own agents"
-  ON public.saved_agents FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
--- Users can view shared agents
-CREATE POLICY "Users can view shared agents"
-  ON public.saved_agents FOR SELECT
-  USING (is_shared = true);
-
--- Admins can manage all
-CREATE POLICY "Admins can manage all agents"
-  ON public.saved_agents FOR ALL
-  USING (has_role(auth.uid(), 'admin'::app_role));
-
--- Auto-update updated_at
-CREATE TRIGGER update_saved_agents_updated_at
-  BEFORE UPDATE ON public.saved_agents
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-```
-
-### Loading an Agent
-When a user clicks a saved agent card, the `onLoadAgent` callback:
-1. Sets voice provider via `setVoiceProvider`
-2. Sets voice via `setOpenAIVoice` (or equivalent for other providers)
-3. Applies provider settings via `setOpenAISettings` / `setElevenLabsSettings` / etc.
-4. Sets system prompt via `setSystemPrompt`
-5. Shows a toast: "Loaded agent: {name}"
-
-### Saving an Agent
-Captures current state from the VoiceProviderSelector props:
-- `voiceProvider` -> `voice_provider`
-- `openaiVoice` / gemini voice / etc. -> `voice_id`
-- `openaiSettings` / `elevenlabsSettings` / etc. -> `provider_settings`
-- `systemPrompt` -> `system_prompt`
-- `openaiSettings.firstMessage` / etc. -> `first_message`
+### Files Modified
+- `src/hooks/useOAuthSignIn.ts` -- switch to lovable.auth, reduce provider list
+- `src/components/auth/OAuthButtons.tsx` -- remove unsupported providers
+- `src/components/auth/OAuthButton.tsx` -- clean up unused provider configs
+- `src/components/layout/Header.tsx` -- use useAuth() hook
+- `src/pages/Auth.tsx` -- fix signup toast, add confirm password to signup
+- `vite.config.ts` -- add navigateFallbackDenylist for OAuth
 
