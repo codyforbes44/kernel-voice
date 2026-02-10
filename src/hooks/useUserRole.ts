@@ -1,30 +1,25 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export type UserRole = 'admin' | 'moderator' | 'user' | null;
 
 export const useUserRole = () => {
+  const { user, loading: authLoading } = useAuth();
   const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
+
+    if (!user) {
+      setRole(null);
+      setLoading(false);
+      return;
+    }
+
     const fetchUserRole = async () => {
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError) {
-          console.error('Auth error:', authError);
-          setRole(null);
-          setLoading(false);
-          return;
-        }
-        
-        if (!user) {
-          setRole(null);
-          setLoading(false);
-          return;
-        }
-
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
@@ -47,7 +42,7 @@ export const useUserRole = () => {
     };
 
     fetchUserRole();
-  }, []);
+  }, [user, authLoading]);
 
   const hasRole = (requiredRole: 'admin' | 'moderator' | 'user') => {
     if (!role) return false;
@@ -57,5 +52,5 @@ export const useUserRole = () => {
     return false;
   };
 
-  return { role, loading, hasRole, isAdmin: role === 'admin' };
+  return { role, loading: loading || authLoading, hasRole, isAdmin: role === 'admin' };
 };
