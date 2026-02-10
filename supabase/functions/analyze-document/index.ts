@@ -70,20 +70,23 @@ Deno.serve(async (req) => {
 
       console.log('Analyzing document with GPT-4.1...');
 
-      const messages = [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: analysisPrompt },
+      const isImage = mimeType && mimeType.startsWith('image/');
+
+      const userContent = isImage
+        ? [
+            { type: 'text' as const, text: analysisPrompt },
             {
-              type: 'image_url',
+              type: 'image_url' as const,
               image_url: {
                 url: content.startsWith('data:') ? content : `data:${mimeType};base64,${content}`
               }
             }
           ]
-        }
-      ];
+        : [
+            { type: 'text' as const, text: `${analysisPrompt}\n\nDocument content:\n${content.startsWith('data:') ? atob(content.split(',')[1] || '') : content}` }
+          ];
+
+      const messages = [{ role: 'user', content: userContent }];
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
