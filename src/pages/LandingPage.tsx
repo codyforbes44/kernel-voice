@@ -108,7 +108,7 @@ const LandingPage = () => {
               {/* Headline */}
               <h1 className={`text-4xl sm:text-5xl md:text-7xl font-display font-bold mb-6 transition-all duration-700 delay-200 ${heroAnimation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                 <span className="bg-gradient-to-r from-primary via-primary to-secondary bg-clip-text text-transparent">
-                  ƷBI Voice
+                  Voice
                 </span>
               </h1>
               
