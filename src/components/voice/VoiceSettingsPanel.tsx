@@ -1,4 +1,5 @@
 import { VoiceProviderSelector, type VoiceProvider, type OpenAIVoice, type OpenAIVoiceSettings, type ElevenLabsSettings, type VAPISettings } from './VoiceProviderSelector';
+import { type GeminiLiveSettings } from './voiceTypes';
 import { InputModeSelector, type InputMode } from './InputModeSelector';
 import { ConnectionTestPanel } from './ConnectionTestPanel';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -14,6 +15,8 @@ interface VoiceSettingsPanelProps {
   onElevenLabsSettingsChange: (value: ElevenLabsSettings) => void;
   vapiSettings?: VAPISettings;
   onVapiSettingsChange?: (value: VAPISettings) => void;
+  geminiLiveSettings?: GeminiLiveSettings;
+  onGeminiLiveSettingsChange?: (value: GeminiLiveSettings) => void;
   systemPrompt: string;
   onSystemPromptChange: (value: string) => void;
   inputMode: InputMode;
@@ -34,6 +37,8 @@ export const VoiceSettingsPanel = ({
   onElevenLabsSettingsChange,
   vapiSettings,
   onVapiSettingsChange,
+  geminiLiveSettings,
+  onGeminiLiveSettingsChange,
   systemPrompt,
   onSystemPromptChange,
   inputMode,
@@ -57,6 +62,8 @@ export const VoiceSettingsPanel = ({
           onElevenLabsSettingsChange={onElevenLabsSettingsChange}
           vapiSettings={vapiSettings}
           onVapiSettingsChange={onVapiSettingsChange}
+          geminiLiveSettings={geminiLiveSettings}
+          onGeminiLiveSettingsChange={onGeminiLiveSettingsChange}
           systemPrompt={systemPrompt}
           onSystemPromptChange={onSystemPromptChange}
           disabled={isConnected || providerLoading}

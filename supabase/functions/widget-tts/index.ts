@@ -1,12 +1,18 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -30,7 +36,6 @@ serve(async (req) => {
       );
     }
 
-    // Truncate very long text to avoid API limits
     const truncatedText = text.slice(0, 4000);
 
     const response = await fetch(
@@ -43,7 +48,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           text: truncatedText,
-          model_id: 'eleven_turbo_v2_5',
+          model_id: 'eleven_flash_v2_5',
           voice_settings: {
             stability: 0.5,
             similarity_boost: 0.75,
@@ -63,7 +68,7 @@ serve(async (req) => {
     }
 
     const audioBuffer = await response.arrayBuffer();
-    const base64Audio = base64Encode(audioBuffer);
+    const base64Audio = uint8ArrayToBase64(new Uint8Array(audioBuffer));
 
     return new Response(
       JSON.stringify({ audioContent: base64Audio }),
