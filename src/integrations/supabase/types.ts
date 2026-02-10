@@ -463,6 +463,7 @@ export type Database = {
           is_shared: boolean | null
           name: string
           provider_settings: Json | null
+          required_questions: Json | null
           system_prompt: string
           updated_at: string | null
           user_id: string
@@ -478,6 +479,7 @@ export type Database = {
           is_shared?: boolean | null
           name: string
           provider_settings?: Json | null
+          required_questions?: Json | null
           system_prompt?: string
           updated_at?: string | null
           user_id: string
@@ -493,6 +495,7 @@ export type Database = {
           is_shared?: boolean | null
           name?: string
           provider_settings?: Json | null
+          required_questions?: Json | null
           system_prompt?: string
           updated_at?: string | null
           user_id?: string
