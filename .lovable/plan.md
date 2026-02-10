@@ -1,28 +1,33 @@
 
 
-# Update OG Home Image: "Kernel Voice" to "ƷBI Voice"
+# Refactor Homepage OG Image with "ƷBI Voice" Branding
 
-## What
+## Problem
 
-The uploaded OG image (`og-home.png`) still says "Kernel Voice". It needs to be regenerated with "ƷBI Voice" branding instead.
+Previous AI image generation attempts couldn't reliably render the Unicode character "Ʒ" (Latin Ezh). The current `og-home.png` has an incorrect or messy rendering of the brand name.
 
 ## Approach
 
-Use the `brand-og-image` edge function (already exists) to regenerate the image via the AI image editing model. The function will take the uploaded image and apply the new "ƷBI Voice" text branding. The resulting image will replace `public/og-home.png`.
+Use the higher-quality image generation model (`google/gemini-3-pro-image-preview`) instead of the flash model, with a more explicit prompt that describes the character shape rather than relying on the model to interpret the Unicode glyph. This gives the best chance of a clean render.
 
 ## Steps
 
-1. Copy the uploaded image to the project as the base image
-2. Update the `brand-og-image` edge function prompt to use "ƷBI Voice" instead of "Kernel Voice" (it was already partially updated but should be verified)
-3. Call the edge function to generate the branded image
-4. Save the result as `public/og-home.png`
+1. **Update the `brand-og-image` edge function** to use `google/gemini-3-pro-image-preview` (higher quality) and revise the prompt to describe the Ʒ character explicitly (e.g., "the letter that looks like a reversed numeral 3") to help the model render it correctly.
 
-Alternatively (simpler and more reliable): Use the AI image generation API directly from a small edge function call or inline to edit the image, replacing "Kernel Voice" text with "ƷBI Voice" while keeping everything else identical.
+2. **Deploy and call the edge function** with the uploaded source image to generate the branded OG image.
+
+3. **Save the result** as `public/og-home.png`, replacing the current version.
+
+4. **Verify** by opening the landing page and checking the OG meta tag references the updated image.
+
+## Fallback
+
+If the AI model still cannot render the character cleanly, we will generate the image with "3BI Voice" (using the numeral 3, which is visually near-identical to Ʒ) and confirm with you before saving.
 
 ## Technical Details
 
-- The `brand-og-image` edge function at `supabase/functions/brand-og-image/index.ts` already references "ƷBI Voice" in its prompt (updated in earlier refactoring)
-- The image will be edited using the `google/gemini-2.5-flash-image-preview` model via the Lovable AI gateway
-- Output dimensions: 1200x630 (standard OG image size)
-- The generated base64 image will be decoded and saved to `public/og-home.png`
+- Model change: `google/gemini-2.5-flash-image-preview` to `google/gemini-3-pro-image-preview`
+- Prompt will explicitly describe the glyph shape to avoid Unicode rendering issues
+- Output: 1200x630 PNG saved to `public/og-home.png`
+- SEO component already references `/og-home.png` correctly -- no code changes needed beyond the image itself
 
