@@ -1,140 +1,132 @@
 
 
-# API & Voice Provider Updates
+# Save AI Agents Feature
 
-## Overview
+## What This Does
 
-This plan covers five areas: updating edge function models, upgrading TTS, modernizing Deno imports, and adding a new Gemini Live voice provider.
+Lets registered users save their current voice assistant configuration as a named "AI Agent" they can quickly switch between. For example, a user could save a "Technical Advisor" agent using Gemini Live with the Charon voice and a technical system prompt, and a "Creative Partner" using the default provider with a creative prompt -- then load either one with a single click.
 
----
+## How It Works
 
-## 1. widget-chat: Update to latest GPT model
+1. A "Save as Agent" button appears in the voice settings panel (next to the provider selector)
+2. Users give their agent a name, optional description, and optional icon/emoji
+3. All current settings are captured: provider, voice, provider-specific settings, system prompt, and first message
+4. A "My Agents" section appears above the provider selector showing saved agents as clickable cards
+5. Clicking a saved agent loads all its settings at once
+6. Users can edit, duplicate, or delete their saved agents
 
-**Current**: `gpt-4o-mini` (fallback) and `claude-3-5-sonnet-20241022` (primary)
-**Update to**: `gpt-4.1-mini` (fallback) and `claude-sonnet-4-20250514` (primary)
+## Database
 
-Changes in `supabase/functions/widget-chat/index.ts`:
-- Line 294: `claude-3-5-sonnet-20241022` -> `claude-sonnet-4-20250514`
-- Line 315: `gpt-4o-mini` -> `gpt-4.1-mini`
+A new `saved_agents` table stores the full agent configuration:
 
----
-
-## 2. analyze-document: Update GPT + add Gemini option
-
-**Current**: `gpt-4o` only via OpenAI
-**Update to**: `gpt-4.1` as default, with `gemini-2.5-pro` as selectable option
-
-Changes in `supabase/functions/analyze-document/index.ts`:
-- Accept a new `provider` parameter (`openai` | `gemini`, default `openai`)
-- Update OpenAI model from `gpt-4o` to `gpt-4.1`
-- Add Gemini Direct API path using `GEMINI_API_KEY` with `gemini-2.5-pro` model
-- Gemini supports multimodal (image + text) via `inlineData` in its API
-- Remove the outdated `xhr` polyfill import
-- Use `Deno.serve()` instead of imported `serve()`
-
----
-
-## 3. widget-tts: Upgrade to eleven_flash_v2_5
-
-**Current**: `eleven_turbo_v2_5`
-**Update to**: `eleven_flash_v2_5`
-
-Changes in `supabase/functions/widget-tts/index.ts`:
-- Line 46: `eleven_turbo_v2_5` -> `eleven_flash_v2_5`
-- Remove `serve` import, use `Deno.serve()` natively
-- Remove `base64Encode` import, use native `btoa()` with chunked encoding or `Uint8Array` approach
-
----
-
-## 4. Deno Standard Library Updates
-
-Modernize all edge functions by replacing `import { serve } from "https://deno.land/std@0.168.0/http/server.ts"` with native `Deno.serve()`. Functions affected:
-
-| Function | Current | Update |
+| Column | Type | Description |
 |---|---|---|
-| `analyze-document` | `serve()` import + `xhr` polyfill | `Deno.serve()` |
-| `widget-tts` | `serve()` import + `base64` import | `Deno.serve()` + native encoding |
-| `chat` | `serve()` import | `Deno.serve()` |
-| `generate-content` | `serve()` import | `Deno.serve()` |
-| `openai-realtime-token` | `serve()` import + `xhr` polyfill | `Deno.serve()` |
-| `voice-session` | `serve()` import | `Deno.serve()` |
-| `vapi-session` | `serve()` import | `Deno.serve()` |
+| id | uuid | Primary key |
+| user_id | uuid | Owner (references auth.users) |
+| name | text | Agent name (required) |
+| description | text | Optional description |
+| icon | text | Emoji or icon identifier |
+| voice_provider | text | openai, elevenlabs, vapi, gemini |
+| voice_id | text | Voice selection (e.g. "alloy", "Puck") |
+| provider_settings | jsonb | Provider-specific settings (temperature, VAD, etc.) |
+| system_prompt | text | The system prompt |
+| first_message | text | Initial greeting |
+| is_shared | boolean | Whether other users can see/use this agent |
+| created_at | timestamptz | Auto-set |
+| updated_at | timestamptz | Auto-set |
 
-Note: `widget-chat`, `elevenlabs-scribe-token`, and Stripe functions already use `Deno.serve()` or will be updated in their respective changes.
+RLS policies:
+- Users can CRUD their own agents
+- Users can SELECT shared agents (read-only)
+- Admins can manage all agents
 
-For base64 encoding in `widget-tts`, replace the Deno std import with a safe chunked approach:
-```typescript
-function uint8ArrayToBase64(bytes: Uint8Array): string {
-  let binary = '';
-  const chunkSize = 8192;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
-}
+## UI Components
+
+### SaveAgentDialog
+- Modal triggered by a "Save as Agent" button in the voice settings area
+- Fields: name (required), description, icon picker (emoji grid)
+- Captures current provider, voice, settings, and system prompt automatically
+- "Save" creates the agent; "Update" overwrites an existing one
+
+### SavedAgentsList
+- Horizontal scrollable card list shown above the provider selector on the voice assistant page
+- Each card shows: icon, name, provider badge
+- Click to load all settings
+- Overflow menu (three dots) for Edit, Duplicate, Delete
+- Empty state: "Save your first AI Agent to quickly switch configurations"
+
+### Integration Points
+- VoiceAssistant page: Add SavedAgentsList above VoiceInterfaceCard
+- VoiceProviderSelector: Add "Save as Agent" button at the bottom of settings
+
+## Technical Details
+
+### New Files
+- `src/components/voice/SaveAgentDialog.tsx` -- Save/edit modal
+- `src/components/voice/SavedAgentsList.tsx` -- Agent cards list
+- `src/hooks/useSavedAgents.ts` -- CRUD hook (similar pattern to useCustomPromptPresets)
+
+### Modified Files
+- `src/pages/VoiceAssistant.tsx` -- Add SavedAgentsList to both mobile and desktop layouts
+- `src/components/voice/VoiceProviderSelector.tsx` -- Add "Save as Agent" button
+- `src/components/voice/VoiceInterfaceCard.tsx` -- Pass through onLoadAgent callback
+- `src/components/voice/voiceInterfaceTypes.ts` -- Add agent-related props
+
+### Database Migration
+```sql
+CREATE TABLE public.saved_agents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  description text,
+  icon text DEFAULT '🤖',
+  voice_provider text NOT NULL DEFAULT 'openai',
+  voice_id text,
+  provider_settings jsonb DEFAULT '{}',
+  system_prompt text NOT NULL DEFAULT '',
+  first_message text,
+  is_shared boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.saved_agents ENABLE ROW LEVEL SECURITY;
+
+-- Users can manage their own agents
+CREATE POLICY "Users can manage own agents"
+  ON public.saved_agents FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can view shared agents
+CREATE POLICY "Users can view shared agents"
+  ON public.saved_agents FOR SELECT
+  USING (is_shared = true);
+
+-- Admins can manage all
+CREATE POLICY "Admins can manage all agents"
+  ON public.saved_agents FOR ALL
+  USING (has_role(auth.uid(), 'admin'::app_role));
+
+-- Auto-update updated_at
+CREATE TRIGGER update_saved_agents_updated_at
+  BEFORE UPDATE ON public.saved_agents
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
 
----
+### Loading an Agent
+When a user clicks a saved agent card, the `onLoadAgent` callback:
+1. Sets voice provider via `setVoiceProvider`
+2. Sets voice via `setOpenAIVoice` (or equivalent for other providers)
+3. Applies provider settings via `setOpenAISettings` / `setElevenLabsSettings` / etc.
+4. Sets system prompt via `setSystemPrompt`
+5. Shows a toast: "Loaded agent: {name}"
 
-## 5. New Voice Provider: Gemini Live (Voice AI)
-
-**Available resource**: `GEMINI_API_KEY` is already configured and can access the Gemini Live API for real-time voice conversations.
-
-**Model**: `gemini-2.5-flash-native-audio-preview-12-2025` -- provides low-latency voice with native audio, 30 HD voices in 24 languages, and tool calling support.
-
-### Implementation Plan
-
-**A. New edge function: `gemini-live-token/index.ts`**
-- Generates a temporary API token/config for client-side Gemini Live WebSocket connection
-- Uses `GEMINI_API_KEY`
-- Returns configuration needed for the client to establish a WebSocket connection to `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent`
-- Feature-gated behind premium access (same as ElevenLabs/VAPI)
-
-**B. New hook: `useGeminiLiveConversation.ts`**
-- WebSocket-based connection to Gemini Live API
-- Handles audio capture (PCM 16kHz input) and playback (PCM 24kHz output)
-- Processes real-time transcripts and tool calls
-- Follows the same interface pattern as `useOpenAIConversation.ts`
-
-**C. Update voice provider types** in `src/components/voice/voiceTypes.ts`:
-- Add `'gemini'` to `VoiceProvider` type
-- Add `GeminiLiveSettings` interface (model selection, language, voice name)
-- Add provider info entry for Gemini Live
-- Add to `VALID_PROVIDERS` array
-
-**D. Update `VoiceProviderSelector.tsx`**:
-- Gemini Live appears in the dropdown as a premium provider (gated by `elevenlabs_voice` feature like VAPI)
-- Add `GeminiLiveSettingsPanel` component for voice/language selection
-
-**E. Update `useVoiceProviderPreference.ts`**:
-- Add Gemini Live settings state and persistence
-
-**F. Update `useVoiceAssistant.ts`**:
-- Add Gemini Live as a provider option, routing to the new hook
-
-### Gemini Live Voice Options (30 HD voices)
-Examples: Puck, Charon, Kore, Fenrir, Aoede, Leda, Orus, Zephyr -- these will be selectable in the settings panel.
-
----
-
-## Summary of All File Changes
-
-| File | Action |
-|---|---|
-| `supabase/functions/widget-chat/index.ts` | Update model strings |
-| `supabase/functions/analyze-document/index.ts` | Rewrite: add Gemini provider, update GPT model, modernize Deno |
-| `supabase/functions/widget-tts/index.ts` | Update TTS model, modernize Deno |
-| `supabase/functions/chat/index.ts` | Modernize Deno import |
-| `supabase/functions/generate-content/index.ts` | Modernize Deno import |
-| `supabase/functions/openai-realtime-token/index.ts` | Modernize Deno import |
-| `supabase/functions/voice-session/index.ts` | Modernize Deno import |
-| `supabase/functions/vapi-session/index.ts` | Modernize Deno import |
-| `supabase/functions/gemini-live-token/index.ts` | **New** -- Gemini Live session endpoint |
-| `supabase/config.toml` | Add `gemini-live-token` function config |
-| `src/components/voice/voiceTypes.ts` | Add Gemini provider type, settings, voices |
-| `src/components/voice/VoiceProviderSelector.tsx` | Add Gemini Live option |
-| `src/components/voice/GeminiLiveSettingsPanel.tsx` | **New** -- Settings UI for Gemini Live |
-| `src/hooks/useGeminiLiveConversation.ts` | **New** -- WebSocket voice hook |
-| `src/hooks/useVoiceProviderPreference.ts` | Add Gemini settings state |
-| `src/hooks/useVoiceAssistant.ts` | Route Gemini provider to new hook |
+### Saving an Agent
+Captures current state from the VoiceProviderSelector props:
+- `voiceProvider` -> `voice_provider`
+- `openaiVoice` / gemini voice / etc. -> `voice_id`
+- `openaiSettings` / `elevenlabsSettings` / etc. -> `provider_settings`
+- `systemPrompt` -> `system_prompt`
+- `openaiSettings.firstMessage` / etc. -> `first_message`
 
