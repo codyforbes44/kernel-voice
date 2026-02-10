@@ -10,6 +10,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const MAX_CONTEXT_MESSAGES = 50;
+
   try {
     const { messages, conversationId, userId, stream = false } = await req.json();
     

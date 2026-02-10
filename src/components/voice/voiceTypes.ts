@@ -168,6 +168,14 @@ export const openaiVoices: { id: OpenAIVoice; name: string; type: string; tone: 
   { id: 'verse', name: 'Verse', type: 'Neutral', tone: 'Expressive, dynamic', description: 'Versatile and emotive' },
 ];
 
+// Required Questions type
+export interface RequiredQuestion {
+  id: string;
+  question: string;
+  type: 'text' | 'email' | 'phone' | 'number' | 'yes_no';
+  required: boolean;
+}
+
 // Valid voice values for validation
 export const VALID_OPENAI_VOICES: OpenAIVoice[] = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'cedar', 'marin'];
 export const VALID_PROVIDERS: VoiceProvider[] = ['elevenlabs', 'openai', 'vapi', 'gemini'];

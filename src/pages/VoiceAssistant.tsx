@@ -166,7 +166,19 @@ const VoiceAssistant = () => {
       else if (agent.voice_provider === 'vapi') setVapiSettings?.(settings as any);
       else if (agent.voice_provider === 'gemini') setGeminiLiveSettings?.(settings as any);
     }
-    setSystemPrompt(agent.system_prompt);
+
+    // Inject required questions into system prompt
+    let prompt = agent.system_prompt;
+    const rq = agent.required_questions;
+    if (rq && rq.length > 0) {
+      const lines = rq.map((q, i) => {
+        const tag = q.required ? '[Required]' : '[Optional]';
+        return `${i + 1}. ${tag} ${q.question} (expect: ${q.type.replace('_', '/')})`;
+      });
+      prompt += `\n\nIMPORTANT: You must collect answers to the following questions during this conversation. Ask them naturally in the flow of conversation. Do not skip required questions.\n\nQuestions to collect:\n${lines.join('\n')}`;
+    }
+
+    setSystemPrompt(prompt);
     setActiveAgentId(agent.id);
     toast.success(`Loaded agent: ${agent.name}`);
   }, [setVoiceProvider, setOpenAIVoice, setOpenAISettings, setElevenLabsSettings, setVapiSettings, setGeminiLiveSettings, setSystemPrompt]);

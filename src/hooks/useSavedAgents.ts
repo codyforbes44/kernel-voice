@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
+import type { RequiredQuestion } from '@/components/voice/voiceTypes';
 
 export interface SavedAgent {
   id: string;
@@ -16,6 +17,7 @@ export interface SavedAgent {
   system_prompt: string;
   first_message: string | null;
   is_shared: boolean;
+  required_questions: RequiredQuestion[];
   created_at: string;
   updated_at: string;
 }
@@ -30,6 +32,7 @@ export interface CreateAgentInput {
   system_prompt: string;
   first_message?: string;
   is_shared?: boolean;
+  required_questions?: RequiredQuestion[];
 }
 
 export interface UpdateAgentInput extends Partial<CreateAgentInput> {
@@ -48,7 +51,10 @@ export function useSavedAgents() {
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      return data as SavedAgent[];
+      return (data || []).map(d => ({
+        ...d,
+        required_questions: (d.required_questions as unknown as RequiredQuestion[]) || [],
+      })) as SavedAgent[];
     },
   });
 
@@ -70,12 +76,13 @@ export function useSavedAgents() {
           system_prompt: input.system_prompt,
           first_message: input.first_message || null,
           is_shared: input.is_shared ?? false,
+          required_questions: (input.required_questions || []) as unknown as Json,
         })
         .select()
         .single();
 
       if (error) throw error;
-      return data as SavedAgent;
+      return { ...data, required_questions: (data.required_questions as unknown as RequiredQuestion[]) || [] } as SavedAgent;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saved-agents'] });
@@ -88,16 +95,20 @@ export function useSavedAgents() {
 
   const updateAgent = useMutation({
     mutationFn: async (input: UpdateAgentInput) => {
-      const { id, ...updates } = input;
+      const { id, required_questions, ...rest } = input;
+      const updatePayload: Record<string, unknown> = { ...rest, updated_at: new Date().toISOString() };
+      if (required_questions !== undefined) {
+        updatePayload.required_questions = required_questions as unknown as Json;
+      }
       const { data, error } = await supabase
         .from('saved_agents')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(updatePayload as any)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as SavedAgent;
+      return { ...data, required_questions: (data.required_questions as unknown as RequiredQuestion[]) || [] } as SavedAgent;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saved-agents'] });

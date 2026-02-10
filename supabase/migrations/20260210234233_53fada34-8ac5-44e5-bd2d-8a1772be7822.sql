@@ -1,0 +1,1 @@
+ALTER TABLE public.saved_agents ADD COLUMN required_questions jsonb DEFAULT '[]'::jsonb;
