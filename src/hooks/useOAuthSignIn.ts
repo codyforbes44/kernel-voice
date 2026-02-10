@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable/index';
 import { useToast } from '@/hooks/use-toast';
 
-export type OAuthProvider = 'twitter' | 'google' | 'facebook' | 'github' | 'linkedin_oidc' | 'apple';
+export type OAuthProvider = 'google' | 'apple';
 
 export const useOAuthSignIn = () => {
   const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(null);
@@ -12,16 +12,11 @@ export const useOAuthSignIn = () => {
     setLoadingProvider(provider);
 
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: redirectUrl,
-        },
+      const result = await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: window.location.origin,
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
     } catch (error: any) {
       toast({
         title: 'Authentication Error',

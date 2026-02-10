@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
+import { useAuth } from '@/contexts/AuthContext';
 import { UserMenu } from './UserMenu';
 import { ThemePreview } from '@/components/ThemePreview';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -15,33 +13,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export const Header = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, loading: roleLoading } = useUserRole();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Session error:', error);
-        setUser(null);
-        return;
-      }
-      setUser(session?.user ?? null);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('Session refreshed successfully');
-      }
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const isActive = (path: string) => location.pathname === path;
 
