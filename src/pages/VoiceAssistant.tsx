@@ -19,13 +19,18 @@ import { GuestModeBanner } from '@/components/voice/GuestModeBanner';
 import { ConversationBanner } from '@/components/voice/ConversationBanner';
 import { VoiceInterfaceCard } from '@/components/voice/VoiceInterfaceCard';
 import { VoiceErrorBoundary } from '@/components/voice/VoiceErrorBoundary';
+import { SavedAgentsList } from '@/components/voice/SavedAgentsList';
+import { SaveAgentDialog } from '@/components/voice/SaveAgentDialog';
+import { useSavedAgents, type SavedAgent } from '@/hooks/useSavedAgents';
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
 import { useWakeWordDetection } from '@/hooks/useWakeWordDetection';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { UpgradeBanner } from '@/components/subscription/UpgradeBanner';
+import { toast } from 'sonner';
+import type { Json } from '@/integrations/supabase/types';
 
 /**
  * Voice Assistant page - main interface for AI voice conversations.
@@ -35,6 +40,10 @@ import { UpgradeBanner } from '@/components/subscription/UpgradeBanner';
 const VoiceAssistant = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { agents, isLoading: agentsLoading, createAgent, updateAgent, deleteAgent, duplicateAgent } = useSavedAgents();
+  const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<SavedAgent | null>(null);
   
   const {
     isAuthenticated,
@@ -121,6 +130,60 @@ const VoiceAssistant = () => {
     setConversationTitle(null);
   }, [setConversationId, setConversationTitle]);
 
+  // Agent management handlers
+  const getCurrentConfig = useCallback(() => {
+    let voiceId = '';
+    let providerSettings: Json = {};
+    let firstMessage = '';
+    if (voiceProvider === 'openai') {
+      voiceId = openaiVoice;
+      providerSettings = openaiSettings as unknown as Json;
+      firstMessage = openaiSettings.firstMessage || '';
+    } else if (voiceProvider === 'elevenlabs') {
+      providerSettings = elevenlabsSettings as unknown as Json;
+      firstMessage = elevenlabsSettings.customFirstMessage || '';
+    } else if (voiceProvider === 'gemini' && geminiLiveSettings) {
+      voiceId = geminiLiveSettings.voice;
+      providerSettings = geminiLiveSettings as unknown as Json;
+      firstMessage = geminiLiveSettings.customFirstMessage || '';
+    }
+    return { voiceProvider, voiceId, providerSettings, systemPrompt, firstMessage };
+  }, [voiceProvider, openaiVoice, openaiSettings, elevenlabsSettings, geminiLiveSettings, systemPrompt]);
+
+  const handleLoadAgent = useCallback((agent: SavedAgent) => {
+    setVoiceProvider(agent.voice_provider as any);
+    if (agent.voice_provider === 'openai' && agent.voice_id) {
+      setOpenAIVoice(agent.voice_id as any);
+    }
+    if (agent.provider_settings && typeof agent.provider_settings === 'object') {
+      const settings = agent.provider_settings as Record<string, any>;
+      if (agent.voice_provider === 'openai') setOpenAISettings(settings as any);
+      else if (agent.voice_provider === 'elevenlabs') setElevenLabsSettings(settings as any);
+      else if (agent.voice_provider === 'gemini') setGeminiLiveSettings?.(settings as any);
+    }
+    setSystemPrompt(agent.system_prompt);
+    setActiveAgentId(agent.id);
+    toast.success(`Loaded agent: ${agent.name}`);
+  }, [setVoiceProvider, setOpenAIVoice, setOpenAISettings, setElevenLabsSettings, setGeminiLiveSettings, setSystemPrompt]);
+
+  const handleSaveAgent = useCallback(async (input: Parameters<typeof createAgent.mutateAsync>[0]) => {
+    await createAgent.mutateAsync(input);
+  }, [createAgent]);
+
+  const handleUpdateAgent = useCallback(async (id: string, input: Record<string, any>) => {
+    await updateAgent.mutateAsync({ id, ...input });
+  }, [updateAgent]);
+
+  const handleEditAgent = useCallback((agent: SavedAgent) => {
+    setEditingAgent(agent);
+    setSaveDialogOpen(true);
+  }, []);
+
+  const handleDeleteAgent = useCallback((id: string) => {
+    deleteAgent.mutate(id);
+    if (activeAgentId === id) setActiveAgentId(null);
+  }, [deleteAgent, activeAgentId]);
+
   // Memoize voice interface card props to prevent unnecessary re-renders
   const voiceInterfaceProps = useMemo(() => ({
     voiceProvider,
@@ -165,6 +228,7 @@ const VoiceAssistant = () => {
     isWakeWordListening,
     isWakeWordSupported,
     wakeWordLastHeard,
+    onSaveAgent: () => { setEditingAgent(null); setSaveDialogOpen(true); },
   }), [
     voiceProvider, setVoiceProvider,
     openaiVoice, setOpenAIVoice, openaiSettings, setOpenAISettings,
@@ -250,6 +314,19 @@ const VoiceAssistant = () => {
               </div>
             )}
 
+            {/* Saved Agents */}
+            {isAuthenticated && (
+              <SavedAgentsList
+                agents={agents}
+                isLoading={agentsLoading}
+                activeAgentId={activeAgentId}
+                onLoadAgent={handleLoadAgent}
+                onEditAgent={handleEditAgent}
+                onDuplicateAgent={duplicateAgent}
+                onDeleteAgent={handleDeleteAgent}
+              />
+            )}
+
             {/* Main Voice Interface */}
             <VoiceErrorBoundary>
               <VoiceInterfaceCard {...voiceInterfaceProps} />
@@ -279,6 +356,15 @@ const VoiceAssistant = () => {
           open={showRegistrationPrompt}
           onOpenChange={setShowRegistrationPrompt}
           messageCount={guestMessages.length / 2}
+        />
+        <SaveAgentDialog
+          open={saveDialogOpen}
+          onOpenChange={setSaveDialogOpen}
+          onSave={handleSaveAgent}
+          onUpdate={handleUpdateAgent}
+          editingAgent={editingAgent}
+          currentConfig={getCurrentConfig()}
+          saving={createAgent.isPending || updateAgent.isPending}
         />
       </>
     );
@@ -334,6 +420,19 @@ const VoiceAssistant = () => {
                   </div>
                 )}
 
+                {/* Saved Agents */}
+                {isAuthenticated && (
+                  <SavedAgentsList
+                    agents={agents}
+                    isLoading={agentsLoading}
+                    activeAgentId={activeAgentId}
+                    onLoadAgent={handleLoadAgent}
+                    onEditAgent={handleEditAgent}
+                    onDuplicateAgent={duplicateAgent}
+                    onDeleteAgent={handleDeleteAgent}
+                  />
+                )}
+
                 {/* Main Voice Interface */}
                 <VoiceErrorBoundary>
                   <VoiceInterfaceCard {...voiceInterfaceProps} />
@@ -364,6 +463,15 @@ const VoiceAssistant = () => {
         open={showRegistrationPrompt}
         onOpenChange={setShowRegistrationPrompt}
         messageCount={guestMessages.length / 2}
+      />
+      <SaveAgentDialog
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        onSave={handleSaveAgent}
+        onUpdate={handleUpdateAgent}
+        editingAgent={editingAgent}
+        currentConfig={getCurrentConfig()}
+        saving={createAgent.isPending || updateAgent.isPending}
       />
     </>
   );
