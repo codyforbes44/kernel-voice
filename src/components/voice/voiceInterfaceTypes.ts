@@ -91,4 +91,5 @@ export interface VoiceInterfaceCardProps
   activeToolCall: ToolExecution | null;
   isAuthenticated: boolean;
   isMobile: boolean;
+  onSaveAgent?: () => void;
 }

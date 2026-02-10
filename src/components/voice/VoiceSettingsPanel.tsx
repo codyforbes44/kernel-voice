@@ -3,6 +3,8 @@ import { type GeminiLiveSettings } from './voiceTypes';
 import { InputModeSelector, type InputMode } from './InputModeSelector';
 import { ConnectionTestPanel } from './ConnectionTestPanel';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
+import { Save } from 'lucide-react';
 
 interface VoiceSettingsPanelProps {
   voiceProvider: VoiceProvider;
@@ -24,6 +26,7 @@ interface VoiceSettingsPanelProps {
   isConnected: boolean;
   providerLoading: boolean;
   isAuthenticated: boolean;
+  onSaveAgent?: () => void;
 }
 
 export const VoiceSettingsPanel = ({
@@ -46,6 +49,7 @@ export const VoiceSettingsPanel = ({
   isConnected,
   providerLoading,
   isAuthenticated,
+  onSaveAgent,
 }: VoiceSettingsPanelProps) => {
   return (
     <div className="space-y-6">
@@ -70,6 +74,16 @@ export const VoiceSettingsPanel = ({
           isAuthenticated={isAuthenticated}
         />
       </div>
+
+      {/* Save as Agent */}
+      {isAuthenticated && onSaveAgent && (
+        <div className="pt-4 border-t border-border">
+          <Button variant="outline" size="sm" className="w-full" onClick={onSaveAgent}>
+            <Save className="h-4 w-4 mr-2" />
+            Save as Agent
+          </Button>
+        </div>
+      )}
       
       <div className="space-y-3 pt-4 border-t border-border">
         <h4 className="font-medium text-lg">Input Mode</h4>

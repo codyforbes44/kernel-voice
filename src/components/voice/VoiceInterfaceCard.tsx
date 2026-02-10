@@ -61,6 +61,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
   isWakeWordListening,
   isWakeWordSupported,
   wakeWordLastHeard,
+  onSaveAgent,
 }: VoiceInterfaceCardProps) {
   const showVoiceInterface = inputMode === 'voice' || inputMode === 'combined';
   const showTextInput = inputMode === 'text' || inputMode === 'combined';
@@ -118,6 +119,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
                     isConnected={isConnected}
                     providerLoading={providerLoading}
                     isAuthenticated={isAuthenticated}
+                    onSaveAgent={onSaveAgent}
                   />
                 </div>
               </SheetContent>
@@ -148,6 +150,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
                   isConnected={isConnected}
                   providerLoading={providerLoading}
                   isAuthenticated={isAuthenticated}
+                  onSaveAgent={onSaveAgent}
                 />
               </PopoverContent>
             </Popover>

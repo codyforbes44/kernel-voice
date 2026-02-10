@@ -453,6 +453,54 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_agents: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          first_message: string | null
+          icon: string | null
+          id: string
+          is_shared: boolean | null
+          name: string
+          provider_settings: Json | null
+          system_prompt: string
+          updated_at: string | null
+          user_id: string
+          voice_id: string | null
+          voice_provider: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          first_message?: string | null
+          icon?: string | null
+          id?: string
+          is_shared?: boolean | null
+          name: string
+          provider_settings?: Json | null
+          system_prompt?: string
+          updated_at?: string | null
+          user_id: string
+          voice_id?: string | null
+          voice_provider?: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          first_message?: string | null
+          icon?: string | null
+          id?: string
+          is_shared?: boolean | null
+          name?: string
+          provider_settings?: Json | null
+          system_prompt?: string
+          updated_at?: string | null
+          user_id?: string
+          voice_id?: string | null
+          voice_provider?: string
+        }
+        Relationships: []
+      }
       user_features: {
         Row: {
           enabled: boolean
