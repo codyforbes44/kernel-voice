@@ -59,6 +59,8 @@ const VoiceAssistant = () => {
     setOpenAISettings,
     elevenlabsSettings,
     setElevenLabsSettings,
+    vapiSettings,
+    setVapiSettings,
     geminiLiveSettings,
     setGeminiLiveSettings,
     systemPrompt,
@@ -142,13 +144,15 @@ const VoiceAssistant = () => {
     } else if (voiceProvider === 'elevenlabs') {
       providerSettings = elevenlabsSettings as unknown as Json;
       firstMessage = elevenlabsSettings.customFirstMessage || '';
+    } else if (voiceProvider === 'vapi' && vapiSettings) {
+      providerSettings = vapiSettings as unknown as Json;
     } else if (voiceProvider === 'gemini' && geminiLiveSettings) {
       voiceId = geminiLiveSettings.voice;
       providerSettings = geminiLiveSettings as unknown as Json;
       firstMessage = geminiLiveSettings.customFirstMessage || '';
     }
     return { voiceProvider, voiceId, providerSettings, systemPrompt, firstMessage };
-  }, [voiceProvider, openaiVoice, openaiSettings, elevenlabsSettings, geminiLiveSettings, systemPrompt]);
+  }, [voiceProvider, openaiVoice, openaiSettings, elevenlabsSettings, vapiSettings, geminiLiveSettings, systemPrompt]);
 
   const handleLoadAgent = useCallback((agent: SavedAgent) => {
     setVoiceProvider(agent.voice_provider as any);
@@ -159,12 +163,13 @@ const VoiceAssistant = () => {
       const settings = agent.provider_settings as Record<string, any>;
       if (agent.voice_provider === 'openai') setOpenAISettings(settings as any);
       else if (agent.voice_provider === 'elevenlabs') setElevenLabsSettings(settings as any);
+      else if (agent.voice_provider === 'vapi') setVapiSettings?.(settings as any);
       else if (agent.voice_provider === 'gemini') setGeminiLiveSettings?.(settings as any);
     }
     setSystemPrompt(agent.system_prompt);
     setActiveAgentId(agent.id);
     toast.success(`Loaded agent: ${agent.name}`);
-  }, [setVoiceProvider, setOpenAIVoice, setOpenAISettings, setElevenLabsSettings, setGeminiLiveSettings, setSystemPrompt]);
+  }, [setVoiceProvider, setOpenAIVoice, setOpenAISettings, setElevenLabsSettings, setVapiSettings, setGeminiLiveSettings, setSystemPrompt]);
 
   const handleSaveAgent = useCallback(async (input: Parameters<typeof createAgent.mutateAsync>[0]) => {
     await createAgent.mutateAsync(input);
