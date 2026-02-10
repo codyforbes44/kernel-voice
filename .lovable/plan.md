@@ -1,49 +1,28 @@
 
-# Comprehensive Refactoring Plan — COMPLETED
 
-All items have been implemented.
+# Update OG Home Image: "Kernel Voice" to "ƷBI Voice"
 
-## ✅ 1. Incomplete Brand Rename
-- Updated wake words, SEO title in VoiceAssistant.tsx
-- Updated VAPI assistant name in useVAPIConversation.ts
-- Internal identifiers (CSS vars, interface names, file names) kept as-is per plan
+## What
 
-## ✅ 2. Security Issues
-- 2a: Replaced `WITH CHECK (true)` on widget_analytics with scoped policies for authenticated + anon users validating widget_id
-- 2b: Moved vector extension from public to extensions schema
-- 2c: Leaked password protection — requires dashboard toggle (noted for user)
+The uploaded OG image (`og-home.png`) still says "Kernel Voice". It needs to be regenerated with "ƷBI Voice" branding instead.
 
-## ✅ 3. useVoiceAssistant Hook Refactored
-- Removed inline auth state management (~30 lines), now uses AuthProvider
-- Replaced 12+ ternary chains with `providerConversations` map pattern
-- Eliminated 6 redundant refs (replaced with single `providerConversationsRef`)
-- Simplified endConversation, retryConnection, clearConnectionError, sendTextMessage
-- Hook reduced from 597 to ~510 lines
+## Approach
 
-## ✅ 4. Duplicated Auth State Checks
-- Created `AuthProvider` context in `src/contexts/AuthContext.tsx`
-- Updated `useVoiceAssistant`, `useSubscription`, `useUserFeatures`, `useUserRole`, `Profile.tsx` to use shared `useAuth()` hook
-- Removed 5 independent `onAuthStateChange` subscriptions
+Use the `brand-og-image` edge function (already exists) to regenerate the image via the AI image editing model. The function will take the uploaded image and apply the new "ƷBI Voice" text branding. The resulting image will replace `public/og-home.png`.
 
-## ✅ 5. Provider-Specific Logic Duplication
-- Resolved as part of #3 with `providerConversations` map pattern
+## Steps
 
-## ✅ 6. Stale Ref Pattern Overuse
-- Reduced from 8+ refs to 3 (voiceProviderRef, elevenlabsSettingsRef, providerConversationsRef)
+1. Copy the uploaded image to the project as the base image
+2. Update the `brand-og-image` edge function prompt to use "ƷBI Voice" instead of "Kernel Voice" (it was already partially updated but should be verified)
+3. Call the edge function to generate the branded image
+4. Save the result as `public/og-home.png`
 
-## ✅ 7. Missing Error Boundaries
-- Added `AppErrorBoundary` wrapping all routes in App.tsx
+Alternatively (simpler and more reliable): Use the AI image generation API directly from a small edge function call or inline to edit the image, replacing "Kernel Voice" text with "ƷBI Voice" while keeping everything else identical.
 
-## ✅ 8. Inconsistent Toast Usage
-- Not changed — both systems coexist. Sonner used in Profile, useToast used elsewhere. Low priority, deferred.
+## Technical Details
 
-## ✅ 9. Missing Route Protection
-- Created `ProtectedRoute` component
-- Applied to `/profile` route in App.tsx
-- AdminGuard remains for admin routes (role-based, not just auth)
+- The `brand-og-image` edge function at `supabase/functions/brand-og-image/index.ts` already references "ƷBI Voice" in its prompt (updated in earlier refactoring)
+- The image will be edited using the `google/gemini-2.5-flash-image-preview` model via the Lovable AI gateway
+- Output dimensions: 1200x630 (standard OG image size)
+- The generated base64 image will be decoded and saved to `public/og-home.png`
 
-## ✅ 10. Build Version Hardcoded
-- Removed `BUILD_VERSION` constant from useOpenAIConversation.ts
-
-## Remaining Items (Manual / Dashboard)
-- Enable "Leaked Password Protection" in the backend authentication settings
