@@ -32,23 +32,24 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
+        model: "google/gemini-3-pro-image-preview",
         messages: [
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: `Add professional branding to this image for an Open Graph social share card. 
-                
-Add the text "ƷBI Voice" in a bold, modern font at the top center of the image. 
-Use a cyan/teal color (#22d3ee or similar bright cyan) for the text that matches the glowing particles in the image.
-Add a subtle text shadow or glow effect to make the text stand out.
-Below the main title, add "Your AI Voice Assistant" in smaller text, also in a light/white color with good contrast.
+                text: `Add professional branding text to this image for an Open Graph social share card (1200x630).
 
-Keep the existing phone and particle effects intact - only add the text branding on top.
-The overall look should be sleek, modern, and tech-focused.
-Output dimensions should be 1200x630 (standard OG image size).`
+At the top center, add the brand name in large, bold, modern sans-serif font. The brand name is four characters: the first character looks like a reversed/mirrored numeral "3" (this is the Latin letter Ezh, Ʒ), followed by the uppercase letters "B", "I", then a space, then "Voice". So the full text reads: ƷBI Voice
+
+Use bright cyan/teal color (#22d3ee) for the text to match the glowing cyan particles in the image.
+Add a subtle cyan glow or text shadow behind the letters for a neon effect.
+
+Below the title, add "Your AI Voice Assistant" in smaller white text with slight transparency.
+
+IMPORTANT: Keep all existing imagery (phone mockup, particles, dark background) completely intact. Only overlay the text on top.
+The result must be exactly 1200x630 pixels.`
               },
               {
                 type: "image_url",
