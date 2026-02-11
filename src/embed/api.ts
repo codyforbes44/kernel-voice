@@ -1,7 +1,7 @@
 // Widget-specific API calls
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_URL = (typeof window !== 'undefined' && (window as any).__KERNEL_SUPABASE_URL__) || 'https://kombipftuhjetrhnaklu.supabase.co';
+const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && (window as any).__KERNEL_SUPABASE_KEY__) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvbWJpcGZ0dWhqZXRyaG5ha2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NzU4NDEsImV4cCI6MjA4NjM1MTg0MX0.KtVyIyus4l17LNaHMBelVZ-ypYGY5dvRw1v-9441_BI';
 
 interface ChatRequest {
   message: string;
