@@ -29,7 +29,7 @@ export default function Showcase() {
     <PageWrapper
       title="ƷBI Voice Showcase"
       description="Interactive showcase of voice AI components powered by Gemini and ElevenLabs"
-      showHeader={true}
+      showHeader={false}
       className="dark"
     >
       <div className="px-4 pt-6 pb-20 safe-area-inset">
