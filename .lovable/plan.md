@@ -1,115 +1,71 @@
 
 
-# Fix Widget for External Website Deployment
+# Add YouTube Player to Showcase Page
 
-## Problem
+## Overview
 
-The embeddable widget cannot work on any external website due to 4 critical issues:
-1. No `embed.js` build artifact exists -- embed snippets reference a file that was never created
-2. `api.ts` uses `import.meta.env` variables that are undefined outside the Vite dev server
-3. `widget.html` iframe references raw `.tsx` source files
-4. No standalone build pipeline produces a distributable widget bundle
+Add a YouTube player card above the Voice Fill section in the `/showcase` grid, along with appropriate top margin adjustments. The player will use the YouTube IFrame Player API (which is free and doesn't require a Google API key for basic embed playback).
 
-The backend edge functions (`widget-chat`, `widget-tts`) are correctly configured with CORS and will work once the frontend is fixed.
-
-## Solution
-
-Create a standalone widget build that produces a single `embed.js` file. Hardcode the backend URL (since it's a public endpoint with API-key auth), and fix `widget.html` to reference the built output.
+**Note on Google API Key:** The YouTube IFrame Player API allows embedding and controlling video playback without an API key. A Google/YouTube Data API key is only needed for searching/listing videos programmatically. For playing specific videos, the standard embed approach is the correct solution. If you later want search functionality, we can add a key then.
 
 ## Changes
 
-### 1. Add a Vite library-mode config for the widget build
+### 1. New Component: `YouTubePlayerCard`
 
-**New file: `vite.widget.config.ts`**
+**File: `src/components/showcase/YouTubePlayerCard.tsx`**
 
-A separate Vite config that builds `src/embed/index.tsx` into a self-contained IIFE bundle at `public/embed.js`:
-- Output format: IIFE (no module system required)
-- Inlines React and all dependencies
-- Minified for production
-- Single file output, no code splitting
+- A showcase card matching the existing card styling (`rounded-2xl bg-card border border-border glow-border`)
+- Embeds YouTube's IFrame Player API via a `<iframe>` with `enablejsapi=1`
+- Features:
+  - Video URL input field where users can paste any YouTube link
+  - Responsive 16:9 aspect ratio player
+  - Default video pre-loaded (a relevant AI/voice demo)
+  - Compact header with title "YouTube Player" and subtitle
+  - `h-full` to fill the grid cell
 
-### 2. Hardcode the backend URL in the widget API layer
+### 2. Update Showcase Layout
 
-**File: `src/embed/api.ts`**
+**File: `src/pages/Showcase.tsx`**
 
-Replace `import.meta.env` references with the actual published backend function URL. Since the widget uses API-key authentication (not session auth), the endpoint URL is not a secret -- it's equivalent to any public API endpoint:
+- Add top margin (`mt-4`) to the page content area for better spacing
+- Insert `YouTubePlayerCard` as the first card in Row 1 (before WaveformCard)
+- Shift cards to accommodate 13 total cards in the grid:
+  - Row 1: YouTubePlayerCard, WaveformCard, VoiceFillCard
+  - Row 2: AgentOrbsCard, CharacterSelectCard, ShowcaseWaveform
+  - Row 3: MusicPlayerCard, VoiceChatCard, ChatConversationCard
+  - Row 4: TrackListCard, AudioPlayerCard, LiveStatusCard
+  - Row 5 (partial): WidgetChatCard
+- Update grid rows to `lg:grid-rows-[repeat(5,minmax(0,1fr))]` to accommodate the extra row, or keep 4 rows and let the 13th card wrap naturally
 
-- `SUPABASE_URL` becomes the hardcoded project URL (from the published environment)
-- `SUPABASE_ANON_KEY` becomes the hardcoded anon key
+### 3. Top Margin Adjustment
 
-These are already public values (the anon key is in every client-side bundle and in the embed code snippets).
-
-### 3. Fix `widget.html` to reference the built bundle
-
-**File: `public/widget.html`**
-
-Change `<script type="module" src="/src/embed/index.tsx">` to `<script src="/embed.js">` (the built output).
-
-### 4. Add a build script for the widget
-
-**File: `package.json`**
-
-Add a `"build:widget"` script: `vite build --config vite.widget.config.ts`
-
-Also add a `"build:all"` script that runs both the main build and the widget build.
-
-### 5. Update embed code snippets to use correct paths
-
-**File: `src/components/admin/widgets/WidgetCodeSnippet.tsx`**
-
-- The script tag embed already references `${baseUrl}/embed.js` which will be correct once the file is built
-- Ensure the iframe embed references `/widget.html` (already correct)
-- No other changes needed here
-
-### 6. Pre-build `embed.js` so it exists immediately
-
-Run the widget build so `public/embed.js` is available as a static asset without requiring a separate build step on every deploy.
-
-Alternatively, integrate the widget build into the main Vite config as a secondary entry point using `rollupOptions.input`.
+- Change `pt-6` to `pt-10` on the outer container for more breathing room at the top of the page
 
 ## Technical Details
 
-### Vite Widget Config (`vite.widget.config.ts`)
+### YouTube IFrame Embed
+
+The player uses a standard YouTube iframe embed with parameters for a clean look:
 
 ```text
-Entry:     src/embed/index.tsx
-Output:    public/embed.js
-Format:    IIFE
-Name:      KernelWidget (global variable)
-Minify:    true
-Externals: none (all deps inlined)
+https://www.youtube.com/embed/{VIDEO_ID}?
+  autoplay=0
+  &modestbranding=1
+  &rel=0
+  &controls=1
 ```
 
-### API Layer Fix (`src/embed/api.ts`)
+### URL Parsing
 
-```text
-Before:
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+Extract video ID from common YouTube URL formats:
+- `youtube.com/watch?v=VIDEO_ID`
+- `youtu.be/VIDEO_ID`
+- `youtube.com/embed/VIDEO_ID`
 
-After:
-  const SUPABASE_URL = (window as any).__KERNEL_SUPABASE_URL__ || 'https://kombipftuhjetrhnaklu.supabase.co';
-  const SUPABASE_ANON_KEY = (window as any).__KERNEL_SUPABASE_KEY__ || '<anon_key>';
-```
-
-This allows override via global variables but defaults to the production values. Both values are already public (present in every client bundle and in the generated embed snippets).
-
-### Build Integration
-
-The simplest approach: add the widget as a second Rollup input in the existing `vite.config.ts` under `build.rollupOptions.input`, outputting `embed.js` alongside the main app bundle. This avoids needing a separate config file and ensures the widget is always built on deploy.
-
-## Files Summary
+## Files
 
 | File | Action |
 |------|--------|
-| `vite.config.ts` | Modify -- add widget entry point to rollupOptions |
-| `src/embed/api.ts` | Modify -- replace import.meta.env with hardcoded public values |
-| `public/widget.html` | Modify -- fix script src to `/embed.js` |
-| `package.json` | Modify -- add `build:widget` script |
+| `src/components/showcase/YouTubePlayerCard.tsx` | Create -- new YouTube player card component |
+| `src/pages/Showcase.tsx` | Modify -- add top margin, insert YouTubePlayerCard, adjust grid |
 
-## What Already Works
-
-- Edge functions (`widget-chat`, `widget-tts`) -- CORS, rate limiting, API key auth, domain allowlists all correct
-- Widget UI components (`KernelWidget`, `WidgetChat`, `WidgetInput`, etc.) -- fully self-contained with inline styles
-- Shadow DOM isolation -- prevents host site CSS conflicts
-- Embed code generator (`WidgetCodeSnippet`) -- produces correct snippets (once `embed.js` exists)
