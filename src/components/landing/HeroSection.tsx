@@ -1,7 +1,8 @@
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Mic, ChevronRight, Radio, Code2, Bot } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { AnimatedHeroBackground } from './AnimatedHeroBackground';
 
 const fadeUp = {
@@ -11,6 +12,17 @@ const fadeUp = {
 
 export const HeroSection = () => {
   const navigate = useNavigate();
+  const sectionRef = useRef<HTMLElement>(null);
+
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start start', 'end start'],
+  });
+
+  // Parallax: background moves slower, content fades out
+  const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
+  const contentY = useTransform(scrollYProgress, [0, 1], [0, 80]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
 
   const scrollToDemo = () => {
     document.getElementById('product-preview')?.scrollIntoView({ behavior: 'smooth' });
@@ -23,13 +35,17 @@ export const HeroSection = () => {
   ];
 
   return (
-    <section className="relative overflow-hidden">
-      <AnimatedHeroBackground />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.15),transparent_50%)]" />
+    <section ref={sectionRef} className="relative overflow-hidden">
+      {/* Parallax background layer */}
+      <motion.div className="absolute inset-0" style={{ y: bgY }}>
+        <AnimatedHeroBackground />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.15),transparent_50%)]" />
+      </motion.div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24 md:pt-24 md:pb-32 relative">
         <motion.div
           className="max-w-4xl mx-auto text-center"
+          style={{ y: contentY, opacity: contentOpacity }}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.1 }}
