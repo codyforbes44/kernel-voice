@@ -102,14 +102,14 @@ export function AgentOrbsCard() {
   };
 
   return (
-    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-4">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-3 h-full">
       <div>
         <h3 className="text-sm font-semibold text-foreground font-display">Agent Orbs</h3>
         <p className="text-xs text-muted-foreground">
           {isLive ? (gemini.isSpeaking ? 'Agent speaking…' : 'Listening…') : 'Interactive animated orb visualization'}
         </p>
       </div>
-      <canvas ref={canvasRef} className="w-full aspect-square max-h-48" />
+      <canvas ref={canvasRef} className="w-full aspect-square max-h-32 flex-1 min-h-0" />
       <div className="flex gap-2">
         {(['idle', 'listening', 'talking'] as OrbState[]).map((s) => (
           <Button

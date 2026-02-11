@@ -28,7 +28,7 @@ export function VoiceFillCard() {
   });
 
   return (
-    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-4">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-2 h-full">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold text-foreground font-display">Voice Fill</h3>

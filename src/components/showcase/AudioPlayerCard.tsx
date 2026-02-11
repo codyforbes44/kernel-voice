@@ -66,7 +66,7 @@ export function AudioPlayerCard() {
   useEffect(() => () => { stopTimer(); if (audioRef.current) { audioRef.current.pause(); } }, []);
 
   return (
-    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-5 flex flex-col gap-3">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-5 flex flex-col gap-3 h-full">
       <div className="flex items-center gap-3">
         <button
           onClick={toggle}

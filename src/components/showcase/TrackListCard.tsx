@@ -49,7 +49,7 @@ export function TrackListCard() {
   }, [activeIdx, playing]);
 
   return (
-    <div className="rounded-2xl bg-card border border-border glow-border p-4 flex flex-col gap-1">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 flex flex-col gap-1 h-full">
       {tracks.map((track, i) => (
         <button
           key={track.id}
