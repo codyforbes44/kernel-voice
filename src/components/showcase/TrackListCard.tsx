@@ -16,7 +16,6 @@ export function TrackListCard() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const playTrack = useCallback(async (idx: number) => {
-    // Stop current
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = '';
@@ -50,23 +49,23 @@ export function TrackListCard() {
   }, [activeIdx, playing]);
 
   return (
-    <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-4 flex flex-col gap-1">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 flex flex-col gap-1">
       {tracks.map((track, i) => (
         <button
           key={track.id}
           onClick={() => playTrack(i)}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-800/80 transition-colors group w-full text-left"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/80 transition-colors group w-full text-left min-h-[48px]"
         >
-          <span className="text-xs text-zinc-600 w-4">{i + 1}</span>
+          <span className="text-xs text-muted-foreground/60 w-4">{i + 1}</span>
           {loadingIdx === i ? (
-            <Loader2 className="h-3 w-3 text-violet-400 animate-spin" />
+            <Loader2 className="h-3 w-3 text-primary animate-spin" />
           ) : activeIdx === i && playing ? (
-            <Pause className="h-3 w-3 text-violet-400" />
+            <Pause className="h-3 w-3 text-primary" />
           ) : (
-            <Play className="h-3 w-3 text-zinc-600 group-hover:text-violet-400 transition-colors" />
+            <Play className="h-3 w-3 text-muted-foreground/60 group-hover:text-primary transition-colors" />
           )}
-          <span className={`text-sm flex-1 ${activeIdx === i ? 'text-violet-300' : 'text-zinc-300'}`}>{track.id}</span>
-          <span className="text-xs text-zinc-600">{track.duration}</span>
+          <span className={`text-sm flex-1 ${activeIdx === i ? 'text-primary/80' : 'text-foreground'}`}>{track.id}</span>
+          <span className="text-xs text-muted-foreground/60">{track.duration}</span>
         </button>
       ))}
     </div>

@@ -45,25 +45,25 @@ export function CharacterSelectCard() {
   }, [currentAudio]);
 
   return (
-    <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-6 flex flex-col gap-3">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-zinc-100">Character</h3>
-        {loading && <Loader2 className="h-3 w-3 text-violet-400 animate-spin" />}
+        <h3 className="text-sm font-semibold text-foreground font-display">Character</h3>
+        {loading && <Loader2 className="h-3 w-3 text-primary animate-spin" />}
       </div>
       <Select defaultValue="rachel" onValueChange={playPreview}>
-        <SelectTrigger className="bg-zinc-800 border-zinc-700 text-zinc-200">
+        <SelectTrigger className="bg-input border-border text-foreground min-h-[48px]">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
-              <User className="h-3 w-3 text-white" />
+            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <User className="h-3 w-3 text-primary-foreground" />
             </div>
             <SelectValue />
           </div>
         </SelectTrigger>
-        <SelectContent className="bg-zinc-800 border-zinc-700">
-          <SelectItem value="rachel" className="text-zinc-200 focus:bg-zinc-700 focus:text-white">Rachel</SelectItem>
-          <SelectItem value="drew" className="text-zinc-200 focus:bg-zinc-700 focus:text-white">Drew</SelectItem>
-          <SelectItem value="clyde" className="text-zinc-200 focus:bg-zinc-700 focus:text-white">Clyde</SelectItem>
-          <SelectItem value="aria" className="text-zinc-200 focus:bg-zinc-700 focus:text-white">Aria</SelectItem>
+        <SelectContent className="bg-popover border-border">
+          <SelectItem value="rachel" className="text-foreground focus:bg-muted focus:text-foreground">Rachel</SelectItem>
+          <SelectItem value="drew" className="text-foreground focus:bg-muted focus:text-foreground">Drew</SelectItem>
+          <SelectItem value="clyde" className="text-foreground focus:bg-muted focus:text-foreground">Clyde</SelectItem>
+          <SelectItem value="aria" className="text-foreground focus:bg-muted focus:text-foreground">Aria</SelectItem>
         </SelectContent>
       </Select>
     </div>

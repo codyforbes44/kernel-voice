@@ -62,32 +62,35 @@ export function WidgetChatCard() {
   const lastAgentExists = messages.some((m) => m.role === 'agent');
 
   return (
-    <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 overflow-hidden flex flex-col">
-      <div className="p-4 flex items-center gap-3 border-b border-zinc-800">
-        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
-          <User className="h-4 w-4 text-white" />
+    <div className="rounded-2xl bg-card border border-border glow-border overflow-hidden flex flex-col">
+      <div className="p-4 flex items-center gap-3 border-b border-border">
+        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+          <User className="h-4 w-4 text-primary-foreground" />
         </div>
-        <span className="text-sm font-semibold text-zinc-100">Customer Support</span>
+        <span className="text-sm font-semibold text-foreground font-display">Customer Support</span>
       </div>
 
       {messages.length === 0 ? (
         <div className="flex-1 flex items-center justify-center py-8">
           <div
-            className="h-24 w-24 rounded-full bg-gradient-to-br from-violet-500 via-indigo-500 to-purple-600 shadow-xl shadow-violet-500/20 transition-transform"
-            style={{ transform: ttsPlaying ? 'scale(1.1)' : 'scale(1)' }}
+            className="h-24 w-24 rounded-full bg-gradient-to-br from-primary via-secondary to-accent shadow-xl transition-transform"
+            style={{
+              boxShadow: ttsPlaying ? '0 0 40px hsl(180 100% 50% / 0.3)' : undefined,
+              transform: ttsPlaying ? 'scale(1.1)' : 'scale(1)',
+            }}
           />
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto max-h-48 p-3 space-y-2">
+        <div className="flex-1 overflow-y-auto max-h-48 p-3 space-y-2 scrollbar-hide">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'gap-2'}`}>
               {m.role === 'agent' && (
-                <div className="h-5 w-5 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <User className="h-2.5 w-2.5 text-white" />
+                <div className="h-5 w-5 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <User className="h-2.5 w-2.5 text-primary-foreground" />
                 </div>
               )}
               <div className={`rounded-lg px-2.5 py-1.5 text-xs max-w-[80%] ${
-                m.role === 'user' ? 'bg-violet-600/30 text-violet-200' : 'bg-zinc-800 text-zinc-300'
+                m.role === 'user' ? 'bg-primary/20 text-primary/80' : 'bg-muted text-foreground'
               }`}>
                 {m.text}
               </div>
@@ -95,10 +98,10 @@ export function WidgetChatCard() {
           ))}
           {loading && (
             <div className="flex gap-2">
-              <div className="h-5 w-5 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
-                <User className="h-2.5 w-2.5 text-white" />
+              <div className="h-5 w-5 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
+                <User className="h-2.5 w-2.5 text-primary-foreground" />
               </div>
-              <div className="rounded-lg px-2.5 py-1.5 bg-zinc-800"><Loader2 className="h-3 w-3 text-zinc-400 animate-spin" /></div>
+              <div className="rounded-lg px-2.5 py-1.5 bg-muted"><Loader2 className="h-3 w-3 text-muted-foreground animate-spin" /></div>
             </div>
           )}
         </div>
@@ -106,28 +109,28 @@ export function WidgetChatCard() {
 
       {messages.length === 0 && (
         <div className="text-center pb-3">
-          <p className="text-xs text-zinc-500">Start a conversation</p>
+          <p className="text-xs text-muted-foreground">Start a conversation</p>
         </div>
       )}
 
-      <div className="p-3 border-t border-zinc-800">
-        <div className="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-2">
+      <div className="p-3 border-t border-border">
+        <div className="flex items-center gap-2 bg-input rounded-lg px-3 py-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send()}
             placeholder="Type a message..."
-            className="flex-1 bg-transparent text-sm text-zinc-300 placeholder:text-zinc-600 outline-none"
+            className="flex-1 bg-transparent text-base sm:text-sm text-foreground placeholder:text-muted-foreground/60 outline-none"
           />
           <button
             onClick={speakLast}
             disabled={!lastAgentExists || ttsPlaying}
-            className="text-zinc-500 hover:text-violet-400 transition-colors disabled:text-zinc-700"
+            className="text-muted-foreground hover:text-primary transition-colors disabled:text-muted-foreground/30 min-h-[48px] min-w-[48px] flex items-center justify-center"
           >
-            {ttsPlaying ? <Loader2 className="h-4 w-4 animate-spin text-violet-400" /> : <Sparkles className="h-4 w-4" />}
+            {ttsPlaying ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Sparkles className="h-4 w-4" />}
           </button>
-          <button onClick={send} disabled={loading || !input.trim()} className="text-zinc-500 hover:text-violet-400 transition-colors disabled:text-zinc-700">
+          <button onClick={send} disabled={loading || !input.trim()} className="text-muted-foreground hover:text-primary transition-colors disabled:text-muted-foreground/30 min-h-[48px] min-w-[48px] flex items-center justify-center">
             <Send className="h-4 w-4" />
           </button>
         </div>

@@ -51,20 +51,20 @@ export function ChatConversationCard() {
   }, [input, loading, messages]);
 
   return (
-    <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-4 flex flex-col gap-3 row-span-2">
-      <h3 className="text-sm font-semibold text-zinc-100 px-2">Conversation</h3>
-      <div ref={scrollRef} className="flex flex-col gap-2.5 overflow-y-auto max-h-52 px-1">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 flex flex-col gap-3 h-full">
+      <h3 className="text-sm font-semibold text-foreground px-2 font-display">Conversation</h3>
+      <div ref={scrollRef} className="flex flex-col gap-2.5 overflow-y-auto max-h-52 px-1 scrollbar-hide">
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : ''}`}>
             {m.role === 'agent' && (
-              <div className="h-6 w-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <User className="h-3 w-3 text-white" />
+              <div className="h-6 w-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 mt-0.5">
+                <User className="h-3 w-3 text-primary-foreground" />
               </div>
             )}
             <div className={`rounded-xl px-3 py-2 text-xs leading-relaxed max-w-[80%] ${
               m.role === 'user'
-                ? 'bg-violet-600/30 text-violet-200 border border-violet-500/20'
-                : 'bg-zinc-800 text-zinc-300 border border-zinc-700/50'
+                ? 'bg-primary/20 text-primary/80 border border-primary/20'
+                : 'bg-muted text-foreground border border-border'
             }`}>
               {m.text}
             </div>
@@ -72,11 +72,11 @@ export function ChatConversationCard() {
         ))}
         {loading && (
           <div className="flex gap-2">
-            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
-              <User className="h-3 w-3 text-white" />
+            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
+              <User className="h-3 w-3 text-primary-foreground" />
             </div>
-            <div className="rounded-xl px-3 py-2 bg-zinc-800 border border-zinc-700/50">
-              <Loader2 className="h-3 w-3 text-zinc-400 animate-spin" />
+            <div className="rounded-xl px-3 py-2 bg-muted border border-border">
+              <Loader2 className="h-3 w-3 text-muted-foreground animate-spin" />
             </div>
           </div>
         )}
@@ -88,9 +88,9 @@ export function ChatConversationCard() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && send()}
           placeholder="Type a message…"
-          className="flex-1 bg-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 outline-none border border-zinc-700 focus:border-violet-500/50 transition-colors"
+          className="flex-1 bg-input rounded-lg px-3 py-2 text-base sm:text-xs text-foreground placeholder:text-muted-foreground/60 outline-none border border-border focus:border-primary/50 transition-colors"
         />
-        <button onClick={send} disabled={loading || !input.trim()} className="text-violet-400 hover:text-violet-300 disabled:text-zinc-600 transition-colors">
+        <button onClick={send} disabled={loading || !input.trim()} className="text-primary hover:text-primary/80 disabled:text-muted-foreground/40 transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center">
           <Send className="h-4 w-4" />
         </button>
       </div>

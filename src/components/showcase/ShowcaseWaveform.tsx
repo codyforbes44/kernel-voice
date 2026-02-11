@@ -17,18 +17,18 @@ export function ShowcaseWaveform() {
   }, [frequencyData, isActive, fallbackBars]);
 
   return (
-    <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-6 flex flex-col gap-3">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-zinc-100">Waveform</h3>
-          <p className="text-xs text-zinc-500">
+          <h3 className="text-sm font-semibold text-foreground font-display">Waveform</h3>
+          <p className="text-xs text-muted-foreground">
             {isActive ? 'Real-time mic visualization' : 'Real-time audio visualization with smooth scrolling animation'}
           </p>
         </div>
         {isActive ? (
-          <button onClick={stop} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Stop</button>
+          <button onClick={stop} className="text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center">Stop</button>
         ) : (
-          <button onClick={start} className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 transition-colors">
+          <button onClick={start} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors min-h-[48px] min-w-[48px] justify-center">
             <Mic className="h-3 w-3" /> Activate
           </button>
         )}
@@ -37,7 +37,7 @@ export function ShowcaseWaveform() {
         {bars.map((h, i) => (
           <div
             key={i}
-            className="flex-1 rounded-full bg-violet-500/70 transition-all duration-75"
+            className="flex-1 rounded-full bg-primary/70 transition-all duration-75"
             style={{ height: `${h * 100}%`, opacity: 0.4 + h * 0.6 }}
           />
         ))}
