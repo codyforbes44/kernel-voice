@@ -36,6 +36,7 @@ export interface KernelWidgetConfig {
   // Voice conversation mode
   enableVoiceConversation?: boolean;
   autoListen?: boolean;
+  elevenlabsAgentId?: string;
 
   // Backend config (set automatically when embedding)
   supabaseUrl?: string;

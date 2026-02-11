@@ -220,6 +220,24 @@ export function ElevenLabsSettingsPanel({
               </p>
             </div>
 
+            {/* Agent ID */}
+            <div className="space-y-2">
+              <Label htmlFor="elevenlabs-agent-id" className="text-sm font-medium">
+                Agent ID
+              </Label>
+              <Input
+                id="elevenlabs-agent-id"
+                value={settings.elevenlabsAgentId || ''}
+                onChange={(e) => handleSettingChange('elevenlabsAgentId', e.target.value || undefined)}
+                placeholder="System default"
+                disabled={disabled}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Override the default agent. Find your Agent ID in the ElevenLabs dashboard.
+              </p>
+            </div>
+
             {/* RAG Toggle */}
             <div className="flex items-center justify-between py-2">
               <div className="space-y-0.5">
