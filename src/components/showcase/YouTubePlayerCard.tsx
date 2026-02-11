@@ -32,9 +32,9 @@ function loadYTApi(): Promise<void> {
 
 /* ── presets ── */
 const PRESETS = [
-  { id: 'jNQXAC9IVRw', label: 'First YouTube Video' },
-  { id: 'aircAruvnKk', label: 'Google Gemini' },
-  { id: 'oQfm2qBfDyM', label: 'AI Voice Demo' },
+  { id: 'iMJrRnHyHGY', label: 'OpenAI Realtime Voice' },
+  { id: 'UIZAiXYceBI', label: 'ElevenLabs Voice AI' },
+  { id: '5p248yoa3oE', label: 'Google Gemini 2.0' },
 ];
 
 export function YouTubePlayerCard() {
