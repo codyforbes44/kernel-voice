@@ -18,6 +18,7 @@ export interface ElevenLabsSettings {
   personality: AgentPersonality;
   customPrompt: string;
   customFirstMessage: string;
+  elevenlabsAgentId?: string;
 }
 
 export const DEFAULT_ELEVENLABS_SETTINGS: ElevenLabsSettings = {

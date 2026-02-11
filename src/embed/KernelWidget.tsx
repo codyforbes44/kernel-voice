@@ -170,6 +170,7 @@ function WidgetContent() {
               supabaseKey={config.supabaseKey || ''}
               ttsVoiceId={config.ttsVoiceId}
               autoListen={config.autoListen}
+              elevenlabsAgentId={config.elevenlabsAgentId}
               onMessage={handleVoiceMessage}
               onExitVoiceMode={() => setVoiceMode(false)}
             />

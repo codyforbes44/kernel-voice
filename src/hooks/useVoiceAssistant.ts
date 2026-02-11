@@ -403,6 +403,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
           body: {
             connectionType: 'webrtc',
             language: settings.autoLanguageDetection ? 'auto' : settings.language,
+            ...(settings.elevenlabsAgentId && { agentId: settings.elevenlabsAgentId }),
           }
         });
         
