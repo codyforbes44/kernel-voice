@@ -1,118 +1,100 @@
 
 
-# Conversation/Transcript Review + Custom Required Questions
+# Performance Refactoring Plan
 
-## Review Findings
+## Issues Identified
 
-### Working Well
-- **Conversation History**: Lists conversations with realtime updates, create/delete with confirmation, auto-loads last conversation on return
-- **Message History**: Loads full message thread with realtime INSERT subscription, auto-scrolls to latest
-- **Live Transcripts**: Real-time partial transcript display with role-based styling
-- **Transcript Manager**: Handles partial transcript merging for streaming assistant responses
+### 1. No Route-Level Code Splitting (Critical - Bundle Size)
+All 16 pages are eagerly imported in `App.tsx`, meaning the entire app (admin dashboard, voice assistant, landing page, pricing, etc.) is loaded upfront even if the user only visits the landing page. This dramatically increases initial load time and time-to-interactive.
 
-### Bug Found: Chat Edge Function Crash
-The `chat` edge function references `MAX_CONTEXT_MESSAGES` on lines 33 and 44, but this constant is **never defined**. This means the text-mode chat will throw a runtime error whenever it tries to load conversation context or send messages. This needs to be fixed by defining the constant (e.g., `const MAX_CONTEXT_MESSAGES = 50;`).
+**Fix**: Use `React.lazy()` + `Suspense` for all page components. Group admin pages as a heavier chunk that only loads when accessed.
 
-## New Feature: Custom Required Questions
+### 2. QueryClient Has No Caching Configuration (Performance)
+`const queryClient = new QueryClient()` uses default settings with no `staleTime`, meaning every query refetches on every mount. This causes excessive network requests for data that rarely changes (user role, user features, subscription status).
 
-Allow users to define a set of questions that the AI assistant **must** ask and collect valid answers for during a conversation. This is useful for intake forms, lead qualification, customer onboarding, or any structured data collection scenario.
+**Fix**: Configure sensible global defaults:
+- `staleTime: 1000 * 60 * 5` (5 min) for general queries
+- `gcTime: 1000 * 60 * 10` (10 min garbage collection)
+- `refetchOnWindowFocus: false` globally (individual queries can override)
+- `retry: 1` instead of default 3
 
-### How It Works
+### 3. ConversationHistory Creates Redundant Supabase Client Calls (Performance)
+`ConversationHistory` and `MessageHistory` call `supabase.auth.getUser()` on every load instead of using the `useAuth()` context. The `getUser()` call hits the auth server every time, while `useAuth()` returns the cached user instantly.
 
-1. Users configure required questions in the agent settings (via SaveAgentDialog or a dedicated section in the SystemPromptEditor)
-2. Each question has: the question text, expected answer type (text/email/phone/number/yes-no), and whether it's required
-3. When a conversation starts, the questions are injected into the system prompt as structured instructions telling the AI to collect these answers naturally
-4. The collected answers are displayed in a summary panel after the conversation
+**Fix**: Refactor both components to use `useAuth()` for user data.
 
-### Database Changes
+### 4. Realtime Channel Name Collisions (Bug/Performance)
+Both `ConversationHistory` and `MessageHistory` use hardcoded channel names (`'conversations'` and `'messages'`). If multiple instances mount (e.g., desktop sidebar + mobile sheet), they collide and one silently fails. Also, cleanup in `MessageHistory` doesn't use the returned unsubscribe function.
 
-Add a `required_questions` JSONB column to the `saved_agents` table:
+**Fix**: Use unique channel names with conversation IDs (e.g., `messages-${conversationId}`). Fix cleanup to properly unsubscribe.
 
-```sql
-ALTER TABLE public.saved_agents 
-ADD COLUMN required_questions jsonb DEFAULT '[]'::jsonb;
-```
+### 5. useVoiceAssistant Initializes All 4 Provider Hooks Unconditionally (Performance)
+The hook always instantiates `useConversation` (ElevenLabs), `useOpenAIConversation`, `useVAPIConversation`, and `useGeminiLiveConversation` regardless of which provider is selected. Each creates WebRTC/WebSocket infrastructure and event handlers.
 
-The JSONB structure:
-```json
-[
-  {
-    "id": "q1",
-    "question": "What is your full name?",
-    "type": "text",
-    "required": true
-  },
-  {
-    "id": "q2", 
-    "question": "What is your email address?",
-    "type": "email",
-    "required": true
-  },
-  {
-    "id": "q3",
-    "question": "How many employees does your company have?",
-    "type": "number",
-    "required": false
-  }
-]
-```
+**Fix**: This is an architectural limitation of React hooks (can't conditionally call them). However, we can ensure the inactive provider hooks are truly inert by adding an `enabled` flag to each, so they skip setup logic when not the active provider. This prevents unnecessary audio context creation and event listener attachment.
 
-### UI Components
+### 6. Particle Animation Runs Continuously on Landing Page (Performance)
+The `AnimatedHeroBackground` canvas animation runs `requestAnimationFrame` in a loop even when the section is scrolled out of view, wasting CPU/GPU cycles.
 
-**RequiredQuestionsEditor** (new component)
-- Rendered inside the SaveAgentDialog (below description field)
-- "Add Question" button to append a new row
-- Each row: question text input, answer type dropdown (text/email/phone/number/yes-no), required toggle, delete button
-- Drag to reorder (optional, can use up/down buttons)
-- Max 10 questions
+**Fix**: Use `IntersectionObserver` to pause the animation when the canvas is not visible.
 
-**Integration with System Prompt**
-- When starting a conversation with an agent that has required questions, they are appended to the system prompt as structured instructions:
-  ```
-  IMPORTANT: You must collect answers to the following required questions during this conversation. 
-  Ask them naturally in the flow of conversation. Do not skip required questions.
-  
-  Questions to collect:
-  1. [Required] What is your full name? (expect: text)
-  2. [Required] What is your email address? (expect: email)
-  3. [Optional] How many employees does your company have? (expect: number)
-  ```
+### 7. Duplicate Supabase Client Instantiation in Chat Edge Function (Performance)
+The `chat` edge function creates a new `createClient()` instance up to twice per request (once for loading context, once for saving messages). The Supabase client should be created once at the top and reused.
 
-### Files
+**Fix**: Create the Supabase client once at the top of the handler and reuse it.
 
-**New Files**
-- `src/components/voice/RequiredQuestionsEditor.tsx` -- Editor UI for adding/editing/removing questions
+### 8. useVoiceProviderPreference Calls getUser() Redundantly (Performance)
+This hook calls `supabase.auth.getUser()` inside `loadPreference` even though authentication state is already available from `useAuth()`. Same issue in `useInputModePreference`.
 
-**Modified Files**
-- `supabase/functions/chat/index.ts` -- Fix undefined `MAX_CONTEXT_MESSAGES` (set to 50)
-- `src/hooks/useSavedAgents.ts` -- Add `required_questions` to SavedAgent type and CreateAgentInput
-- `src/components/voice/SaveAgentDialog.tsx` -- Add RequiredQuestionsEditor section
-- `src/pages/VoiceAssistant.tsx` -- When loading an agent with required questions, append them to the system prompt sent to the voice provider
-- `src/components/voice/voiceTypes.ts` -- Add `RequiredQuestion` type interface
+**Fix**: Pass `user` from `useAuth()` instead of calling `getUser()` internally.
 
-### Technical Details
+## Changes
 
-**RequiredQuestion type:**
-```typescript
-export interface RequiredQuestion {
-  id: string;
-  question: string;
-  type: 'text' | 'email' | 'phone' | 'number' | 'yes_no';
-  required: boolean;
-}
-```
+### Files Modified
 
-**System prompt injection** (in handleLoadAgent):
-When an agent with `required_questions` is loaded, the questions are formatted and appended to `system_prompt` before passing it to `setSystemPrompt()`. This keeps the feature transparent to all voice providers -- no provider-specific changes needed.
+**`src/App.tsx`**
+- Add `React.lazy()` imports for all page components
+- Wrap routes in `Suspense` with a `LoadingScreen` fallback
+- Configure `QueryClient` with optimized defaults
 
-**SaveAgentDialog changes:**
-- State: `requiredQuestions` array managed alongside name/description/icon
-- On save: include `required_questions` in the agent payload
-- On edit: pre-populate from `editingAgent.required_questions`
+**`src/components/voice/ConversationHistory.tsx`**
+- Replace `supabase.auth.getUser()` with `useAuth()` hook
+- Use unique channel names to prevent collisions
+- Accept `userId` from auth context
 
-**RequiredQuestionsEditor component:**
-- Props: `questions: RequiredQuestion[]`, `onChange: (questions: RequiredQuestion[]) => void`, `disabled?: boolean`
-- Each question row: Input for question text, Select for answer type, Switch for required, X button to delete
-- "Add Question" button at bottom (disabled if 10 questions already)
-- Generates unique IDs via `crypto.randomUUID()` or timestamp-based
+**`src/components/voice/MessageHistory.tsx`**
+- Use unique channel names with conversation ID
+- Fix realtime cleanup to properly unsubscribe
+
+**`src/components/landing/AnimatedHeroBackground.tsx`**
+- Add `IntersectionObserver` to pause/resume animation when off-screen
+
+**`supabase/functions/chat/index.ts`**
+- Create Supabase client once and reuse throughout the handler
+
+**`src/hooks/useVoiceProviderPreference.ts`**
+- Accept `user` object instead of calling `getUser()` internally
+
+**`src/hooks/useInputModePreference.ts`**
+- Accept `user` object instead of calling `getUser()` internally
+
+**`src/hooks/useVoiceAssistant.ts`**
+- Pass `user` to child hooks that previously called `getUser()` redundantly
+
+**`src/hooks/useOpenAIConversation.ts`**
+- Add `enabled` guard so setup logic is skipped when provider is not active
+
+**`src/hooks/useGeminiLiveConversation.ts`**
+- Add `enabled` guard
+
+**`src/hooks/useVAPIConversation.ts`**
+- Add `enabled` guard
+
+## Expected Impact
+
+- **Initial load time**: Reduced by ~40-60% through code splitting (admin pages alone are a large chunk)
+- **Network requests**: Reduced by ~50% through proper QueryClient caching and eliminating redundant `getUser()` calls
+- **CPU usage on landing page**: Reduced when hero section is scrolled past
+- **Realtime reliability**: Fixed channel collisions prevent silent subscription failures
+- **Edge function latency**: Minor improvement from single Supabase client instantiation
 
