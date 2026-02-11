@@ -1,5 +1,3 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -21,14 +19,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate a single-use token for realtime scribe
+    // Generate a single-use token for realtime scribe (modern endpoint)
     const response = await fetch(
-      'https://api.elevenlabs.io/v1/speech-to-text/get-websocket-token',
+      'https://api.elevenlabs.io/v1/single-use-token/realtime_scribe',
       {
         method: 'POST',
         headers: {
           'xi-api-key': ELEVENLABS_API_KEY,
-          'Content-Type': 'application/json',
         },
       }
     );

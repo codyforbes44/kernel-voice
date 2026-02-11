@@ -1,9 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Volume2, VolumeX, Loader2, AlertCircle, RefreshCw, Pause, Play } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
-import { WaveformOrb } from './AudioLevelMeter';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useState } from 'react';
+import { LiveWaveformCanvas } from './LiveWaveformCanvas';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface VoiceControlPanelProps {
   isConnected: boolean;
@@ -18,6 +17,7 @@ interface VoiceControlPanelProps {
   providerLoading: boolean;
   isMobile: boolean;
   isPaused?: boolean;
+  activeToolCall?: boolean;
   onStartConversation: () => void;
   onEndConversation: () => void;
   onRetryConnection: () => void;
@@ -26,6 +26,53 @@ interface VoiceControlPanelProps {
   onVolumeChange: (volume: number) => void;
   onResume?: () => void;
 }
+
+type AgentState = 'idle' | 'connecting' | 'listening' | 'talking' | 'thinking' | 'paused' | 'error';
+
+const STATE_CONFIG: Record<AgentState, { label: string; emoji: string; orbClass: string; glowColor: string }> = {
+  idle: {
+    label: 'Ready',
+    emoji: '',
+    orbClass: 'from-primary/10 to-primary/5 border border-primary/20',
+    glowColor: 'transparent',
+  },
+  connecting: {
+    label: 'Connecting...',
+    emoji: '',
+    orbClass: 'from-primary/30 to-primary/10',
+    glowColor: 'hsl(var(--primary) / 0.2)',
+  },
+  listening: {
+    label: 'Listening',
+    emoji: '👂',
+    orbClass: 'from-cyan-500/70 to-primary/50',
+    glowColor: 'hsl(190 80% 50% / 0.35)',
+  },
+  talking: {
+    label: 'Speaking',
+    emoji: '🗣️',
+    orbClass: 'from-primary to-primary/50',
+    glowColor: 'hsl(var(--primary) / 0.4)',
+  },
+  thinking: {
+    label: 'Thinking...',
+    emoji: '🔧',
+    orbClass: 'from-purple-500/70 to-violet-500/40',
+    glowColor: 'hsl(270 70% 55% / 0.35)',
+  },
+  paused: {
+    label: 'Paused',
+    emoji: '⏸️',
+    orbClass: 'from-amber-500/60 to-amber-600/30',
+    glowColor: 'hsl(38 92% 50% / 0.3)',
+  },
+  error: {
+    label: 'Error',
+    emoji: '',
+    orbClass: 'from-destructive/30 to-destructive/10',
+    glowColor: 'hsl(var(--destructive) / 0.3)',
+  },
+};
 
 const haptic = (pattern: number | number[]) => {
   if ('vibrate' in navigator) {
@@ -52,9 +99,26 @@ export const VoiceControlPanel = ({
   onToggleMute,
   onVolumeChange,
   isPaused,
+  activeToolCall,
   onResume,
 }: VoiceControlPanelProps) => {
-  const [showVolume, setShowVolume] = useState(false);
+  // Derive agent state
+  const agentState: AgentState = connectionError
+    ? 'error'
+    : isConnecting
+      ? 'connecting'
+      : !isConnected
+        ? 'idle'
+        : isPaused
+          ? 'paused'
+          : activeToolCall
+            ? 'thinking'
+            : isSpeaking
+              ? 'talking'
+              : 'listening';
+
+  const config = STATE_CONFIG[agentState];
+  const currentLevel = isSpeaking ? outputAudioLevel : inputAudioLevel;
 
   const handleStart = () => {
     haptic(50);
@@ -73,46 +137,133 @@ export const VoiceControlPanel = ({
     onToggleMute();
   };
 
+  const handleOrbClick = () => {
+    if (isMobile) {
+      if (!isConnected && !isConnecting && !connectionError) {
+        handleStart();
+      } else if (isConnected) {
+        handleEnd();
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* Microphone Orb */}
-      <div className="flex items-center justify-center mb-2">
-        <div className={`
-          relative w-28 h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center
-          ${isConnected && isPaused
-            ? 'bg-gradient-to-br from-amber-500/60 to-amber-600/30 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
-            : isConnected 
-            ? 'bg-gradient-to-br from-primary to-primary/50 shadow-glow animate-glow-pulse' 
-            : isConnecting
-              ? 'bg-gradient-to-br from-primary/30 to-primary/10 shadow-glow-subtle'
-              : connectionError
-                ? 'bg-gradient-to-br from-destructive/30 to-destructive/10'
-                : 'bg-gradient-to-br from-primary/10 to-primary/5 dark:from-muted dark:to-primary/5 border border-primary/20'
-          }
-          transition-all duration-300
-        `}>
-          {isConnected && (
-            <WaveformOrb 
-              level={isSpeaking ? outputAudioLevel : inputAudioLevel} 
-              isActive={isConnected}
-            />
-          )}
-          
-          {isConnecting ? (
-            <Loader2 className="w-10 h-10 md:w-12 md:h-12 text-primary animate-spin" />
-          ) : connectionError ? (
-            <AlertCircle className="w-10 h-10 md:w-12 md:h-12 text-destructive" />
-          ) : isPaused ? (
-            <Pause className="w-10 h-10 md:w-12 md:h-12 text-amber-100" />
-          ) : (
-            <Mic className={`w-10 h-10 md:w-12 md:h-12 ${isConnected ? 'text-primary-foreground' : 'text-primary-foreground/70'}`} />
-          )}
-          
-          {isConnected && !isSpeaking && inputAudioLevel > 0.1 && (
-            <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
-          )}
-        </div>
+      {/* Agent State Orb */}
+      <div className="flex flex-col items-center mb-2">
+        <motion.div
+          className="relative cursor-pointer"
+          onClick={handleOrbClick}
+          whileTap={isMobile ? { scale: 0.95 } : undefined}
+        >
+          {/* Outer glow ring */}
+          <motion.div
+            className="absolute -inset-3 rounded-full"
+            animate={{
+              boxShadow: `0 0 ${isConnected ? 30 + currentLevel * 20 : 0}px ${config.glowColor}`,
+              opacity: isConnected ? 0.8 : 0,
+            }}
+            transition={{ duration: 0.3 }}
+          />
+
+          {/* Ping ring for listening */}
+          <AnimatePresence>
+            {agentState === 'listening' && inputAudioLevel > 0.1 && (
+              <motion.div
+                className="absolute inset-0 rounded-full border-2 border-cyan-400/40"
+                initial={{ scale: 1, opacity: 0.6 }}
+                animate={{ scale: 1.3, opacity: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Main orb */}
+          <motion.div
+            className={`
+              relative w-28 h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center
+              bg-gradient-to-br ${config.orbClass}
+              transition-colors duration-500
+            `}
+            animate={{
+              scale: isConnected ? 1 + currentLevel * 0.05 : 1,
+            }}
+            transition={{ duration: 0.1 }}
+          >
+            {/* Waveform ring around orb */}
+            {isConnected && (
+              <div className="absolute inset-[-6px] rounded-full overflow-hidden">
+                <LiveWaveformCanvas
+                  level={currentLevel}
+                  isActive={isConnected && !isPaused}
+                  barWidth={2}
+                  barGap={1}
+                  fadeEdges
+                />
+              </div>
+            )}
+
+            {/* Center icon */}
+            {isConnecting ? (
+              <Loader2 className="w-10 h-10 md:w-12 md:h-12 text-primary animate-spin" />
+            ) : connectionError ? (
+              <AlertCircle className="w-10 h-10 md:w-12 md:h-12 text-destructive" />
+            ) : isPaused ? (
+              <Pause className="w-10 h-10 md:w-12 md:h-12 text-amber-100" />
+            ) : (
+              <Mic className={`w-10 h-10 md:w-12 md:h-12 ${isConnected ? 'text-primary-foreground' : 'text-primary/70'}`} />
+            )}
+          </motion.div>
+        </motion.div>
+
+        {/* State label */}
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={agentState}
+            className="mt-3 text-sm font-medium text-muted-foreground"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.2 }}
+          >
+            {config.emoji && <span className="mr-1">{config.emoji}</span>}
+            {config.label}
+          </motion.p>
+        </AnimatePresence>
       </div>
+
+      {/* Inline Volume Control - visible when connected */}
+      <AnimatePresence>
+        {isConnected && (
+          <motion.div
+            className="flex items-center gap-3 w-56"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <button
+              onClick={() => onVolumeChange(volume > 0 ? 0 : 1)}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={volume > 0 ? 'Mute' : 'Unmute'}
+            >
+              {volume > 0 ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </button>
+            <Slider
+              value={[volume * 100]}
+              onValueChange={([v]) => onVolumeChange(v / 100)}
+              max={100}
+              step={1}
+              className="flex-1"
+              aria-label="Volume"
+            />
+            <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">
+              {Math.round(volume * 100)}%
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Control Buttons */}
       <div className="flex items-center justify-center gap-3 md:gap-4">
@@ -121,7 +272,7 @@ export const VoiceControlPanel = ({
             <Button
               onClick={onRetryConnection}
               size="lg"
-              className="px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px]"
+              className="rounded-full px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px]"
             >
               <RefreshCw className="mr-2 h-5 w-5" />
               Try Again
@@ -130,7 +281,7 @@ export const VoiceControlPanel = ({
               onClick={onClearError}
               variant="outline"
               size="lg"
-              className="min-h-[48px]"
+              className="rounded-full min-h-[48px]"
             >
               Cancel
             </Button>
@@ -139,7 +290,7 @@ export const VoiceControlPanel = ({
           <Button
             disabled
             size="lg"
-            className="px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px]"
+            className="rounded-full px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px]"
           >
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             Connecting...
@@ -148,20 +299,19 @@ export const VoiceControlPanel = ({
           <Button
             onClick={handleStart}
             size="lg"
-            className="px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px]"
+            className="rounded-full px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px] group"
             disabled={!isReady || providerLoading}
           >
-            <Mic className="mr-2 h-5 w-5" />
+            <Mic className="mr-2 h-5 w-5 group-hover:animate-pulse" />
             Start Conversation
           </Button>
         ) : (
           <>
-            {/* End / Resume group */}
             <Button
               onClick={handleEnd}
               variant="destructive"
               size="lg"
-              className="min-h-[48px]"
+              className="rounded-full min-h-[48px]"
             >
               End Session
             </Button>
@@ -170,84 +320,27 @@ export const VoiceControlPanel = ({
               <Button
                 onClick={handleResume}
                 size="lg"
-                className="min-h-[48px] bg-amber-500 hover:bg-amber-600 text-white"
+                className="rounded-full min-h-[48px] bg-amber-500 hover:bg-amber-600 text-white"
               >
                 <Play className="mr-2 h-5 w-5" />
                 Resume
               </Button>
             )}
 
-            {/* Separator */}
             <div className="w-px h-8 bg-border mx-1 hidden sm:block" />
-            
-            {/* Audio controls group */}
+
             <Button
               onClick={handleMuteToggle}
               variant="outline"
               size="lg"
-              className="min-h-[48px] min-w-[48px]"
+              className="rounded-full min-h-[48px] min-w-[48px]"
               aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
             >
               {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
             </Button>
-
-            {isMobile ? (
-              <Collapsible open={showVolume} onOpenChange={setShowVolume}>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="min-h-[48px] min-w-[48px]"
-                    aria-label={volume > 0 ? 'Adjust volume' : 'Unmute audio'}
-                  >
-                    {volume > 0 ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 p-3 rounded-lg bg-card border border-border shadow-lg z-10">
-                  <div className="flex items-center gap-3">
-                    <VolumeX className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <Slider
-                      value={[volume * 100]}
-                      onValueChange={([v]) => onVolumeChange(v / 100)}
-                      max={100}
-                      step={1}
-                      className="flex-1"
-                      aria-label="Volume"
-                    />
-                    <Volume2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            ) : (
-              <Button
-                onClick={() => onVolumeChange(volume > 0 ? 0 : 1)}
-                variant="outline"
-                size="lg"
-                className="min-h-[48px] min-w-[48px]"
-                aria-label={volume > 0 ? 'Mute audio' : 'Unmute audio'}
-              >
-                {volume > 0 ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-              </Button>
-            )}
           </>
         )}
       </div>
-
-      {/* Volume Slider - Desktop */}
-      {isConnected && !isMobile && (
-        <div className="flex items-center gap-3 w-48">
-          <VolumeX className="h-4 w-4 text-muted-foreground" />
-          <Slider
-            value={[volume * 100]}
-            onValueChange={([v]) => onVolumeChange(v / 100)}
-            max={100}
-            step={1}
-            className="flex-1"
-            aria-label="Volume"
-          />
-          <Volume2 className="h-4 w-4 text-muted-foreground" />
-        </div>
-      )}
     </div>
   );
 };

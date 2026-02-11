@@ -101,54 +101,6 @@ export const AudioLevelVisualizer = ({
   );
 };
 
-// Circular waveform visualization for the orb
-interface WaveformOrbProps {
-  level: number;
-  isActive: boolean;
-  className?: string;
-}
-
-export const WaveformOrb = ({ level, isActive, className }: WaveformOrbProps) => {
-  const bars = 24;
-  const radius = 50;
-
-  return (
-    <div className={cn('absolute inset-0 pointer-events-none', className)}>
-      <svg viewBox="0 0 120 120" className="w-full h-full">
-        {Array.from({ length: bars }).map((_, i) => {
-          const angle = (i / bars) * 360;
-          const radians = (angle * Math.PI) / 180;
-          
-          // Create varying bar heights based on level
-          const variance = Math.sin(i * 0.8 + Date.now() * 0.003) * 0.3 + 0.7;
-          const barHeight = isActive ? 8 + level * 12 * variance : 4;
-          
-          const x1 = 60 + Math.cos(radians) * radius;
-          const y1 = 60 + Math.sin(radians) * radius;
-          const x2 = 60 + Math.cos(radians) * (radius + barHeight);
-          const y2 = 60 + Math.sin(radians) * (radius + barHeight);
-
-          return (
-            <line
-              key={i}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              className={cn(
-                'transition-all duration-75',
-                isActive ? 'text-primary' : 'text-muted-foreground/30'
-              )}
-              style={{
-                opacity: isActive ? 0.6 + level * 0.4 : 0.2,
-              }}
-            />
-          );
-        })}
-      </svg>
-    </div>
-  );
-};
+// WaveformOrb is deprecated - use LiveWaveformCanvas instead
+// Kept as a re-export for any remaining references
+export { LiveWaveformCanvas as WaveformOrb } from './LiveWaveformCanvas';

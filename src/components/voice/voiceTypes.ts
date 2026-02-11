@@ -7,7 +7,7 @@ export interface OpenAIVoiceSettings {
   firstMessage: string;     // Initial greeting spoken when connection is established
 }
 
-export type ElevenLabsLanguage = 'auto' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'pl' | 'hi' | 'ar' | 'zh' | 'ja' | 'ko';
+export type ElevenLabsLanguage = 'auto' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'pl' | 'hi' | 'ar' | 'zh' | 'ja' | 'ko' | 'nl' | 'sv' | 'no' | 'da' | 'fi' | 'cs' | 'ro' | 'hu' | 'tr' | 'uk' | 'el' | 'th' | 'vi' | 'id' | 'ms' | 'fil' | 'bn' | 'ta' | 'he' | 'sw' | 'ru';
 
 export type AgentPersonality = 'friendly' | 'professional' | 'technical' | 'empathetic' | 'custom';
 
