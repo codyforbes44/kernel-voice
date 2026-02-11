@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { WidgetThemeProvider, useWidgetTheme } from './WidgetTheme';
 import { WidgetHeader } from './WidgetHeader';
 import { WidgetChat } from './WidgetChat';
 import { WidgetInput } from './WidgetInput';
 import { WidgetButton } from './WidgetButton';
+import { WidgetVoiceMode } from './WidgetVoiceMode';
 import { sendWidgetMessage, trackWidgetEvent } from './api';
 import { KernelWidgetConfig, WidgetMessage, generateSessionId } from './types';
 import { useWidgetTTS } from './useWidgetTTS';
@@ -21,15 +22,15 @@ export function KernelWidget({ config }: KernelWidgetProps) {
 }
 
 function WidgetContent() {
-  const { config } = useWidgetTheme();
+  const { config, theme } = useWidgetTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<WidgetMessage[]>([]);
   const [sessionId] = useState(() => generateSessionId());
   const [hasStarted, setHasStarted] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(false);
 
-  // TTS hook for speaking responses
   const tts = useWidgetTTS({
     supabaseUrl: config.supabaseUrl || '',
     supabaseKey: config.supabaseKey || '',
@@ -38,8 +39,8 @@ function WidgetContent() {
   });
   
   const shouldUseTTS = Boolean(config.enableTTS && config.supabaseUrl && config.supabaseKey);
+  const showVoiceConversation = Boolean(config.enableVoiceConversation && config.supabaseUrl && config.supabaseKey);
 
-  // Add greeting message on first open
   useEffect(() => {
     if (isOpen && !hasStarted && config.greeting) {
       setMessages([{
@@ -49,8 +50,6 @@ function WidgetContent() {
         timestamp: new Date(),
       }]);
       setHasStarted(true);
-      
-      // Track conversation start
       trackWidgetEvent(config.apiKey, 'open', {}, sessionId);
       config.onConversationStart?.();
     }
@@ -66,8 +65,6 @@ function WidgetContent() {
 
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
-
-    // Track message sent
     trackWidgetEvent(config.apiKey, 'message', { role: 'user' }, sessionId);
     config.onMessageSent?.(messageContent);
 
@@ -81,9 +78,7 @@ function WidgetContent() {
         kbDocumentIds: config.kbDocumentIds,
       });
 
-      if (result.error) {
-        throw new Error(result.error);
-      }
+      if (result.error) throw new Error(result.error);
 
       const assistantMessage: WidgetMessage = {
         id: `assistant_${Date.now()}`,
@@ -94,20 +89,17 @@ function WidgetContent() {
 
       setMessages(prev => [...prev, assistantMessage]);
       
-      // Speak the response if TTS is enabled
       if (shouldUseTTS && tts.isEnabled) {
         tts.speak(result.response);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An error occurred';
-      
       setMessages(prev => [...prev, {
         id: `error_${Date.now()}`,
         role: 'assistant',
         content: `Sorry, I encountered an error: ${errorMessage}. Please try again.`,
         timestamp: new Date(),
       }]);
-
       trackWidgetEvent(config.apiKey, 'error', { error: errorMessage }, sessionId);
       config.onError?.(error instanceof Error ? error : new Error(errorMessage));
     } finally {
@@ -115,9 +107,14 @@ function WidgetContent() {
     }
   }, [config, sessionId, shouldUseTTS, tts]);
 
+  const handleVoiceMessage = useCallback((message: WidgetMessage) => {
+    setMessages(prev => [...prev, message]);
+  }, []);
+
   const handleClose = useCallback(() => {
     setIsOpen(false);
     setIsMinimized(false);
+    setVoiceMode(false);
     trackWidgetEvent(config.apiKey, 'close', {}, sessionId);
   }, [config.apiKey, sessionId]);
 
@@ -133,7 +130,6 @@ function WidgetContent() {
 
   return (
     <>
-      {/* Widget Panel */}
       {isOpen && (
         <div
           style={{
@@ -155,48 +151,64 @@ function WidgetContent() {
             animation: 'slideUp 0.3s ease-out',
           }}
         >
-          <WidgetHeader onClose={handleClose} onMinimize={handleMinimize} />
-          <WidgetChat 
-            messages={messages} 
-            isLoading={isLoading}
-            enableTTS={shouldUseTTS}
-            isSpeaking={tts.isSpeaking}
-            isTTSEnabled={tts.isEnabled}
-            volume={tts.volume}
-            onToggleTTS={tts.toggleEnabled}
-            onStopSpeaking={tts.stop}
-            onSpeak={tts.speak}
-            onVolumeChange={tts.setVolume}
+          <WidgetHeader
+            onClose={handleClose}
+            onMinimize={handleMinimize}
+            voiceMode={voiceMode}
+            onToggleVoiceMode={() => setVoiceMode(v => !v)}
+            showVoiceToggle={showVoiceConversation}
           />
-          <WidgetInput 
-            onSend={handleSend} 
-            isLoading={isLoading} 
-            enableVoice={config.enableVoice}
-            voiceProvider={config.voiceProvider}
-            waveformStyle={config.waveformStyle}
-            supabaseUrl={config.supabaseUrl}
-            supabaseKey={config.supabaseKey}
-          />
+
+          {voiceMode && showVoiceConversation ? (
+            <WidgetVoiceMode
+              apiKey={config.apiKey}
+              sessionId={sessionId}
+              systemPrompt={config.systemPrompt}
+              enableKB={config.enableKB}
+              kbDocumentIds={config.kbDocumentIds}
+              supabaseUrl={config.supabaseUrl || ''}
+              supabaseKey={config.supabaseKey || ''}
+              ttsVoiceId={config.ttsVoiceId}
+              autoListen={config.autoListen}
+              onMessage={handleVoiceMessage}
+              onExitVoiceMode={() => setVoiceMode(false)}
+            />
+          ) : (
+            <>
+              <WidgetChat 
+                messages={messages} 
+                isLoading={isLoading}
+                enableTTS={shouldUseTTS}
+                isSpeaking={tts.isSpeaking}
+                isTTSEnabled={tts.isEnabled}
+                volume={tts.volume}
+                onToggleTTS={tts.toggleEnabled}
+                onStopSpeaking={tts.stop}
+                onSpeak={tts.speak}
+                onVolumeChange={tts.setVolume}
+              />
+              <WidgetInput 
+                onSend={handleSend} 
+                isLoading={isLoading} 
+                enableVoice={config.enableVoice}
+                voiceProvider={config.voiceProvider}
+                waveformStyle={config.waveformStyle}
+                supabaseUrl={config.supabaseUrl}
+                supabaseKey={config.supabaseKey}
+              />
+            </>
+          )}
         </div>
       )}
 
-      {/* Floating Button */}
       <WidgetButton isOpen={isOpen} onClick={isOpen ? handleClose : handleOpen} />
 
-      <style>
-        {`
-          @keyframes slideUp {
-            from {
-              opacity: 0;
-              transform: translateY(20px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-        `}
-      </style>
+      <style>{`
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </>
   );
 }

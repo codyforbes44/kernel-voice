@@ -18,6 +18,12 @@ export interface KernelWidgetConfig {
   placeholder?: string;
   systemPrompt?: string;
 
+  // Appearance
+  darkMode?: boolean;
+  borderRadius?: 'sharp' | 'rounded' | 'pill';
+  headerStyle?: 'gradient' | 'solid' | 'minimal';
+  bubbleStyle?: 'rounded' | 'sharp' | 'pill';
+
   // Features
   enableVoice?: boolean;
   voiceProvider?: 'native' | 'elevenlabs';
@@ -26,6 +32,10 @@ export interface KernelWidgetConfig {
   ttsVoiceId?: string;
   enableKB?: boolean;
   kbDocumentIds?: string[];
+
+  // Voice conversation mode
+  enableVoiceConversation?: boolean;
+  autoListen?: boolean;
 
   // Backend config (set automatically when embedding)
   supabaseUrl?: string;
@@ -58,6 +68,8 @@ export interface WidgetThemeValues {
   textColor: string;
   backgroundColor: string;
   borderRadius: string;
+  bubbleRadius: string;
+  isDark: boolean;
 }
 
 // Default configuration values
@@ -76,9 +88,35 @@ export const DEFAULT_CONFIG: Partial<KernelWidgetConfig> = {
   enableTTS: false,
   ttsVoiceId: 'EXAVITQu4vr4xnSDxMaL', // Sarah voice
   enableKB: false,
+  darkMode: false,
+  borderRadius: 'rounded',
+  headerStyle: 'gradient',
+  bubbleStyle: 'rounded',
+  enableVoiceConversation: false,
+  autoListen: true,
 };
 
 // Generate a unique session ID
 export function generateSessionId(): string {
   return `ws_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+}
+
+// Helper to get border radius value from config
+export function getBorderRadiusValue(style?: string): string {
+  switch (style) {
+    case 'sharp': return '4px';
+    case 'pill': return '24px';
+    case 'rounded':
+    default: return '12px';
+  }
+}
+
+// Helper to get bubble radius value from config
+export function getBubbleRadiusValue(style?: string): string {
+  switch (style) {
+    case 'sharp': return '4px';
+    case 'pill': return '20px';
+    case 'rounded':
+    default: return '16px';
+  }
 }
