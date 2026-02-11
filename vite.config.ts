@@ -1,8 +1,42 @@
-import { defineConfig } from "vite";
+import { defineConfig, build as viteBuild } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+import type { Plugin } from "vite";
+
+function buildWidgetPlugin(): Plugin {
+  return {
+    name: "build-widget",
+    apply: "build",
+    closeBundle: {
+      sequential: true,
+      async handler() {
+        console.log("[widget] Building embed.js...");
+        await viteBuild({
+          configFile: false,
+          plugins: [react()],
+          resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
+          define: { "process.env.NODE_ENV": JSON.stringify("production") },
+          build: {
+            lib: {
+              entry: path.resolve(__dirname, "src/embed/index.tsx"),
+              name: "KernelWidget",
+              formats: ["iife"],
+              fileName: () => "embed.js",
+            },
+            outDir: "dist",
+            emptyOutDir: false,
+            minify: "terser",
+            rollupOptions: { output: { inlineDynamicImports: true } },
+          },
+          logLevel: "warn",
+        });
+        console.log("[widget] embed.js built successfully");
+      },
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -13,6 +47,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    buildWidgetPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt'],
