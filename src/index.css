@@ -130,7 +130,18 @@ All colors MUST be HSL.
 
   /* Theme transition for smooth color changes */
   html {
+    scroll-behavior: smooth;
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Skip navigation link for accessibility */
+  .skip-to-content {
+    @apply sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md;
+  }
+
+  /* Enhanced focus-visible for keyboard navigation */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
   }
 
   html.theme-transition,
@@ -243,4 +254,16 @@ All colors MUST be HSL.
 /* Prevent overscroll bounce on mobile */
 body {
   overscroll-behavior: none;
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

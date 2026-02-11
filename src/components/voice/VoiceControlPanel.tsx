@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Volume2, VolumeX, Loader2, AlertCircle, RefreshCw, Pause, Play } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { WaveformOrb } from './AudioLevelMeter';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useState } from 'react';
 
 interface VoiceControlPanelProps {
   isConnected: boolean;
@@ -26,6 +27,12 @@ interface VoiceControlPanelProps {
   onResume?: () => void;
 }
 
+const haptic = (pattern: number | number[]) => {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(pattern);
+  }
+};
+
 export const VoiceControlPanel = ({
   isConnected,
   isConnecting,
@@ -47,12 +54,31 @@ export const VoiceControlPanel = ({
   isPaused,
   onResume,
 }: VoiceControlPanelProps) => {
+  const [showVolume, setShowVolume] = useState(false);
+
+  const handleStart = () => {
+    haptic(50);
+    onStartConversation();
+  };
+  const handleEnd = () => {
+    haptic([30, 50, 30]);
+    onEndConversation();
+  };
+  const handleResume = () => {
+    haptic(50);
+    onResume?.();
+  };
+  const handleMuteToggle = () => {
+    haptic(20);
+    onToggleMute();
+  };
+
   return (
     <div className="flex flex-col items-center gap-4">
       {/* Microphone Orb */}
       <div className="flex items-center justify-center mb-2">
         <div className={`
-          relative w-24 h-24 md:w-32 md:h-32 rounded-full flex items-center justify-center
+          relative w-28 h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center
           ${isConnected && isPaused
             ? 'bg-gradient-to-br from-amber-500/60 to-amber-600/30 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
             : isConnected 
@@ -120,7 +146,7 @@ export const VoiceControlPanel = ({
           </Button>
         ) : !isConnected ? (
           <Button
-            onClick={onStartConversation}
+            onClick={handleStart}
             size="lg"
             className="px-6 py-5 md:px-8 md:py-6 text-base md:text-lg min-h-[48px]"
             disabled={!isReady || providerLoading}
@@ -130,18 +156,19 @@ export const VoiceControlPanel = ({
           </Button>
         ) : (
           <>
+            {/* End / Resume group */}
             <Button
-              onClick={onEndConversation}
+              onClick={handleEnd}
               variant="destructive"
               size="lg"
               className="min-h-[48px]"
             >
-              {isMobile ? 'End' : 'Continue Later'}
+              End Session
             </Button>
 
             {isPaused && onResume && (
               <Button
-                onClick={onResume}
+                onClick={handleResume}
                 size="lg"
                 className="min-h-[48px] bg-amber-500 hover:bg-amber-600 text-white"
               >
@@ -149,45 +176,64 @@ export const VoiceControlPanel = ({
                 Resume
               </Button>
             )}
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={onToggleMute}
-                  variant="outline"
-                  size="lg"
-                  className="min-h-[48px] min-w-[48px]"
-                  aria-label={isMuted ? 'Unmute' : 'Mute'}
-                >
-                  {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isMuted ? 'Unmute microphone' : 'Mute microphone'}
-              </TooltipContent>
-            </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => onVolumeChange(volume > 0 ? 0 : 1)}
-                  variant="outline"
-                  size="lg"
-                  className="min-h-[48px] min-w-[48px]"
-                  aria-label={volume > 0 ? 'Mute audio' : 'Unmute audio'}
-                >
-                  {volume > 0 ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {volume > 0 ? 'Mute audio' : 'Unmute audio'}
-              </TooltipContent>
-            </Tooltip>
+            {/* Separator */}
+            <div className="w-px h-8 bg-border mx-1 hidden sm:block" />
+            
+            {/* Audio controls group */}
+            <Button
+              onClick={handleMuteToggle}
+              variant="outline"
+              size="lg"
+              className="min-h-[48px] min-w-[48px]"
+              aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+            >
+              {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            </Button>
+
+            {isMobile ? (
+              <Collapsible open={showVolume} onOpenChange={setShowVolume}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="min-h-[48px] min-w-[48px]"
+                    aria-label={volume > 0 ? 'Adjust volume' : 'Unmute audio'}
+                  >
+                    {volume > 0 ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 p-3 rounded-lg bg-card border border-border shadow-lg z-10">
+                  <div className="flex items-center gap-3">
+                    <VolumeX className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Slider
+                      value={[volume * 100]}
+                      onValueChange={([v]) => onVolumeChange(v / 100)}
+                      max={100}
+                      step={1}
+                      className="flex-1"
+                      aria-label="Volume"
+                    />
+                    <Volume2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            ) : (
+              <Button
+                onClick={() => onVolumeChange(volume > 0 ? 0 : 1)}
+                variant="outline"
+                size="lg"
+                className="min-h-[48px] min-w-[48px]"
+                aria-label={volume > 0 ? 'Mute audio' : 'Unmute audio'}
+              >
+                {volume > 0 ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+              </Button>
+            )}
           </>
         )}
       </div>
 
-      {/* Volume Slider */}
+      {/* Volume Slider - Desktop */}
       {isConnected && !isMobile && (
         <div className="flex items-center gap-3 w-48">
           <VolumeX className="h-4 w-4 text-muted-foreground" />

@@ -29,6 +29,18 @@ interface ConversationHistoryProps {
   onConversationCreated?: () => void;
 }
 
+function relativeTimeShort(dateStr: string): string {
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
 const ConversationHistory = ({ 
   currentConversationId, 
   onSelectConversation,
@@ -45,36 +57,20 @@ const ConversationHistory = ({
   useEffect(() => {
     loadConversations();
 
-    // Use unique channel name to prevent collisions
     const channelName = `conversations-${user?.id ?? 'anon'}-${Date.now()}`;
     const channel = supabase
       .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-        },
-        () => {
-          loadConversations();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => {
+        loadConversations();
+      })
       .subscribe();
 
     channelRef.current = channel;
-
-    return () => {
-      channel.unsubscribe();
-    };
+    return () => { channel.unsubscribe(); };
   }, [user?.id]);
 
   const loadConversations = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
+    if (!user) { setLoading(false); return; }
     const { data, error } = await supabase
       .from('conversations')
       .select('id, title, updated_at')
@@ -82,74 +78,30 @@ const ConversationHistory = ({
       .order('updated_at', { ascending: false })
       .limit(20);
 
-    if (error) {
-      console.error('Error loading conversations:', error);
-    } else {
-      setConversations(data || []);
-    }
+    if (error) console.error('Error loading conversations:', error);
+    else setConversations(data || []);
     setLoading(false);
   };
 
   const createNewConversation = async () => {
     if (!user) {
-      toast({
-        title: 'Authentication Required',
-        description: 'Please sign in to create conversations',
-        variant: 'destructive',
-      });
+      toast({ title: 'Authentication Required', description: 'Please sign in to create conversations', variant: 'destructive' });
       return;
     }
-
-    const { data, error } = await supabase
-      .from('conversations')
-      .insert({ user_id: user.id })
-      .select()
-      .single();
-
-    if (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to create conversation',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+    const { data, error } = await supabase.from('conversations').insert({ user_id: user.id }).select().single();
+    if (error) { toast({ title: 'Error', description: 'Failed to create conversation', variant: 'destructive' }); return; }
     setConversations([data, ...conversations]);
     onSelectConversation(data.id);
     onConversationCreated?.();
   };
 
   const deleteConversation = async (id: string) => {
-    await supabase
-      .from('messages')
-      .delete()
-      .eq('conversation_id', id);
-
-    const { error } = await supabase
-      .from('conversations')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete conversation',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+    await supabase.from('messages').delete().eq('conversation_id', id);
+    const { error } = await supabase.from('conversations').delete().eq('id', id);
+    if (error) { toast({ title: 'Error', description: 'Failed to delete conversation', variant: 'destructive' }); return; }
     setConversations(conversations.filter(conv => conv.id !== id));
-    
-    if (currentConversationId === id) {
-      onSelectConversation(conversations[0]?.id || '');
-    }
-
-    toast({
-      title: 'Deleted',
-      description: 'Conversation deleted successfully',
-    });
+    if (currentConversationId === id) onSelectConversation(conversations[0]?.id || '');
+    toast({ title: 'Deleted', description: 'Conversation deleted successfully' });
   };
 
   const handleDeleteClick = (id: string, e: React.MouseEvent) => {
@@ -159,9 +111,7 @@ const ConversationHistory = ({
   };
 
   const confirmDelete = () => {
-    if (conversationToDelete) {
-      deleteConversation(conversationToDelete);
-    }
+    if (conversationToDelete) deleteConversation(conversationToDelete);
     setDeleteDialogOpen(false);
     setConversationToDelete(null);
   };
@@ -173,7 +123,7 @@ const ConversationHistory = ({
           <MessageSquare className="h-4 w-4" />
           Conversations
         </h3>
-        <Button onClick={createNewConversation} size="sm" variant="outline" className="h-8 w-8 p-0">
+        <Button onClick={createNewConversation} size="sm" variant="outline" className="h-9 w-9 min-h-[36px] min-w-[36px] p-0">
           <Plus className="h-4 w-4" />
         </Button>
       </div>
@@ -199,16 +149,16 @@ const ConversationHistory = ({
                 >
                   <button
                     onClick={() => onSelectConversation(conv.id)}
-                    className="w-full text-left p-2 pr-9 min-h-[44px]"
+                    className="w-full text-left p-2.5 pr-12 min-h-[48px]"
                   >
                     <p className="font-medium truncate text-sm">{conv.title}</p>
                     <p className="text-xs opacity-70">
-                      {new Date(conv.updated_at).toLocaleDateString()}
+                      {relativeTimeShort(conv.updated_at)}
                     </p>
                   </button>
                   <button
                     onClick={(e) => handleDeleteClick(conv.id, e)}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-destructive/20 rounded min-w-[36px] min-h-[36px] flex items-center justify-center"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-70 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-2 hover:bg-destructive/20 rounded min-w-[40px] min-h-[40px] flex items-center justify-center"
                     aria-label="Delete conversation"
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -225,12 +175,12 @@ const ConversationHistory = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Conversation?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this conversation and all its messages. This action cannot be undone.
+              This will permanently delete this conversation and all its messages.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogCancel className="min-h-[44px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-[44px]">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,21 +52,22 @@ export function SavedAgentsList({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-9 w-9 min-h-[36px] min-w-[36px] opacity-70 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                         onClick={(e) => e.stopPropagation()}
+                        aria-label={`Options for ${agent.name}`}
                       >
-                        <MoreVertical className="h-3.5 w-3.5" />
+                        <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEditAgent(agent); }}>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEditAgent(agent); }} className="min-h-[44px]">
                         <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicateAgent(agent); }}>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicateAgent(agent); }} className="min-h-[44px]">
                         <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className="text-destructive"
+                        className="text-destructive min-h-[44px]"
                         onClick={(e) => { e.stopPropagation(); onDeleteAgent(agent.id); }}
                       >
                         <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete

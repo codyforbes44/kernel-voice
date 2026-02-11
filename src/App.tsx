@@ -65,14 +65,14 @@ const App = () => (
                     <Route path="/terms" element={<Terms />} />
                     <Route path="/pricing" element={<Pricing />} />
                     <Route path="/subscription-success" element={<SubscriptionSuccess />} />
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/admin/users" element={<AdminUsers />} />
-                    <Route path="/admin/conversations" element={<AdminConversations />} />
-                    <Route path="/admin/documents" element={<AdminDocuments />} />
-                    <Route path="/admin/knowledge-base" element={<AdminKnowledgeBase />} />
-                    <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-                    <Route path="/admin/settings" element={<AdminSettings />} />
-                    <Route path="/admin/widgets" element={<AdminWidgets />} />
+                    <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                    <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+                    <Route path="/admin/conversations" element={<ProtectedRoute><AdminConversations /></ProtectedRoute>} />
+                    <Route path="/admin/documents" element={<ProtectedRoute><AdminDocuments /></ProtectedRoute>} />
+                    <Route path="/admin/knowledge-base" element={<ProtectedRoute><AdminKnowledgeBase /></ProtectedRoute>} />
+                    <Route path="/admin/audit-logs" element={<ProtectedRoute><AdminAuditLogs /></ProtectedRoute>} />
+                    <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+                    <Route path="/admin/widgets" element={<ProtectedRoute><AdminWidgets /></ProtectedRoute>} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

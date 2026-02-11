@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Upload } from 'lucide-react';
+import { MessageSquare, Upload, Plus } from 'lucide-react';
 import ConversationHistory from '@/components/voice/ConversationHistory';
 import DocumentUpload from '@/components/voice/DocumentUpload';
 import MessageHistory from '@/components/voice/MessageHistory';
@@ -32,11 +32,6 @@ import { UpgradeBanner } from '@/components/subscription/UpgradeBanner';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
 
-/**
- * Voice Assistant page - main interface for AI voice conversations.
- * Supports both mobile and desktop layouts with voice/text input modes.
- */
-
 const VoiceAssistant = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -44,6 +39,7 @@ const VoiceAssistant = () => {
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<SavedAgent | null>(null);
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   
   const {
     isAuthenticated,
@@ -98,13 +94,10 @@ const VoiceAssistant = () => {
     resumeConversation,
   } = useVoiceAssistant();
 
-  // Wake word detection - only active in text-only mode when not connected
+  // Wake word detection
   const handleWakeWordDetected = useCallback(() => {
     setInputMode('voice');
-    // Use a small delay to ensure mode switch is complete
-    setTimeout(() => {
-      startConversation();
-    }, 100);
+    setTimeout(() => { startConversation(); }, 100);
   }, [setInputMode, startConversation]);
 
   const wakeWordEnabled = inputMode === 'text' && !isConnected && isReady;
@@ -119,10 +112,7 @@ const VoiceAssistant = () => {
     enabled: wakeWordEnabled,
   });
 
-  // Resume wake word detection - active only when paused
-  const handleResumeDetected = useCallback(() => {
-    resumeConversation();
-  }, [resumeConversation]);
+  const handleResumeDetected = useCallback(() => { resumeConversation(); }, [resumeConversation]);
 
   useWakeWordDetection({
     wakeWords: ['continue the conversation', 'resume the conversation', 'unpause'],
@@ -130,7 +120,6 @@ const VoiceAssistant = () => {
     enabled: isPaused && isConnected,
   });
 
-  // Keyboard shortcuts (Ctrl+M for mute, Escape to end, Enter to start)
   useKeyboardShortcuts({
     onMuteToggle: toggleMute,
     onEndConversation: endConversation,
@@ -180,7 +169,6 @@ const VoiceAssistant = () => {
       else if (agent.voice_provider === 'gemini') setGeminiLiveSettings?.(settings as any);
     }
 
-    // Inject required questions into system prompt
     let prompt = agent.system_prompt;
     const rq = agent.required_questions;
     if (rq && rq.length > 0) {
@@ -214,59 +202,24 @@ const VoiceAssistant = () => {
     if (activeAgentId === id) setActiveAgentId(null);
   }, [deleteAgent, activeAgentId]);
 
-  // Memoize voice interface card props to prevent unnecessary re-renders
   const voiceInterfaceProps = useMemo(() => ({
-    voiceProvider,
-    setVoiceProvider,
-    openaiVoice,
-    setOpenAIVoice,
-    openaiSettings,
-    setOpenAISettings,
-    elevenlabsSettings,
-    setElevenLabsSettings,
-    geminiLiveSettings,
-    setGeminiLiveSettings,
-    systemPrompt,
-    setSystemPrompt,
-    providerLoading,
-    isConnected,
-    isConnecting,
-    connectionError,
-    connectionAuthMethod,
-    connectionPhase,
-    isSpeaking,
-    inputAudioLevel,
-    outputAudioLevel,
-    isMuted,
-    toggleMute,
-    volume,
-    setVolume,
-    inputMode,
-    setInputMode,
-    startConversation,
-    endConversation,
-    retryConnection,
-    clearConnectionError,
-    sendTextMessage,
-    isProcessingText,
-    activeToolCall,
-    permissionState,
-    requestPermission,
-    isReady,
-    isAuthenticated,
-    isMobile: isMobile ?? false,
-    isWakeWordListening,
-    isWakeWordSupported,
-    wakeWordLastHeard,
-    onSaveAgent: () => { setEditingAgent(null); setSaveDialogOpen(true); },
-    isPaused,
-    onResume: resumeConversation,
-  }), [
     voiceProvider, setVoiceProvider,
     openaiVoice, setOpenAIVoice, openaiSettings, setOpenAISettings,
     elevenlabsSettings, setElevenLabsSettings, geminiLiveSettings, setGeminiLiveSettings,
-    systemPrompt, setSystemPrompt,
-    providerLoading, isConnected, isConnecting, connectionError, connectionAuthMethod, connectionPhase,
+    systemPrompt, setSystemPrompt, providerLoading,
+    isConnected, isConnecting, connectionError, connectionAuthMethod, connectionPhase,
+    isSpeaking, inputAudioLevel, outputAudioLevel, isMuted, toggleMute, volume, setVolume,
+    inputMode, setInputMode, startConversation, endConversation, retryConnection, clearConnectionError,
+    sendTextMessage, isProcessingText, activeToolCall, permissionState, requestPermission, isReady,
+    isAuthenticated, isMobile: isMobile ?? false,
+    isWakeWordListening, isWakeWordSupported, wakeWordLastHeard,
+    onSaveAgent: () => { setEditingAgent(null); setSaveDialogOpen(true); },
+    isPaused, onResume: resumeConversation,
+  }), [
+    voiceProvider, setVoiceProvider, openaiVoice, setOpenAIVoice, openaiSettings, setOpenAISettings,
+    elevenlabsSettings, setElevenLabsSettings, geminiLiveSettings, setGeminiLiveSettings,
+    systemPrompt, setSystemPrompt, providerLoading,
+    isConnected, isConnecting, connectionError, connectionAuthMethod, connectionPhase,
     isSpeaking, inputAudioLevel, outputAudioLevel, isMuted, toggleMute, volume, setVolume,
     inputMode, setInputMode, startConversation, endConversation, retryConnection, clearConnectionError,
     sendTextMessage, isProcessingText, activeToolCall, permissionState, requestPermission, isReady,
@@ -274,224 +227,9 @@ const VoiceAssistant = () => {
     isPaused, resumeConversation,
   ]);
 
-  // Mobile Layout
-  if (isMobile) {
-    return (
-      <>
-        <SEO 
-          title="ƷBI Voice - Voice Assistant"
-          description="Experience the future of AI interaction with real-time voice conversations, intelligent web search, and advanced document analysis."
-          image="/og-home.png"
-          keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI"]}
-        />
-        <div className="flex flex-col min-h-screen bg-background safe-area-inset">
-          <Header />
-          <div className="flex-1 flex flex-col px-3 pt-2 pb-4">
-            {/* Upgrade Banner for free users */}
-            {isAuthenticated && <UpgradeBanner className="mb-2" />}
-
-            {/* Guest Banner */}
-            {!isAuthenticated && <GuestModeBanner variant="compact" className="mb-2" />}
-
-            {/* Conversation Banner */}
-            {isAuthenticated && conversationTitle && (
-              <ConversationBanner 
-                title={conversationTitle} 
-                onNewConversation={handleNewConversation}
-                variant="compact"
-                className="mb-2"
-              />
-            )}
-            
-            {/* Action Buttons */}
-            {isAuthenticated && (
-              <div className="flex justify-end gap-2 mb-2">
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-11 w-11 min-h-[44px]">
-                      <MessageSquare className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-[85vw] flex flex-col">
-                    <SheetHeader>
-                      <SheetTitle>Conversations</SheetTitle>
-                      <SheetDescription>View your conversation history</SheetDescription>
-                    </SheetHeader>
-                    <div className="flex-1 space-y-4 overflow-y-auto pt-4">
-                      <ConversationHistory 
-                        currentConversationId={conversationId}
-                        onSelectConversation={setConversationId}
-                        onConversationCreated={() => {}}
-                      />
-                      <MessageHistory conversationId={conversationId} />
-                    </div>
-                  </SheetContent>
-                </Sheet>
-
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-11 w-11 min-h-[44px]">
-                      <Upload className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-[85vw]">
-                    <SheetHeader>
-                      <SheetTitle>Document Upload</SheetTitle>
-                      <SheetDescription>Upload documents for analysis</SheetDescription>
-                    </SheetHeader>
-                    <div className="pt-4">
-                      <DocumentUpload conversationId={conversationId} />
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </div>
-            )}
-
-            {/* Saved Agents */}
-            {isAuthenticated && (
-              <SavedAgentsList
-                agents={agents}
-                isLoading={agentsLoading}
-                activeAgentId={activeAgentId}
-                onLoadAgent={handleLoadAgent}
-                onEditAgent={handleEditAgent}
-                onDuplicateAgent={duplicateAgent}
-                onDeleteAgent={handleDeleteAgent}
-              />
-            )}
-
-            {/* Main Voice Interface */}
-            <VoiceErrorBoundary>
-              <VoiceInterfaceCard {...voiceInterfaceProps} />
-            </VoiceErrorBoundary>
-
-            {/* Live Transcripts */}
-            {(isConnected || liveTranscripts.length > 0 || inputMode === 'text') && (
-              <div className="mt-4">
-                <LiveTranscripts 
-                  transcripts={liveTranscripts}
-                  isConnected={isConnected || inputMode === 'text'}
-                  isSpeaking={isSpeaking}
-                />
-              </div>
-            )}
-
-            {/* Message History for guests */}
-            {!isAuthenticated && guestMessages.length > 0 && (
-              <div className="mt-4">
-                <MessageHistory conversationId={conversationId} />
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <RegistrationPromptModal 
-          open={showRegistrationPrompt}
-          onOpenChange={setShowRegistrationPrompt}
-          messageCount={guestMessages.length / 2}
-        />
-        <SaveAgentDialog
-          open={saveDialogOpen}
-          onOpenChange={setSaveDialogOpen}
-          onSave={handleSaveAgent}
-          onUpdate={handleUpdateAgent}
-          editingAgent={editingAgent}
-          currentConfig={getCurrentConfig()}
-          saving={createAgent.isPending || updateAgent.isPending}
-        />
-      </>
-    );
-  }
-
-  // Desktop Layout
-  return (
+  // Shared dialogs
+  const dialogs = (
     <>
-      <SEO 
-        title="Voice Assistant"
-        description="Start a real-time voice conversation with AI. Natural, fluid interactions with intelligent web search and advanced document analysis capabilities."
-        image="/og-assistant.png"
-        keywords={["voice conversation", "AI chat", "voice control", "hands-free AI", "conversational AI"]}
-      />
-      <div className="min-h-screen bg-background">
-        <Header />
-        <SidebarProvider defaultOpen={isAuthenticated}>
-          <div className="flex w-full">
-            {isAuthenticated && (
-              <Sidebar collapsible="offcanvas">
-                <SidebarContent className="p-4 space-y-6">
-                  <ConversationHistory 
-                    currentConversationId={conversationId}
-                    onSelectConversation={setConversationId}
-                    onConversationCreated={() => {}}
-                  />
-                  <DocumentUpload conversationId={conversationId} />
-                </SidebarContent>
-              </Sidebar>
-            )}
-
-            <SidebarInset>
-              <div className="container mx-auto px-4 py-8">
-                {/* Upgrade Banner for free users */}
-                {isAuthenticated && <UpgradeBanner className="mb-4" />}
-
-                {/* Guest Banner */}
-                {!isAuthenticated && <GuestModeBanner className="mb-4" />}
-
-                {/* Conversation Banner */}
-                {isAuthenticated && conversationTitle && (
-                  <ConversationBanner 
-                    title={conversationTitle} 
-                    onNewConversation={handleNewConversation}
-                    className="mb-4"
-                  />
-                )}
-                
-                {/* Sidebar Trigger */}
-                {isAuthenticated && (
-                  <div className="mb-4">
-                    <SidebarTrigger className="min-h-[44px]" />
-                  </div>
-                )}
-
-                {/* Saved Agents */}
-                {isAuthenticated && (
-                  <SavedAgentsList
-                    agents={agents}
-                    isLoading={agentsLoading}
-                    activeAgentId={activeAgentId}
-                    onLoadAgent={handleLoadAgent}
-                    onEditAgent={handleEditAgent}
-                    onDuplicateAgent={duplicateAgent}
-                    onDeleteAgent={handleDeleteAgent}
-                  />
-                )}
-
-                {/* Main Voice Interface */}
-                <VoiceErrorBoundary>
-                  <VoiceInterfaceCard {...voiceInterfaceProps} />
-                </VoiceErrorBoundary>
-
-                {/* Live Transcripts */}
-                {(isConnected || liveTranscripts.length > 0 || inputMode === 'text') && (
-                  <div className="mt-6">
-                    <LiveTranscripts 
-                      transcripts={liveTranscripts}
-                      isConnected={isConnected || inputMode === 'text'}
-                      isSpeaking={isSpeaking}
-                    />
-                  </div>
-                )}
-
-                {/* Message History */}
-                <div className="mt-6">
-                  <MessageHistory conversationId={conversationId} />
-                </div>
-              </div>
-            </SidebarInset>
-          </div>
-        </SidebarProvider>
-      </div>
-      
       <RegistrationPromptModal 
         open={showRegistrationPrompt}
         onOpenChange={setShowRegistrationPrompt}
@@ -506,6 +244,188 @@ const VoiceAssistant = () => {
         currentConfig={getCurrentConfig()}
         saving={createAgent.isPending || updateAgent.isPending}
       />
+    </>
+  );
+
+  // ─── Mobile Layout ───
+  if (isMobile) {
+    return (
+      <>
+        <SEO 
+          title="ƷBI Voice - Voice Assistant"
+          description="Experience the future of AI interaction with real-time voice conversations, intelligent web search, and advanced document analysis."
+          image="/og-home.png"
+          keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI"]}
+        />
+        <div className="flex flex-col h-[100dvh] bg-background safe-area-inset">
+          <Header />
+          <main id="main-content" className="flex-1 flex flex-col overflow-y-auto scrollbar-hide">
+            <div className="flex-1 flex flex-col px-3 pt-2 pb-4">
+              {/* Banners */}
+              {isAuthenticated && <UpgradeBanner className="mb-2" />}
+              {!isAuthenticated && <GuestModeBanner variant="compact" className="mb-2" />}
+              {isAuthenticated && conversationTitle && (
+                <ConversationBanner 
+                  title={conversationTitle} 
+                  onNewConversation={handleNewConversation}
+                  variant="compact"
+                  className="mb-2"
+                />
+              )}
+
+              {/* Saved Agents */}
+              {isAuthenticated && (
+                <SavedAgentsList
+                  agents={agents}
+                  isLoading={agentsLoading}
+                  activeAgentId={activeAgentId}
+                  onLoadAgent={handleLoadAgent}
+                  onEditAgent={handleEditAgent}
+                  onDuplicateAgent={duplicateAgent}
+                  onDeleteAgent={handleDeleteAgent}
+                />
+              )}
+
+              {/* Main Voice Interface - expanded for immersion */}
+              <VoiceErrorBoundary>
+                <VoiceInterfaceCard {...voiceInterfaceProps} />
+              </VoiceErrorBoundary>
+
+              {/* Live Transcripts */}
+              {(isConnected || liveTranscripts.length > 0 || inputMode === 'text') && (
+                <div className="mt-3">
+                  <LiveTranscripts 
+                    transcripts={liveTranscripts}
+                    isConnected={isConnected || inputMode === 'text'}
+                    isSpeaking={isSpeaking}
+                  />
+                </div>
+              )}
+
+              {/* Message History for guests */}
+              {!isAuthenticated && guestMessages.length > 0 && (
+                <div className="mt-3">
+                  <MessageHistory conversationId={conversationId} />
+                </div>
+              )}
+            </div>
+          </main>
+
+          {/* FAB for Conversations & Upload */}
+          {isAuthenticated && (
+            <Sheet open={mobileActionsOpen} onOpenChange={setMobileActionsOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  size="icon"
+                  className="fixed bottom-6 right-4 z-40 h-14 w-14 rounded-full shadow-lg glow-primary"
+                  aria-label="Open actions menu"
+                >
+                  <Plus className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-auto max-h-[85vh] rounded-t-2xl">
+                <SheetHeader>
+                  <SheetTitle>Actions</SheetTitle>
+                  <SheetDescription>Manage conversations and documents</SheetDescription>
+                </SheetHeader>
+                <div className="pt-4 pb-8 space-y-6">
+                  <ConversationHistory 
+                    currentConversationId={conversationId}
+                    onSelectConversation={(id) => { setConversationId(id); setMobileActionsOpen(false); }}
+                    onConversationCreated={() => {}}
+                  />
+                  <DocumentUpload conversationId={conversationId} />
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
+        </div>
+        {dialogs}
+      </>
+    );
+  }
+
+  // ─── Desktop Layout ───
+  return (
+    <>
+      <SEO 
+        title="Voice Assistant"
+        description="Start a real-time voice conversation with AI."
+        image="/og-assistant.png"
+        keywords={["voice conversation", "AI chat", "voice control", "hands-free AI"]}
+      />
+      <div className="h-screen bg-background flex flex-col">
+        <Header />
+        <SidebarProvider defaultOpen={isAuthenticated}>
+          <div className="flex flex-1 w-full overflow-hidden">
+            {isAuthenticated && (
+              <Sidebar collapsible="offcanvas" className="w-72">
+                <SidebarContent className="p-4 space-y-6">
+                  <ConversationHistory 
+                    currentConversationId={conversationId}
+                    onSelectConversation={setConversationId}
+                    onConversationCreated={() => {}}
+                  />
+                  <DocumentUpload conversationId={conversationId} />
+                </SidebarContent>
+              </Sidebar>
+            )}
+
+            <SidebarInset>
+              <main id="main-content" className="h-full overflow-y-auto scrollbar-hide">
+                <div className="container mx-auto px-4 py-8 max-w-4xl">
+                  {isAuthenticated && <UpgradeBanner className="mb-4" />}
+                  {!isAuthenticated && <GuestModeBanner className="mb-4" />}
+                  {isAuthenticated && conversationTitle && (
+                    <ConversationBanner 
+                      title={conversationTitle} 
+                      onNewConversation={handleNewConversation}
+                      className="mb-4"
+                    />
+                  )}
+                  
+                  {isAuthenticated && (
+                    <div className="mb-4">
+                      <SidebarTrigger className="min-h-[44px]" />
+                    </div>
+                  )}
+
+                  {isAuthenticated && (
+                    <SavedAgentsList
+                      agents={agents}
+                      isLoading={agentsLoading}
+                      activeAgentId={activeAgentId}
+                      onLoadAgent={handleLoadAgent}
+                      onEditAgent={handleEditAgent}
+                      onDuplicateAgent={duplicateAgent}
+                      onDeleteAgent={handleDeleteAgent}
+                    />
+                  )}
+
+                  <VoiceErrorBoundary>
+                    <VoiceInterfaceCard {...voiceInterfaceProps} />
+                  </VoiceErrorBoundary>
+
+                  {(isConnected || liveTranscripts.length > 0 || inputMode === 'text') && (
+                    <div className="mt-6">
+                      <LiveTranscripts 
+                        transcripts={liveTranscripts}
+                        isConnected={isConnected || inputMode === 'text'}
+                        isSpeaking={isSpeaking}
+                      />
+                    </div>
+                  )}
+
+                  <div className="mt-6">
+                    <MessageHistory conversationId={conversationId} />
+                  </div>
+                </div>
+              </main>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
+      </div>
+      {dialogs}
     </>
   );
 };

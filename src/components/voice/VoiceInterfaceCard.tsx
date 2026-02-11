@@ -15,63 +15,34 @@ import { ToolExecutionIndicator } from '@/components/voice/ToolExecutionIndicato
 import MicrophonePermissionRequest from '@/components/voice/MicrophonePermissionRequest';
 import { type VoiceInterfaceCardProps } from '@/components/voice/voiceInterfaceTypes';
 
-// Re-export the props type for consumers
 export type { VoiceInterfaceCardProps } from '@/components/voice/voiceInterfaceTypes';
 
 export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
-  voiceProvider,
-  setVoiceProvider,
-  openaiVoice,
-  setOpenAIVoice,
-  openaiSettings,
-  setOpenAISettings,
-  elevenlabsSettings,
-  setElevenLabsSettings,
-  geminiLiveSettings,
-  setGeminiLiveSettings,
-  systemPrompt,
-  setSystemPrompt,
+  voiceProvider, setVoiceProvider,
+  openaiVoice, setOpenAIVoice,
+  openaiSettings, setOpenAISettings,
+  elevenlabsSettings, setElevenLabsSettings,
+  geminiLiveSettings, setGeminiLiveSettings,
+  systemPrompt, setSystemPrompt,
   providerLoading,
-  isConnected,
-  isConnecting,
-  connectionError,
-  connectionAuthMethod,
-  connectionPhase,
-  isSpeaking,
-  inputAudioLevel,
-  outputAudioLevel,
-  isMuted,
-  toggleMute,
-  volume,
-  setVolume,
-  inputMode,
-  setInputMode,
-  startConversation,
-  endConversation,
-  retryConnection,
-  clearConnectionError,
-  sendTextMessage,
-  isProcessingText,
-  activeToolCall,
-  permissionState,
-  requestPermission,
-  isReady,
-  isAuthenticated,
-  isMobile,
-  isWakeWordListening,
-  isWakeWordSupported,
-  wakeWordLastHeard,
-  onSaveAgent,
-  isPaused,
-  onResume,
+  isConnected, isConnecting, connectionError, connectionAuthMethod, connectionPhase,
+  isSpeaking, inputAudioLevel, outputAudioLevel,
+  isMuted, toggleMute, volume, setVolume,
+  inputMode, setInputMode,
+  startConversation, endConversation, retryConnection, clearConnectionError,
+  sendTextMessage, isProcessingText, activeToolCall,
+  permissionState, requestPermission,
+  isReady, isAuthenticated, isMobile,
+  isWakeWordListening, isWakeWordSupported, wakeWordLastHeard,
+  onSaveAgent, isPaused, onResume,
 }: VoiceInterfaceCardProps) {
   const showVoiceInterface = inputMode === 'voice' || inputMode === 'combined';
   const showTextInput = inputMode === 'text' || inputMode === 'combined';
 
   return (
-    <div className="rounded-2xl bg-card border border-border p-4 md:p-8 shadow-xl card-elevated dark:shadow-glow-subtle dark:border-primary/10 transition-shadow duration-300 glow-hover">
+    <div className="rounded-2xl bg-card border border-border p-3 md:p-8 shadow-xl card-elevated dark:shadow-glow-subtle dark:border-primary/10 transition-shadow duration-300 glow-hover">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 md:mb-6">
+      <div className="flex items-center justify-between mb-3 md:mb-6">
         <div className="flex-1 flex justify-start">
           {showVoiceInterface && (
             <ConnectionStatusBadge
@@ -86,18 +57,22 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
             />
           )}
         </div>
-        <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          ƷBI Voice
-        </h1>
+        {/* Title - hidden on mobile (redundant with Header) */}
+        {!isMobile && (
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            ƷBI Voice
+          </h1>
+        )}
         <div className="flex-1 flex justify-end">
           {isMobile ? (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" disabled={isConnected} className="h-11 w-11 min-h-[44px]">
+                <Button variant="ghost" size="sm" disabled={isConnected} className="h-11 min-h-[44px] gap-2 px-3">
                   <Settings className="h-5 w-5" />
+                  <span className="text-xs">Settings</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-auto max-h-[80vh]">
+              <SheetContent side="bottom" className="h-auto max-h-[80vh] rounded-t-2xl">
                 <SheetHeader>
                   <SheetTitle>Voice Settings</SheetTitle>
                   <SheetDescription>Configure your voice assistant preferences</SheetDescription>
@@ -161,7 +136,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
       </div>
 
       {/* Input Mode Selector */}
-      <div className="flex justify-center mb-4 md:mb-6">
+      <div className="flex justify-center mb-3 md:mb-6">
         <InputModeSelector
           value={inputMode}
           onChange={setInputMode}
@@ -219,7 +194,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
           )}
 
           {/* Status Text */}
-          <div className="text-center mt-4">
+          <div className="text-center mt-4" role="status" aria-live="polite">
             <p className="text-base md:text-lg font-medium">
               {connectionError 
                 ? 'Connection failed'
@@ -250,7 +225,6 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
               </p>
             )}
             
-            {/* Wake Word Indicator - show in voice/combined mode when not connected */}
             {!isConnected && !isConnecting && (
               <div className="mt-3 flex justify-center">
                 <WakeWordIndicator
@@ -266,9 +240,9 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
 
       {/* Text Mode Content */}
       {inputMode === 'text' && (
-        <div className="text-center mb-6 md:mb-8">
-          <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-            <MessageIcon className="w-8 h-8 md:w-10 md:h-10 text-primary" />
+        <div className="text-center mb-4 md:mb-8">
+          <div className="w-16 h-16 md:w-24 md:h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+            <MessageIcon className="w-7 h-7 md:w-10 md:h-10 text-primary" />
           </div>
           <p className="text-base md:text-lg font-medium">Text Mode</p>
           <p className="text-xs md:text-sm text-muted-foreground mt-1">

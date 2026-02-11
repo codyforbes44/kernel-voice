@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Home, ArrowLeft } from "lucide-react";
+import { Home, ArrowLeft, Mic, HelpCircle } from "lucide-react";
 import SEO from "@/components/SEO";
 import { Header } from "@/components/layout/Header";
 
@@ -13,18 +13,20 @@ const NotFound = () => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
   }, [location.pathname]);
 
+  const suggestions = [
+    { path: '/assistant', label: 'Voice Assistant', icon: Mic },
+    { path: '/', label: 'Home', icon: Home },
+    { path: '/pricing', label: 'Pricing', icon: HelpCircle },
+  ];
+
   return (
     <>
-      <SEO 
-        title="Page Not Found - 404"
-        description="The page you're looking for doesn't exist."
-        noIndex={true}
-      />
-      <div className="min-h-screen bg-background">
+      <SEO title="Page Not Found - 404" description="The page you're looking for doesn't exist." noIndex={true} />
+      <div className="min-h-[100dvh] bg-background">
         <Header />
-        <div className="flex items-center justify-center py-16 px-4">
-          <div className="text-center space-y-6 max-w-md">
-            <div className="space-y-2">
+        <main id="main-content" className="flex items-center justify-center py-16 px-4">
+          <div className="text-center space-y-8 max-w-md">
+            <div className="space-y-3">
               <h1 className="text-8xl font-bold text-gradient">404</h1>
               <h2 className="text-2xl font-semibold">Page Not Found</h2>
               <p className="text-muted-foreground">
@@ -32,18 +34,30 @@ const NotFound = () => {
               </p>
             </div>
             
-            <div className="flex gap-4 justify-center">
-              <Button onClick={() => navigate(-1)} variant="outline">
+            <div className="flex gap-3 justify-center">
+              <Button onClick={() => navigate(-1)} variant="outline" className="min-h-[44px]">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Go Back
               </Button>
-              <Button onClick={() => navigate('/')}>
+              <Button onClick={() => navigate('/')} className="min-h-[44px]">
                 <Home className="mr-2 h-4 w-4" />
                 Go Home
               </Button>
             </div>
+
+            <div className="pt-4 border-t border-border">
+              <p className="text-sm text-muted-foreground mb-3">Or try one of these:</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {suggestions.map(({ path, label, icon: Icon }) => (
+                  <Button key={path} variant="ghost" size="sm" onClick={() => navigate(path)} className="gap-2 min-h-[44px]">
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     </>
   );
