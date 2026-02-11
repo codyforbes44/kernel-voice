@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { WaveformCard } from '@/components/showcase/WaveformCard';
-import { YouTubePlayerCard } from '@/components/showcase/YouTubePlayerCard';
+import { YouTubePlayerLinkCard } from '@/components/showcase/YouTubePlayerLinkCard';
 import { VoiceFillCard } from '@/components/showcase/VoiceFillCard';
 import { AgentOrbsCard } from '@/components/showcase/AgentOrbsCard';
 import { CharacterSelectCard } from '@/components/showcase/CharacterSelectCard';
@@ -51,7 +51,7 @@ export default function Showcase() {
           className="mx-auto max-w-7xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:grid-rows-[repeat(5,minmax(0,1fr))] lg:min-h-[calc(100vh-120px)]"
         >
           {/* Row 1: Input-focused */}
-          <motion.div variants={fadeUp}><YouTubePlayerCard /></motion.div>
+          <motion.div variants={fadeUp}><YouTubePlayerLinkCard /></motion.div>
           <motion.div variants={fadeUp}><WaveformCard /></motion.div>
           <motion.div variants={fadeUp}><VoiceFillCard /></motion.div>
           <motion.div variants={fadeUp}><AgentOrbsCard /></motion.div>
