@@ -1,19 +1,43 @@
 import { useMemo } from 'react';
+import { useShowcaseMic } from '@/hooks/useShowcaseMic';
+import { Mic } from 'lucide-react';
 
 export function ShowcaseWaveform() {
-  const bars = useMemo(() => Array.from({ length: 60 }, () => 0.15 + Math.random() * 0.85), []);
+  const { frequencyData, isActive, start, stop } = useShowcaseMic();
+  const barCount = 60;
+  const fallbackBars = useMemo(() => Array.from({ length: barCount }, () => 0.15 + Math.random() * 0.85), []);
+
+  const bars = useMemo(() => {
+    if (!frequencyData || !isActive) return fallbackBars;
+    const step = Math.max(1, Math.floor(frequencyData.length / barCount));
+    return Array.from({ length: barCount }, (_, i) => {
+      const val = frequencyData[Math.min(i * step, frequencyData.length - 1)] / 255;
+      return Math.max(0.05, val);
+    });
+  }, [frequencyData, isActive, fallbackBars]);
 
   return (
     <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-6 flex flex-col gap-3">
-      <div>
-        <h3 className="text-sm font-semibold text-zinc-100">Waveform</h3>
-        <p className="text-xs text-zinc-500">Real-time audio visualization with smooth scrolling animation</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-zinc-100">Waveform</h3>
+          <p className="text-xs text-zinc-500">
+            {isActive ? 'Real-time mic visualization' : 'Real-time audio visualization with smooth scrolling animation'}
+          </p>
+        </div>
+        {isActive ? (
+          <button onClick={stop} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Stop</button>
+        ) : (
+          <button onClick={start} className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 transition-colors">
+            <Mic className="h-3 w-3" /> Activate
+          </button>
+        )}
       </div>
       <div className="flex items-center gap-[2px] h-16">
         {bars.map((h, i) => (
           <div
             key={i}
-            className="flex-1 rounded-full bg-violet-500/70"
+            className="flex-1 rounded-full bg-violet-500/70 transition-all duration-75"
             style={{ height: `${h * 100}%`, opacity: 0.4 + h * 0.6 }}
           />
         ))}

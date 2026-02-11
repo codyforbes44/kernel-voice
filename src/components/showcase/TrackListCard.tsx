@@ -1,23 +1,71 @@
-import { Play } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import { Play, Pause, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const tracks = [
-  { id: 'II-02', duration: '2:14' },
-  { id: 'II-03', duration: '1:58' },
-  { id: 'II-04', duration: '3:21' },
-  { id: 'II-05', duration: '2:47' },
+  { id: 'II-02', duration: '—:——', text: 'The morning light filtered through the curtains, painting golden stripes across the wooden floor.' },
+  { id: 'II-03', duration: '—:——', text: 'A gentle breeze carried the scent of jasmine through the open window.' },
+  { id: 'II-04', duration: '—:——', text: 'Footsteps echoed in the empty corridor, a rhythm of solitude and thought.' },
+  { id: 'II-05', duration: '—:——', text: 'The clock struck midnight as the city finally surrendered to silence.' },
 ];
 
 export function TrackListCard() {
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  const [loadingIdx, setLoadingIdx] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playTrack = useCallback(async (idx: number) => {
+    // Stop current
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      audioRef.current = null;
+    }
+
+    if (activeIdx === idx && playing) {
+      setPlaying(false);
+      setActiveIdx(null);
+      return;
+    }
+
+    setLoadingIdx(idx);
+    setActiveIdx(idx);
+    try {
+      const { data, error } = await supabase.functions.invoke('widget-tts', {
+        body: { text: tracks[idx].text, voiceId: 'EXAVITQu4vr4xnSDxMaL' },
+      });
+      if (error || !data?.audioContent) return;
+
+      const audio = new Audio(`data:audio/mpeg;base64,${data.audioContent}`);
+      audioRef.current = audio;
+      audio.addEventListener('ended', () => { setPlaying(false); setActiveIdx(null); });
+      await audio.play();
+      setPlaying(true);
+    } catch (err) {
+      console.error('[TrackList]', err);
+    } finally {
+      setLoadingIdx(null);
+    }
+  }, [activeIdx, playing]);
+
   return (
     <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-4 flex flex-col gap-1">
       {tracks.map((track, i) => (
         <button
           key={track.id}
+          onClick={() => playTrack(i)}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-800/80 transition-colors group w-full text-left"
         >
           <span className="text-xs text-zinc-600 w-4">{i + 1}</span>
-          <Play className="h-3 w-3 text-zinc-600 group-hover:text-violet-400 transition-colors" />
-          <span className="text-sm text-zinc-300 flex-1">{track.id}</span>
+          {loadingIdx === i ? (
+            <Loader2 className="h-3 w-3 text-violet-400 animate-spin" />
+          ) : activeIdx === i && playing ? (
+            <Pause className="h-3 w-3 text-violet-400" />
+          ) : (
+            <Play className="h-3 w-3 text-zinc-600 group-hover:text-violet-400 transition-colors" />
+          )}
+          <span className={`text-sm flex-1 ${activeIdx === i ? 'text-violet-300' : 'text-zinc-300'}`}>{track.id}</span>
           <span className="text-xs text-zinc-600">{track.duration}</span>
         </button>
       ))}
