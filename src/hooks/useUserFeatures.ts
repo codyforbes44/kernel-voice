@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
+import { PLUS_PRODUCT_IDS } from '@/lib/stripe';
 
 export type FeatureKey = 'elevenlabs_voice';
 
@@ -19,7 +20,7 @@ interface UserFeature {
 
 export function useUserFeatures() {
   const { user } = useAuth();
-  const { isSubscribed, isLoading: subscriptionLoading } = useSubscription();
+  const { isSubscribed, isLoading: subscriptionLoading, productId } = useSubscription();
 
   const { data: features = [], isLoading, refetch } = useQuery({
     queryKey: ['user-features', user?.id],
@@ -45,9 +46,14 @@ export function useUserFeatures() {
   });
 
   const hasFeature = useCallback((featureKey: FeatureKey): boolean => {
+    // ElevenLabs voices require Plus or Pro
+    if (featureKey === 'elevenlabs_voice') {
+      if (productId && PLUS_PRODUCT_IDS.includes(productId as typeof PLUS_PRODUCT_IDS[number])) return true;
+      return features.some(f => f.feature_key === featureKey && f.enabled);
+    }
     if (isSubscribed) return true;
     return features.some(f => f.feature_key === featureKey && f.enabled);
-  }, [features, isSubscribed]);
+  }, [features, isSubscribed, productId]);
 
   return {
     features,

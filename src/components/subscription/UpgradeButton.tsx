@@ -13,7 +13,7 @@ interface UpgradeButtonProps extends Omit<ButtonProps, 'onClick'> {
 }
 
 export function UpgradeButton({
-  priceId = STRIPE_PRICES.PRO_MONTHLY,
+  priceId = STRIPE_PRICES.STARTER_MONTHLY,
   showIcon = true,
   redirectToPricing = false,
   children,
