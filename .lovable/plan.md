@@ -1,50 +1,46 @@
 
-# Pause/Resume Conversation Feature
 
-## Overview
-When a user says "pause the conversation" during a voice session, the agent goes on hold -- microphone is muted, output audio is silenced, and a visual "Paused" state is shown. A secondary speech recognition listener activates to detect "continue the conversation" (or "resume the conversation"), which restores the session without disconnecting.
+# Fix: Ensure Agent Cannot Hear During Pause
 
-## How It Works
+## Problem
 
-1. **Detection**: The `useVoiceAssistant` hook monitors incoming user transcripts for pause trigger phrases ("pause the conversation", "pause conversation")
-2. **Pause**: Mutes the microphone, silences output (volume to 0), and sets an `isPaused` flag
-3. **Hold listener**: A dedicated `useWakeWordDetection` instance listens for resume phrases ("continue the conversation", "resume the conversation", "unpause")
-4. **Resume**: Unmutes mic, restores volume, clears the paused state -- the existing WebRTC connection stays alive throughout
+The current pause implementation only sets React state flags (`isMuted = true`, `volume = 0`) but these flags are **never applied** to the actual audio infrastructure. The WebRTC microphone track continues streaming audio to the AI provider, and the output `<audio>` element volume is unchanged. The agent can still hear the user even after "pause."
 
-## Technical Changes
+## Root Cause
 
-### `src/hooks/useVoiceAssistant.ts`
-- Add `isPaused` state (boolean) and `togglePause`/`pauseConversation`/`resumeConversation` actions
-- Store `volumeBeforePause` in a ref so volume restores to the user's previous level
-- Add a `useEffect` that watches `liveTranscripts` for pause trigger phrases -- when a user transcript contains "pause the conversation", call `pauseConversation()`
-- Expose `isPaused` in the return type
-- On `endConversation`, reset `isPaused` to false
+- `isMuted` is a UI-only boolean -- it changes icons/labels but never calls `mediaStreamTrack.enabled = false`
+- `setVolume(0)` updates React state but never sets `audioElement.volume = 0`
 
-### `src/pages/VoiceAssistant.tsx`
-- Destructure `isPaused` and `resumeConversation` from `useVoiceAssistant`
-- Add a second `useWakeWordDetection` instance with `wakeWords: ['continue the conversation', 'resume the conversation', 'unpause']` that is `enabled` only when `isPaused && isConnected`
-- On detection, call `resumeConversation()`
-- Pass `isPaused` down to `VoiceInterfaceCard`
+## Fix
 
-### `src/components/voice/VoiceInterfaceCard.tsx`
-- Accept `isPaused` prop
-- When paused, show a "Paused" overlay on the microphone orb area and update the status text from "Listening..." to "Paused -- say 'continue the conversation' to resume"
+### 1. `src/hooks/useOpenAIConversation.ts` -- expose mute/volume controls
 
-### `src/components/voice/VoiceControlPanel.tsx`
-- Accept `isPaused` prop
-- When paused and connected, show the orb in a dimmed/amber state instead of the active green/primary gradient
-- Add a manual "Resume" button as a fallback (in case speech recognition doesn't pick up the resume phrase)
+- Add a `setMicEnabled(enabled: boolean)` method that sets `mediaStreamRef.current.getAudioTracks().forEach(t => t.enabled = enabled)`
+- Add a `setOutputVolume(vol: number)` method that sets `audioElRef.current.volume = vol`
+- Return both methods from the hook
 
-### `src/components/voice/voiceInterfaceTypes.ts`
-- Add `isPaused: boolean` and `onResume: () => void` to `VoiceInterfaceCardProps`
+### 2. `src/hooks/useVoiceAssistant.ts` -- wire up real mute/volume
 
-### No changes needed to:
-- Provider hooks (OpenAI, ElevenLabs, VAPI, Gemini) -- muting/unmuting is handled at the `useVoiceAssistant` level via existing `toggleMute` and `setVolume`
-- Wake word detection hook -- reused as-is with different wake words
+- Call the provider's `setMicEnabled(false)` inside `pauseConversation()` and `setMicEnabled(true)` inside `resumeConversation()`
+- Call the provider's `setOutputVolume(0)` on pause and `setOutputVolume(volumeBeforePauseRef.current)` on resume
+- Also wire `toggleMute` to call `setMicEnabled` so the existing mute button works at the hardware level too
+- Do the same for ElevenLabs (the `@11labs/react` `useConversation` hook likely exposes a `setVolume` method -- we need to verify and use it)
 
-## UI Behavior
+### 3. `src/hooks/useGeminiLiveConversation.ts` and `src/hooks/useVAPIConversation.ts`
 
-- **Paused state orb**: Amber/yellow gradient with a pause icon replacing the mic icon
-- **Status text**: "Paused" with subtitle "Say 'continue the conversation' to resume"
-- **Manual resume button**: Appears next to the "End" button when paused, in case verbal resume fails
-- **Transcript entry**: A system message "Conversation paused" / "Conversation resumed" appears in the live transcripts for clarity
+- Apply the same pattern: expose `setMicEnabled` and `setOutputVolume` so pause works for all providers
+
+### 4. Verification points
+
+After the fix:
+- When paused, `mediaStreamTrack.enabled` is `false` -- the browser sends silence frames over WebRTC
+- When paused, `audioElement.volume` is `0` -- no agent audio is audible
+- When resumed, both are restored to their previous values
+- The wake word detection (browser SpeechRecognition API) operates on a **separate** audio pipeline and is unaffected by disabling the WebRTC track
+
+## What stays the same
+
+- The wake word detection for resume phrases continues to work independently (it uses the browser's SpeechRecognition API, not the WebRTC stream)
+- The UI state flags (`isPaused`, `isMuted`) and visual indicators remain as-is
+- The WebRTC connection stays alive throughout
+
