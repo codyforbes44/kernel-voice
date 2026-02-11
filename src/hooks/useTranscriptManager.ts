@@ -3,7 +3,7 @@ import { type LiveTranscript } from '@/components/voice/LiveTranscripts';
 
 export interface UseTranscriptManagerReturn {
   liveTranscripts: LiveTranscript[];
-  addTranscript: (role: 'user' | 'assistant', text: string, isPartial?: boolean) => void;
+  addTranscript: (role: 'user' | 'assistant' | 'system', text: string, isPartial?: boolean) => void;
   clearTranscripts: () => void;
   updateLastAssistantTranscript: (text: string, isPartial?: boolean) => void;
 }
@@ -16,7 +16,7 @@ export function useTranscriptManager(): UseTranscriptManagerReturn {
   // Keep ref in sync
   currentAssistantIdRef.current = currentAssistantId;
 
-  const addTranscript = useCallback((role: 'user' | 'assistant', text: string, isPartial = false) => {
+  const addTranscript = useCallback((role: 'user' | 'assistant' | 'system', text: string, isPartial = false) => {
     const id = `${role}-${Date.now()}`;
     
     if (role === 'assistant' && isPartial) {
