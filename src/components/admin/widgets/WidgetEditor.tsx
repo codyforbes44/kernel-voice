@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Sparkles, Wand2, Save, Users, Palette, MessageSquare, Volume2, Shield, Settings2 } from 'lucide-react';
+import { Loader2, Sparkles, Wand2, Save, Users, Palette, MessageSquare, Volume2, Shield, Settings2, Play, Square } from 'lucide-react';
 import { WidgetPreview } from './WidgetPreview';
 import { SavePresetDialog } from './SavePresetDialog';
 import { useCustomPromptPresets } from '@/hooks/useCustomPromptPresets';
@@ -95,6 +95,43 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
   const [rateLimitPerHour, setRateLimitPerHour] = useState(100);
   // Dialogs
   const [showSavePresetDialog, setShowSavePresetDialog] = useState(false);
+  // TTS Preview
+  const [ttsPreviewLoading, setTtsPreviewLoading] = useState(false);
+  const [ttsPreviewPlaying, setTtsPreviewPlaying] = useState(false);
+  const ttsAudioRef = { current: null as HTMLAudioElement | null };
+
+  const playTtsPreview = async () => {
+    if (ttsPreviewPlaying && ttsAudioRef.current) {
+      ttsAudioRef.current.pause();
+      ttsAudioRef.current = null;
+      setTtsPreviewPlaying(false);
+      return;
+    }
+    setTtsPreviewLoading(true);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const sampleText = greeting || 'Hi! How can I help you today? I\'m your AI assistant and I\'m here to answer any questions you might have.';
+      const res = await fetch(`${supabaseUrl}/functions/v1/widget-tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+        body: JSON.stringify({ text: sampleText, voiceId: ttsVoiceId }),
+      });
+      if (!res.ok) throw new Error(`TTS failed: ${res.status}`);
+      const data = await res.json();
+      if (!data.audioContent) throw new Error('No audio returned');
+      const audio = new Audio(`data:audio/mpeg;base64,${data.audioContent}`);
+      ttsAudioRef.current = audio;
+      setTtsPreviewPlaying(true);
+      audio.onended = () => { ttsAudioRef.current = null; setTtsPreviewPlaying(false); };
+      audio.onerror = () => { ttsAudioRef.current = null; setTtsPreviewPlaying(false); };
+      await audio.play();
+    } catch (err) {
+      toast.error('Voice preview failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setTtsPreviewLoading(false);
+    }
+  };
 
   const { presets: customPresets, createPreset } = useCustomPromptPresets();
 
@@ -399,18 +436,40 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
                   </div>
                 </div>
                 {enableTTS && (
-                  <div className="space-y-2 pl-4 border-l-2 border-muted">
-                    <Label>Voice</Label>
-                    <Select value={ttsVoiceId} onValueChange={setTtsVoiceId}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="EXAVITQu4vr4xnSDxMaL">Sarah (Warm, Conversational)</SelectItem>
-                        <SelectItem value="JBFqnCBsd6RMkjVDRZzb">George (British, Authoritative)</SelectItem>
-                        <SelectItem value="onwK4e9ZLuTAKqWW03F9">Daniel (Deep, Friendly)</SelectItem>
-                        <SelectItem value="pFZP5JQG7iQjIQuC4Bku">Lily (Young, Cheerful)</SelectItem>
-                        <SelectItem value="TX3LPaxmHKxFdv7VOQHJ">Liam (American, Professional)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-3 pl-4 border-l-2 border-muted">
+                    <div className="space-y-2">
+                      <Label>Voice</Label>
+                      <Select value={ttsVoiceId} onValueChange={setTtsVoiceId}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="EXAVITQu4vr4xnSDxMaL">Sarah (Warm, Conversational)</SelectItem>
+                          <SelectItem value="JBFqnCBsd6RMkjVDRZzb">George (British, Authoritative)</SelectItem>
+                          <SelectItem value="onwK4e9ZLuTAKqWW03F9">Daniel (Deep, Friendly)</SelectItem>
+                          <SelectItem value="pFZP5JQG7iQjIQuC4Bku">Lily (Young, Cheerful)</SelectItem>
+                          <SelectItem value="TX3LPaxmHKxFdv7VOQHJ">Liam (American, Professional)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Preview Voice</Label>
+                      <p className="text-xs text-muted-foreground">Listen to a sample using your greeting message</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={playTtsPreview}
+                        disabled={ttsPreviewLoading}
+                        className="w-full"
+                      >
+                        {ttsPreviewLoading ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating…</>
+                        ) : ttsPreviewPlaying ? (
+                          <><Square className="h-4 w-4 mr-2" />Stop Preview</>
+                        ) : (
+                          <><Play className="h-4 w-4 mr-2" />Play Voice Sample</>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </TabsContent>
