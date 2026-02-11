@@ -1,75 +1,110 @@
 
 
-# Fix: Voice Agent Accepting Random Audio as Input
+# New Page: Voice Components Showcase
 
-## Problem
+A standalone showcase page at `/showcase` displaying interactive voice/audio UI components in a dark masonry-style grid layout, replicating the reference design.
 
-The voice agent responds to background noise, keyboard clicks, and ambient sounds as if they were user answers. This happens because Voice Activity Detection (VAD) settings are too sensitive across providers, and Gemini Live has no audio gating at all.
+## Components to Build
 
-## Root Causes
+The page will contain 8 distinct card sections arranged in a responsive 3-column masonry grid:
 
-1. **OpenAI**: Default VAD threshold (0.5) and "Snappy" preset (0.25) are too low -- ambient noise triggers turn detection
-2. **Gemini Live**: Streams ALL captured audio continuously with zero client-side filtering -- any sound is treated as speech
-3. **Silence duration too short**: 250-500ms means the agent jumps in before the user finishes thinking
+### 1. Audio Waveform Card
+- Animated bar waveform using the existing `LiveWaveformCanvas` component
+- "Speaking" status label below
+- Simulated audio level via `requestAnimationFrame` sine wave
 
-## Solution
+### 2. Voice Fill Card
+- Title "Voice Fill" with "Powered by ElevenLabs Scribe" subtitle
+- A "Voice Fill" badge/button
+- Two form fields: First Name (placeholder "John") and Last Name (placeholder "Doe") with required markers
 
-### 1. Raise Default VAD Thresholds and Silence Durations
+### 3. Agent Orbs Card
+- Title "Agent Orbs" with description
+- A canvas-drawn animated orb (gradient sphere with subtle lighting/reflection in purple/blue tones)
+- Three state toggle buttons: Idle, Listening, Talking - clicking changes the orb animation
 
-**File**: `src/components/voice/voiceTypes.ts`
+### 4. Character Selector Card
+- A select dropdown with an agent icon and name "Rachel"
+- Uses the existing `Select` component from Radix UI
 
-- Change "Snappy" preset: `vadThreshold` from `0.25` to `0.45`, `silenceDuration` from `250` to `400`
-- Change "Natural" (balanced) preset: `vadThreshold` from `0.4` to `0.55`, `silenceDuration` from `400` to `600`
-- Change "Thoughtful" preset: `vadThreshold` from `0.55` to `0.7`, `silenceDuration` from `800` to `1000`
-- Increase `prefix_padding_ms` in edge function from `300` to `500` (captures more audio before speech start to avoid cutting off beginnings)
+### 5. Waveform Card
+- Title "Waveform" with description "Real-time audio visualization with smooth scrolling animation"
+- Static/animated waveform bars in a horizontal strip
 
-### 2. Increase OpenAI Edge Function Defaults
+### 6. Music Player Card
+- Track title "II - 00" with "ElevenLabs Music" subtitle
+- Sparkle and music note icons
+- Waveform progress indicator
+- Time display (0:00 / 1:37)
+- Transport controls: Previous, Play, Next
+- Three vinyl/disc visuals (dark circular elements)
+- Volume slider with percentage (70%)
 
-**File**: `supabase/functions/openai-realtime-token/index.ts`
+### 7. Customer Support Voice Chat Card
+- Avatar circle (gradient orb)
+- "Customer Support" title, "Tap to start voice chat" subtitle
+- Phone call button (circular, primary color)
 
-- Default `threshold` from `0.5` to `0.6`
-- Default `silence_duration_ms` from `500` to `600`
-- Default `prefix_padding_ms` from `300` to `500`
+### 8. Chat Conversation Card
+- Agent messages (dark bubbles with avatar) showing a customer support conversation about order tracking
+- User message in a lighter bubble
+- Scrollable message area
 
-### 3. Add Client-Side Audio Gate for Gemini Live
+### 9. Track List Card
+- Numbered list of tracks (II-02 through II-05) with row highlight on hover
 
-**File**: `src/hooks/useGeminiLiveConversation.ts`
+### 10. Audio Player Mini Card
+- Track title "II - 09"
+- Play button with progress bar and duration
 
-Add an RMS energy gate in the `onaudioprocess` handler so audio chunks are only sent when the input level exceeds a minimum threshold:
+### 11. Live Status Card
+- Waveform visualization
+- "Live" indicator with red dot and "128 kbps"
+- "Customer Support" label with mic, chat, and phone icons
 
-- Calculate RMS of each audio buffer before sending
-- Only send audio when RMS exceeds a configurable gate threshold (e.g., 0.01 -- well above silence/noise floor)
-- Send silence packets (empty or zero-filled) when below threshold to maintain the WebSocket stream
-- This prevents background noise from being interpreted as speech
+### 12. Widget Chat Card
+- "Customer Support" header with avatar
+- Gradient orb visual
+- "Start a conversation" prompt
+- Message input with send and sparkle buttons
 
-### 4. Add VAD Sensitivity Control for Gemini Live Settings
+## Page Layout
 
-**File**: `src/components/voice/voiceTypes.ts`
+- Route: `/showcase`
+- Full-page dark background (`bg-black` forced, ignoring theme)
+- 3-column CSS grid on desktop, 2 on tablet, 1 on mobile
+- Cards use `bg-zinc-900/80` with subtle borders matching the OLED dark theme
+- No header/footer -- standalone showcase
 
-- Add `audioGateThreshold: number` (0.005 - 0.05) to `GeminiLiveSettings`
-- Default to `0.01` (filters out typical ambient noise)
+## Technical Details
 
-**File**: `src/components/voice/GeminiLiveSettingsPanel.tsx`
+### New Files
+| File | Purpose |
+|------|---------|
+| `src/pages/Showcase.tsx` | Main page with all showcase cards |
+| `src/components/showcase/WaveformCard.tsx` | Audio waveform with "Speaking" label |
+| `src/components/showcase/VoiceFillCard.tsx` | Voice fill form card |
+| `src/components/showcase/AgentOrbsCard.tsx` | Interactive orb with state buttons |
+| `src/components/showcase/MusicPlayerCard.tsx` | Full music player UI |
+| `src/components/showcase/VoiceChatCard.tsx` | Customer support call card |
+| `src/components/showcase/ChatConversationCard.tsx` | Chat message thread |
+| `src/components/showcase/TrackListCard.tsx` | Track listing |
+| `src/components/showcase/AudioPlayerCard.tsx` | Mini audio player |
+| `src/components/showcase/LiveStatusCard.tsx` | Live streaming status card |
+| `src/components/showcase/WidgetChatCard.tsx` | Chat widget preview |
+| `src/components/showcase/CharacterSelectCard.tsx` | Character/voice selector |
+| `src/components/showcase/ShowcaseWaveform.tsx` | Static waveform display card |
 
-- Add a "Noise Gate" slider in the Gemini settings panel so users can tune sensitivity
-- Label: "Noise Gate Sensitivity" with description "Higher = filters more background noise"
-
-### 5. Widen the VAD Slider Range for OpenAI
-
-**File**: `src/components/voice/OpenAISettingsPanel.tsx`
-
-- Change VAD slider min from `0.1` to `0.2` (prevent users from setting dangerously low values)
-- Add a warning badge when threshold is below 0.3: "May pick up background noise"
-
-## Files Changed
-
+### Modified Files
 | File | Change |
 |------|--------|
-| `src/components/voice/voiceTypes.ts` | Raise all preset VAD thresholds and silence durations; add `audioGateThreshold` to Gemini settings |
-| `supabase/functions/openai-realtime-token/index.ts` | Raise default threshold and silence_duration_ms; increase prefix_padding_ms |
-| `src/hooks/useGeminiLiveConversation.ts` | Add RMS audio gate before sending PCM chunks over WebSocket |
-| `src/components/voice/OpenAISettingsPanel.tsx` | Raise VAD slider minimum to 0.2; add low-threshold warning |
-| `src/components/voice/GeminiLiveSettingsPanel.tsx` | Add noise gate sensitivity slider |
+| `src/App.tsx` | Add lazy route for `/showcase` |
 
-## No Database Changes Required
+### Key Implementation Notes
+- All animations use `requestAnimationFrame` and CSS transitions (no extra dependencies)
+- The Agent Orbs canvas draws a radial gradient sphere with animated glow based on active state
+- Music player vinyl discs are CSS circles with conic gradients
+- Reuses existing UI primitives: `Button`, `Slider`, `Select`, `Input`, `Card`
+- Forced dark styling via `className="dark"` wrapper on the page root so it always appears dark regardless of theme setting
+- No backend or database changes needed -- purely presentational
 
