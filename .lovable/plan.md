@@ -1,77 +1,75 @@
 
 
-# Voice Settings -- Side Panel UX Refactor
+# Fix: Voice Agent Accepting Random Audio as Input
 
 ## Problem
 
-The current desktop settings live in a narrow Popover (320px wide) that overlays the main content, closes on outside click, and requires re-opening for every tweak. This is inefficient for a settings-heavy interface with provider selection, voice config, system prompt, and input mode controls.
+The voice agent responds to background noise, keyboard clicks, and ambient sounds as if they were user answers. This happens because Voice Activity Detection (VAD) settings are too sensitive across providers, and Gemini Live has no audio gating at all.
+
+## Root Causes
+
+1. **OpenAI**: Default VAD threshold (0.5) and "Snappy" preset (0.25) are too low -- ambient noise triggers turn detection
+2. **Gemini Live**: Streams ALL captured audio continuously with zero client-side filtering -- any sound is treated as speech
+3. **Silence duration too short**: 250-500ms means the agent jumps in before the user finishes thinking
 
 ## Solution
 
-Replace the Popover with a persistent, collapsible **right-side panel** on desktop. On mobile, keep the bottom Sheet (it already works well).
+### 1. Raise Default VAD Thresholds and Silence Durations
 
-### Desktop Layout Change
+**File**: `src/components/voice/voiceTypes.ts`
 
-```text
-+--------------------------------------------------+
-|  Header                                          |
-+----------+----------------------------+----------+
-| Sidebar  |   Voice Interface Card     | Settings |
-| (convos) |   (orb, controls, text)    |  Panel   |
-|          |                            |  (right) |
-+----------+----------------------------+----------+
-```
+- Change "Snappy" preset: `vadThreshold` from `0.25` to `0.45`, `silenceDuration` from `250` to `400`
+- Change "Natural" (balanced) preset: `vadThreshold` from `0.4` to `0.55`, `silenceDuration` from `400` to `600`
+- Change "Thoughtful" preset: `vadThreshold` from `0.55` to `0.7`, `silenceDuration` from `800` to `1000`
+- Increase `prefix_padding_ms` in edge function from `300` to `500` (captures more audio before speech start to avoid cutting off beginnings)
 
-- The Settings panel slides in from the right as a fixed-width column (w-80 / 320px)
-- A toggle button (gear icon) in the VoiceInterfaceCard header opens/closes it
-- The panel is always visible when open -- no click-outside dismiss
-- The main content area flexes to fill remaining space
-- When closed, the gear icon remains in the card header as today
+### 2. Increase OpenAI Edge Function Defaults
 
-### Mobile -- No Change
+**File**: `supabase/functions/openai-realtime-token/index.ts`
 
-The bottom Sheet stays as-is. It already provides good mobile UX with scroll and swipe-to-dismiss.
+- Default `threshold` from `0.5` to `0.6`
+- Default `silence_duration_ms` from `500` to `600`
+- Default `prefix_padding_ms` from `300` to `500`
 
-## Technical Approach
+### 3. Add Client-Side Audio Gate for Gemini Live
 
-### 1. Edit `src/pages/VoiceAssistant.tsx` (Desktop Layout)
+**File**: `src/hooks/useGeminiLiveConversation.ts`
 
-- Add a `settingsOpen` state (`useState<boolean>(false)`)
-- In the desktop layout, add a right-side panel after `SidebarInset`:
-  - Render a `div` with `w-80 border-l bg-card` that conditionally appears based on `settingsOpen`
-  - Contains `ScrollArea` wrapping `VoiceSettingsPanel`
-  - Has a close button in its header
-- Pass `settingsOpen` and `setSettingsOpen` down to `VoiceInterfaceCard` (or use a simpler callback)
+Add an RMS energy gate in the `onaudioprocess` handler so audio chunks are only sent when the input level exceeds a minimum threshold:
 
-### 2. Edit `src/components/voice/VoiceInterfaceCard.tsx`
+- Calculate RMS of each audio buffer before sending
+- Only send audio when RMS exceeds a configurable gate threshold (e.g., 0.01 -- well above silence/noise floor)
+- Send silence packets (empty or zero-filled) when below threshold to maintain the WebSocket stream
+- This prevents background noise from being interpreted as speech
 
-- Remove the desktop `Popover` entirely (lines 108-139)
-- Remove the `VoiceSettingsPanel` import and all settings-panel rendering for desktop
-- Keep the mobile `Sheet` as-is
-- The gear button on desktop now calls `onToggleSettings?.()` callback instead of opening a Popover
-- Add `onToggleSettings?: () => void` and `settingsOpen?: boolean` to the props interface
+### 4. Add VAD Sensitivity Control for Gemini Live Settings
 
-### 3. Edit `src/components/voice/voiceInterfaceTypes.ts`
+**File**: `src/components/voice/voiceTypes.ts`
 
-- Add `onToggleSettings?: () => void` and `settingsOpen?: boolean` to `VoiceInterfaceCardProps`
+- Add `audioGateThreshold: number` (0.005 - 0.05) to `GeminiLiveSettings`
+- Default to `0.01` (filters out typical ambient noise)
 
-### 4. No changes to `VoiceSettingsPanel.tsx` or `VoiceProviderSelector.tsx`
+**File**: `src/components/voice/GeminiLiveSettingsPanel.tsx`
 
-These components are layout-agnostic and render the same regardless of container. They just need a wider container, which the side panel provides.
+- Add a "Noise Gate" slider in the Gemini settings panel so users can tune sensitivity
+- Label: "Noise Gate Sensitivity" with description "Higher = filters more background noise"
 
-## UX Details
+### 5. Widen the VAD Slider Range for OpenAI
 
-- The right panel header shows "Settings" title with a close (X) button
-- The panel has a subtle slide-in animation using CSS transition (`translate-x` or `w-0` to `w-80`)
-- The gear icon in VoiceInterfaceCard shows an active/highlighted state when the panel is open
-- Settings are disabled (greyed out) when a voice session is connected, same as today
-- The panel scrolls independently from the main content
+**File**: `src/components/voice/OpenAISettingsPanel.tsx`
+
+- Change VAD slider min from `0.1` to `0.2` (prevent users from setting dangerously low values)
+- Add a warning badge when threshold is below 0.3: "May pick up background noise"
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/pages/VoiceAssistant.tsx` | Add `settingsOpen` state, render right settings panel in desktop layout |
-| `src/components/voice/VoiceInterfaceCard.tsx` | Remove desktop Popover, add `onToggleSettings` callback for gear button |
-| `src/components/voice/voiceInterfaceTypes.ts` | Add `onToggleSettings` and `settingsOpen` optional props |
+| `src/components/voice/voiceTypes.ts` | Raise all preset VAD thresholds and silence durations; add `audioGateThreshold` to Gemini settings |
+| `supabase/functions/openai-realtime-token/index.ts` | Raise default threshold and silence_duration_ms; increase prefix_padding_ms |
+| `src/hooks/useGeminiLiveConversation.ts` | Add RMS audio gate before sending PCM chunks over WebSocket |
+| `src/components/voice/OpenAISettingsPanel.tsx` | Raise VAD slider minimum to 0.2; add low-threshold warning |
+| `src/components/voice/GeminiLiveSettingsPanel.tsx` | Add noise gate sensitivity slider |
+
+## No Database Changes Required
 
