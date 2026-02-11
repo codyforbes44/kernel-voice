@@ -6,6 +6,7 @@ export interface UseTranscriptManagerReturn {
   addTranscript: (role: 'user' | 'assistant' | 'system', text: string, isPartial?: boolean) => void;
   clearTranscripts: () => void;
   updateLastAssistantTranscript: (text: string, isPartial?: boolean) => void;
+  getTranscriptsForSave: () => { role: 'user' | 'assistant'; text: string; timestamp: Date }[];
 }
 
 export function useTranscriptManager(): UseTranscriptManagerReturn {
@@ -64,10 +65,20 @@ export function useTranscriptManager(): UseTranscriptManagerReturn {
     });
   }, []);
 
+  const getTranscriptsForSave = useCallback(() => {
+    return liveTranscripts
+      .filter((t): t is LiveTranscript & { role: 'user' | 'assistant' } => 
+        t.role === 'user' || t.role === 'assistant'
+      )
+      .filter(t => t.text.trim().length > 0)
+      .map(t => ({ role: t.role, text: t.text, timestamp: t.timestamp }));
+  }, [liveTranscripts]);
+
   return {
     liveTranscripts,
     addTranscript,
     clearTranscripts,
     updateLastAssistantTranscript,
+    getTranscriptsForSave,
   };
 }

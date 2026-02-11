@@ -144,7 +144,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     liveTranscripts, 
     addTranscript, 
     clearTranscripts, 
-    updateLastAssistantTranscript 
+    updateLastAssistantTranscript,
+    getTranscriptsForSave,
   } = useTranscriptManager();
 
   // Auto-load last conversation for authenticated users
@@ -373,6 +374,28 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     
     try {
       clearTranscripts();
+
+      // Create a new conversation record for authenticated users
+      if (user) {
+        try {
+          const title = `Voice Session - ${new Date().toLocaleString()}`;
+          const { data: conv, error: convError } = await supabase
+            .from('conversations')
+            .insert({ user_id: user.id, title })
+            .select('id, title')
+            .single();
+          
+          if (!convError && conv) {
+            setConversationId(conv.id);
+            setConversationTitle(conv.title);
+            console.log('[VoiceAssistant] Created conversation:', conv.id);
+          } else {
+            console.error('[VoiceAssistant] Failed to create conversation:', convError);
+          }
+        } catch (e) {
+          console.error('[VoiceAssistant] Error creating conversation:', e);
+        }
+      }
       
       if (voiceProviderRef.current === 'elevenlabs') {
         const settings = elevenlabsSettingsRef.current;
@@ -412,7 +435,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     } finally {
       isStartingConversationRef.current = false;
     }
-  }, [toast, clearTranscripts]);
+  }, [toast, clearTranscripts, user, setConversationId, setConversationTitle]);
 
   // Helper to call setMicEnabled on the active provider (if available)
   const setProviderMicEnabled = useCallback((enabled: boolean) => {
@@ -476,6 +499,47 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   }, [liveTranscripts, isConnected, isPaused, pauseConversation]);
 
   const endConversation = async () => {
+    // Save transcripts before ending
+    const currentConvId = conversationIdRef.current;
+    if (user && currentConvId) {
+      try {
+        const transcriptsToSave = getTranscriptsForSave();
+        if (transcriptsToSave.length > 0) {
+          const messages = transcriptsToSave.map(t => ({
+            conversation_id: currentConvId,
+            role: t.role,
+            content: t.text,
+          }));
+          
+          const { error: msgError } = await supabase
+            .from('messages')
+            .insert(messages);
+          
+          if (msgError) {
+            console.error('[VoiceAssistant] Failed to save transcripts:', msgError);
+          } else {
+            console.log(`[VoiceAssistant] Saved ${messages.length} messages to conversation ${currentConvId}`);
+          }
+
+          // Update conversation title from first user message
+          const firstUserMsg = transcriptsToSave.find(t => t.role === 'user');
+          if (firstUserMsg) {
+            const title = firstUserMsg.text.slice(0, 80) || 'Voice Session';
+            await supabase
+              .from('conversations')
+              .update({ title, updated_at: new Date().toISOString() })
+              .eq('id', currentConvId);
+          }
+        } else {
+          // No messages — delete the empty conversation to avoid clutter
+          await supabase.from('conversations').delete().eq('id', currentConvId);
+          console.log('[VoiceAssistant] Deleted empty conversation:', currentConvId);
+        }
+      } catch (e) {
+        console.error('[VoiceAssistant] Error saving voice transcripts:', e);
+      }
+    }
+
     await conversation.endSession();
     setIsPaused(false);
     
