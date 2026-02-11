@@ -1,11 +1,19 @@
 import { Link } from 'react-router-dom';
-import { Mic, Download, Shield, FileText } from 'lucide-react';
+import { Mic, Download, Shield, FileText, Sparkles, CreditCard } from 'lucide-react';
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
   const navLinks = [{
     path: '/assistant',
     label: 'Assistant',
     icon: Mic
+  }, {
+    path: '/showcase',
+    label: 'Showcase',
+    icon: Sparkles
+  }, {
+    path: '/pricing',
+    label: 'Pricing',
+    icon: CreditCard
   }, {
     path: '/install',
     label: 'Install',
