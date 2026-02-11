@@ -428,12 +428,13 @@ const VoiceAssistant = () => {
             </SidebarInset>
 
             {/* Right Settings Panel */}
-            <div
-              className={`border-l border-border bg-card transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0 ${
-                settingsOpen ? 'w-80' : 'w-0'
-              }`}
-            >
-              <div className="w-80 h-full flex flex-col">
+            <div className={`flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out ${settingsOpen ? 'w-80' : 'w-0'}`}>
+              <div
+                className={`w-80 h-full border-l border-border bg-card transition-transform duration-300 ease-in-out ${
+                  settingsOpen ? 'translate-x-0' : 'translate-x-full'
+                }`}
+              >
+                <div className="w-80 h-full flex flex-col">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
                   <h2 className="text-sm font-semibold">Settings</h2>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSettingsOpen(false)}>
@@ -464,6 +465,7 @@ const VoiceAssistant = () => {
                     />
                   </div>
                 </ScrollArea>
+              </div>
               </div>
             </div>
           </div>
