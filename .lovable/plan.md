@@ -1,100 +1,50 @@
 
+# Pause/Resume Conversation Feature
 
-# Performance Refactoring Plan
+## Overview
+When a user says "pause the conversation" during a voice session, the agent goes on hold -- microphone is muted, output audio is silenced, and a visual "Paused" state is shown. A secondary speech recognition listener activates to detect "continue the conversation" (or "resume the conversation"), which restores the session without disconnecting.
 
-## Issues Identified
+## How It Works
 
-### 1. No Route-Level Code Splitting (Critical - Bundle Size)
-All 16 pages are eagerly imported in `App.tsx`, meaning the entire app (admin dashboard, voice assistant, landing page, pricing, etc.) is loaded upfront even if the user only visits the landing page. This dramatically increases initial load time and time-to-interactive.
+1. **Detection**: The `useVoiceAssistant` hook monitors incoming user transcripts for pause trigger phrases ("pause the conversation", "pause conversation")
+2. **Pause**: Mutes the microphone, silences output (volume to 0), and sets an `isPaused` flag
+3. **Hold listener**: A dedicated `useWakeWordDetection` instance listens for resume phrases ("continue the conversation", "resume the conversation", "unpause")
+4. **Resume**: Unmutes mic, restores volume, clears the paused state -- the existing WebRTC connection stays alive throughout
 
-**Fix**: Use `React.lazy()` + `Suspense` for all page components. Group admin pages as a heavier chunk that only loads when accessed.
+## Technical Changes
 
-### 2. QueryClient Has No Caching Configuration (Performance)
-`const queryClient = new QueryClient()` uses default settings with no `staleTime`, meaning every query refetches on every mount. This causes excessive network requests for data that rarely changes (user role, user features, subscription status).
+### `src/hooks/useVoiceAssistant.ts`
+- Add `isPaused` state (boolean) and `togglePause`/`pauseConversation`/`resumeConversation` actions
+- Store `volumeBeforePause` in a ref so volume restores to the user's previous level
+- Add a `useEffect` that watches `liveTranscripts` for pause trigger phrases -- when a user transcript contains "pause the conversation", call `pauseConversation()`
+- Expose `isPaused` in the return type
+- On `endConversation`, reset `isPaused` to false
 
-**Fix**: Configure sensible global defaults:
-- `staleTime: 1000 * 60 * 5` (5 min) for general queries
-- `gcTime: 1000 * 60 * 10` (10 min garbage collection)
-- `refetchOnWindowFocus: false` globally (individual queries can override)
-- `retry: 1` instead of default 3
+### `src/pages/VoiceAssistant.tsx`
+- Destructure `isPaused` and `resumeConversation` from `useVoiceAssistant`
+- Add a second `useWakeWordDetection` instance with `wakeWords: ['continue the conversation', 'resume the conversation', 'unpause']` that is `enabled` only when `isPaused && isConnected`
+- On detection, call `resumeConversation()`
+- Pass `isPaused` down to `VoiceInterfaceCard`
 
-### 3. ConversationHistory Creates Redundant Supabase Client Calls (Performance)
-`ConversationHistory` and `MessageHistory` call `supabase.auth.getUser()` on every load instead of using the `useAuth()` context. The `getUser()` call hits the auth server every time, while `useAuth()` returns the cached user instantly.
+### `src/components/voice/VoiceInterfaceCard.tsx`
+- Accept `isPaused` prop
+- When paused, show a "Paused" overlay on the microphone orb area and update the status text from "Listening..." to "Paused -- say 'continue the conversation' to resume"
 
-**Fix**: Refactor both components to use `useAuth()` for user data.
+### `src/components/voice/VoiceControlPanel.tsx`
+- Accept `isPaused` prop
+- When paused and connected, show the orb in a dimmed/amber state instead of the active green/primary gradient
+- Add a manual "Resume" button as a fallback (in case speech recognition doesn't pick up the resume phrase)
 
-### 4. Realtime Channel Name Collisions (Bug/Performance)
-Both `ConversationHistory` and `MessageHistory` use hardcoded channel names (`'conversations'` and `'messages'`). If multiple instances mount (e.g., desktop sidebar + mobile sheet), they collide and one silently fails. Also, cleanup in `MessageHistory` doesn't use the returned unsubscribe function.
+### `src/components/voice/voiceInterfaceTypes.ts`
+- Add `isPaused: boolean` and `onResume: () => void` to `VoiceInterfaceCardProps`
 
-**Fix**: Use unique channel names with conversation IDs (e.g., `messages-${conversationId}`). Fix cleanup to properly unsubscribe.
+### No changes needed to:
+- Provider hooks (OpenAI, ElevenLabs, VAPI, Gemini) -- muting/unmuting is handled at the `useVoiceAssistant` level via existing `toggleMute` and `setVolume`
+- Wake word detection hook -- reused as-is with different wake words
 
-### 5. useVoiceAssistant Initializes All 4 Provider Hooks Unconditionally (Performance)
-The hook always instantiates `useConversation` (ElevenLabs), `useOpenAIConversation`, `useVAPIConversation`, and `useGeminiLiveConversation` regardless of which provider is selected. Each creates WebRTC/WebSocket infrastructure and event handlers.
+## UI Behavior
 
-**Fix**: This is an architectural limitation of React hooks (can't conditionally call them). However, we can ensure the inactive provider hooks are truly inert by adding an `enabled` flag to each, so they skip setup logic when not the active provider. This prevents unnecessary audio context creation and event listener attachment.
-
-### 6. Particle Animation Runs Continuously on Landing Page (Performance)
-The `AnimatedHeroBackground` canvas animation runs `requestAnimationFrame` in a loop even when the section is scrolled out of view, wasting CPU/GPU cycles.
-
-**Fix**: Use `IntersectionObserver` to pause the animation when the canvas is not visible.
-
-### 7. Duplicate Supabase Client Instantiation in Chat Edge Function (Performance)
-The `chat` edge function creates a new `createClient()` instance up to twice per request (once for loading context, once for saving messages). The Supabase client should be created once at the top and reused.
-
-**Fix**: Create the Supabase client once at the top of the handler and reuse it.
-
-### 8. useVoiceProviderPreference Calls getUser() Redundantly (Performance)
-This hook calls `supabase.auth.getUser()` inside `loadPreference` even though authentication state is already available from `useAuth()`. Same issue in `useInputModePreference`.
-
-**Fix**: Pass `user` from `useAuth()` instead of calling `getUser()` internally.
-
-## Changes
-
-### Files Modified
-
-**`src/App.tsx`**
-- Add `React.lazy()` imports for all page components
-- Wrap routes in `Suspense` with a `LoadingScreen` fallback
-- Configure `QueryClient` with optimized defaults
-
-**`src/components/voice/ConversationHistory.tsx`**
-- Replace `supabase.auth.getUser()` with `useAuth()` hook
-- Use unique channel names to prevent collisions
-- Accept `userId` from auth context
-
-**`src/components/voice/MessageHistory.tsx`**
-- Use unique channel names with conversation ID
-- Fix realtime cleanup to properly unsubscribe
-
-**`src/components/landing/AnimatedHeroBackground.tsx`**
-- Add `IntersectionObserver` to pause/resume animation when off-screen
-
-**`supabase/functions/chat/index.ts`**
-- Create Supabase client once and reuse throughout the handler
-
-**`src/hooks/useVoiceProviderPreference.ts`**
-- Accept `user` object instead of calling `getUser()` internally
-
-**`src/hooks/useInputModePreference.ts`**
-- Accept `user` object instead of calling `getUser()` internally
-
-**`src/hooks/useVoiceAssistant.ts`**
-- Pass `user` to child hooks that previously called `getUser()` redundantly
-
-**`src/hooks/useOpenAIConversation.ts`**
-- Add `enabled` guard so setup logic is skipped when provider is not active
-
-**`src/hooks/useGeminiLiveConversation.ts`**
-- Add `enabled` guard
-
-**`src/hooks/useVAPIConversation.ts`**
-- Add `enabled` guard
-
-## Expected Impact
-
-- **Initial load time**: Reduced by ~40-60% through code splitting (admin pages alone are a large chunk)
-- **Network requests**: Reduced by ~50% through proper QueryClient caching and eliminating redundant `getUser()` calls
-- **CPU usage on landing page**: Reduced when hero section is scrolled past
-- **Realtime reliability**: Fixed channel collisions prevent silent subscription failures
-- **Edge function latency**: Minor improvement from single Supabase client instantiation
-
+- **Paused state orb**: Amber/yellow gradient with a pause icon replacing the mic icon
+- **Status text**: "Paused" with subtitle "Say 'continue the conversation' to resume"
+- **Manual resume button**: Appears next to the "End" button when paused, in case verbal resume fails
+- **Transcript entry**: A system message "Conversation paused" / "Conversation resumed" appears in the live transcripts for clarity
