@@ -249,6 +249,10 @@ export function useGeminiLiveConversation(options: GeminiLiveConversationOptions
     try {
       if (!playbackContextRef.current || playbackContextRef.current.state === 'closed') {
         playbackContextRef.current = new AudioContext({ sampleRate: 24000 });
+        // Create gain node for volume control
+        const gain = playbackContextRef.current.createGain();
+        gain.connect(playbackContextRef.current.destination);
+        gainNodeRef.current = gain;
       }
       const binaryStr = atob(base64Data);
       const bytes = new Uint8Array(binaryStr.length);
@@ -264,7 +268,12 @@ export function useGeminiLiveConversation(options: GeminiLiveConversationOptions
 
       const source = playbackContextRef.current.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(playbackContextRef.current.destination);
+      // Route through gain node for volume control
+      if (gainNodeRef.current) {
+        source.connect(gainNodeRef.current);
+      } else {
+        source.connect(playbackContextRef.current.destination);
+      }
       source.start();
     } catch (err) {
       console.error('[GeminiLive] Audio playback error:', err);
@@ -327,6 +336,27 @@ export function useGeminiLiveConversation(options: GeminiLiveConversationOptions
     setConnectionError(null);
   }, []);
 
+  // Hardware-level mic mute: disables the media stream audio tracks
+  const setMicEnabled = useCallback((enabled: boolean) => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getAudioTracks().forEach(t => {
+        t.enabled = enabled;
+      });
+      console.log('[GeminiLive] Mic tracks enabled:', enabled);
+    }
+  }, []);
+
+  // Hardware-level output volume: Gemini uses AudioContext for playback
+  // We insert a GainNode to control output volume
+  const gainNodeRef = useRef<GainNode | null>(null);
+
+  const setOutputVolume = useCallback((vol: number) => {
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = Math.max(0, Math.min(1, vol));
+      console.log('[GeminiLive] Output volume set to:', vol);
+    }
+  }, []);
+
   useEffect(() => {
     return () => { cleanup(); };
   }, [cleanup]);
@@ -343,6 +373,8 @@ export function useGeminiLiveConversation(options: GeminiLiveConversationOptions
     endSession,
     sendTextMessage,
     clearError,
+    setMicEnabled,
+    setOutputVolume,
     connectionInfo: { tokenParam: 'gemini-ws' },
     isFallbackMode: false,
   };

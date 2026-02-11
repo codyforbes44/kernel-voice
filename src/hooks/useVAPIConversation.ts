@@ -266,6 +266,27 @@ export function useVAPIConversation(options: VAPIConversationOptions = {}) {
     setConnectionError(null);
   }, []);
 
+  // Hardware-level mic mute via VAPI SDK
+  const setMicEnabled = useCallback((enabled: boolean) => {
+    if (vapiRef.current) {
+      vapiRef.current.setMuted(!enabled);
+      console.log('[VAPI] Mic muted:', !enabled);
+    }
+  }, []);
+
+  // Hardware-level output volume: VAPI doesn't expose a direct volume API,
+  // but we can find and control the audio element it creates
+  const setOutputVolume = useCallback((vol: number) => {
+    // VAPI SDK creates an audio element internally; find it
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(el => {
+      if (el.srcObject) {
+        el.volume = Math.max(0, Math.min(1, vol));
+      }
+    });
+    console.log('[VAPI] Output volume set to:', vol);
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -285,6 +306,8 @@ export function useVAPIConversation(options: VAPIConversationOptions = {}) {
     endSession,
     sendTextMessage,
     clearError,
+    setMicEnabled,
+    setOutputVolume,
     connectionInfo: { tokenParam: 'vapi' },
     isFallbackMode: false,
   };
