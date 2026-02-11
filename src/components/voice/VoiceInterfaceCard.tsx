@@ -13,6 +13,7 @@ import { TextMessageInput } from '@/components/voice/TextMessageInput';
 import { InputModeSelector } from '@/components/voice/InputModeSelector';
 import { WakeWordIndicator } from '@/components/voice/WakeWordIndicator';
 import { ToolExecutionIndicator } from '@/components/voice/ToolExecutionIndicator';
+import { MicSelector } from '@/components/voice/MicSelector';
 import MicrophonePermissionRequest from '@/components/voice/MicrophonePermissionRequest';
 import { type VoiceInterfaceCardProps } from '@/components/voice/voiceInterfaceTypes';
 
@@ -140,13 +141,16 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
         </div>
       </div>
 
-      {/* Input Mode Selector */}
-      <div className="flex justify-center mb-3 md:mb-6">
+      {/* Input Mode & Mic Selector */}
+      <div className="flex flex-col items-center gap-2 mb-3 md:mb-6">
         <InputModeSelector
           value={inputMode}
           onChange={setInputMode}
           disabled={isConnected}
         />
+        {!isConnected && (
+          <MicSelector disabled={isConnected} className="w-48" />
+        )}
       </div>
 
       {/* Voice Interface */}
@@ -178,6 +182,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
             onToggleMute={toggleMute}
             onVolumeChange={setVolume}
             isPaused={isPaused}
+            activeToolCall={!!activeToolCall}
             onResume={onResume}
           />
 
