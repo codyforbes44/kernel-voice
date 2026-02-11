@@ -1,110 +1,58 @@
 
+# Update Pricing to 3-Tier Structure
 
-# New Page: Voice Components Showcase
+Migrate from the current Free/Pro two-tier model to a three-tier paid model: Starter ($4.95), Plus ($14.95), and Pro ($29.95) per month.
 
-A standalone showcase page at `/showcase` displaying interactive voice/audio UI components in a dark masonry-style grid layout, replicating the reference design.
+## New Stripe Products Created
 
-## Components to Build
+| Tier | Product ID | Price ID | Monthly |
+|------|-----------|----------|---------|
+| Starter | `prod_Txeqgboqm2OQh6` | `price_1SzjX72MfT7OzvjxyqWpTfXN` | $4.95 |
+| Plus | `prod_TxeqNEggefCFi8` | `price_1SzjX72MfT7OzvjxYrQnQ8xP` | $14.95 |
+| Pro | `prod_TxeqCb8U1jeGEN` | `price_1SzjX82MfT7Ozvjx9Oc4THYA` | $29.95 |
 
-The page will contain 8 distinct card sections arranged in a responsive 3-column masonry grid:
+## Tier Features
 
-### 1. Audio Waveform Card
-- Animated bar waveform using the existing `LiveWaveformCanvas` component
-- "Speaking" status label below
-- Simulated audio level via `requestAnimationFrame` sine wave
+**Starter -- $4.95/mo**
+- 3BI Voice Assistant
+- Basic conversation history (7 days)
+- Standard voice quality
+- Community support
 
-### 2. Voice Fill Card
-- Title "Voice Fill" with "Powered by ElevenLabs Scribe" subtitle
-- A "Voice Fill" badge/button
-- Two form fields: First Name (placeholder "John") and Last Name (placeholder "Doe") with required markers
+**Plus -- $14.95/mo** (Most Popular)
+- Everything in Starter
+- Premium ElevenLabs voices
+- Extended conversation history (30 days)
+- Advanced voice customization
+- Priority response quality
+- Email support
 
-### 3. Agent Orbs Card
-- Title "Agent Orbs" with description
-- A canvas-drawn animated orb (gradient sphere with subtle lighting/reflection in purple/blue tones)
-- Three state toggle buttons: Idle, Listening, Talking - clicking changes the orb animation
+**Pro -- $29.95/mo**
+- Everything in Plus
+- Gemini Live and OpenAI Realtime providers
+- Unlimited conversation history
+- Custom agent personalities
+- Priority support
+- Early access to new features
+- API access
 
-### 4. Character Selector Card
-- A select dropdown with an agent icon and name "Rachel"
-- Uses the existing `Select` component from Radix UI
+## Files Changed
 
-### 5. Waveform Card
-- Title "Waveform" with description "Real-time audio visualization with smooth scrolling animation"
-- Static/animated waveform bars in a horizontal strip
-
-### 6. Music Player Card
-- Track title "II - 00" with "ElevenLabs Music" subtitle
-- Sparkle and music note icons
-- Waveform progress indicator
-- Time display (0:00 / 1:37)
-- Transport controls: Previous, Play, Next
-- Three vinyl/disc visuals (dark circular elements)
-- Volume slider with percentage (70%)
-
-### 7. Customer Support Voice Chat Card
-- Avatar circle (gradient orb)
-- "Customer Support" title, "Tap to start voice chat" subtitle
-- Phone call button (circular, primary color)
-
-### 8. Chat Conversation Card
-- Agent messages (dark bubbles with avatar) showing a customer support conversation about order tracking
-- User message in a lighter bubble
-- Scrollable message area
-
-### 9. Track List Card
-- Numbered list of tracks (II-02 through II-05) with row highlight on hover
-
-### 10. Audio Player Mini Card
-- Track title "II - 09"
-- Play button with progress bar and duration
-
-### 11. Live Status Card
-- Waveform visualization
-- "Live" indicator with red dot and "128 kbps"
-- "Customer Support" label with mic, chat, and phone icons
-
-### 12. Widget Chat Card
-- "Customer Support" header with avatar
-- Gradient orb visual
-- "Start a conversation" prompt
-- Message input with send and sparkle buttons
-
-## Page Layout
-
-- Route: `/showcase`
-- Full-page dark background (`bg-black` forced, ignoring theme)
-- 3-column CSS grid on desktop, 2 on tablet, 1 on mobile
-- Cards use `bg-zinc-900/80` with subtle borders matching the OLED dark theme
-- No header/footer -- standalone showcase
-
-## Technical Details
-
-### New Files
-| File | Purpose |
-|------|---------|
-| `src/pages/Showcase.tsx` | Main page with all showcase cards |
-| `src/components/showcase/WaveformCard.tsx` | Audio waveform with "Speaking" label |
-| `src/components/showcase/VoiceFillCard.tsx` | Voice fill form card |
-| `src/components/showcase/AgentOrbsCard.tsx` | Interactive orb with state buttons |
-| `src/components/showcase/MusicPlayerCard.tsx` | Full music player UI |
-| `src/components/showcase/VoiceChatCard.tsx` | Customer support call card |
-| `src/components/showcase/ChatConversationCard.tsx` | Chat message thread |
-| `src/components/showcase/TrackListCard.tsx` | Track listing |
-| `src/components/showcase/AudioPlayerCard.tsx` | Mini audio player |
-| `src/components/showcase/LiveStatusCard.tsx` | Live streaming status card |
-| `src/components/showcase/WidgetChatCard.tsx` | Chat widget preview |
-| `src/components/showcase/CharacterSelectCard.tsx` | Character/voice selector |
-| `src/components/showcase/ShowcaseWaveform.tsx` | Static waveform display card |
-
-### Modified Files
 | File | Change |
 |------|--------|
-| `src/App.tsx` | Add lazy route for `/showcase` |
+| `src/lib/stripe.ts` | Replace old 2-tier product/price constants with 3-tier (Starter, Plus, Pro); remove yearly pricing; update `PRO_PRODUCT_IDS` to include all 3 paid tiers; update `PRICING_INFO` |
+| `src/pages/Pricing.tsx` | Rewrite to show 3 pricing cards in a 3-column grid; remove the monthly/yearly toggle; update feature lists and card logic |
+| `src/components/subscription/PricingCard.tsx` | No structural changes needed -- already supports all required props |
+| `src/hooks/useSubscription.ts` | Update `isSubscribed` check to match any of the 3 new product IDs; add a `tierName` derived field (starter/plus/pro) |
+| `src/hooks/useUserFeatures.ts` | Update `hasFeature` to gate `elevenlabs_voice` on Plus or Pro tiers only (not Starter) |
+| `src/components/subscription/UpgradeBanner.tsx` | Update copy from "ƷBI Voice Pro" to "Kernel Plus" / generic upgrade messaging |
+| `src/components/subscription/UpgradeButton.tsx` | Update default `priceId` to Starter; update button label |
 
-### Key Implementation Notes
-- All animations use `requestAnimationFrame` and CSS transitions (no extra dependencies)
-- The Agent Orbs canvas draws a radial gradient sphere with animated glow based on active state
-- Music player vinyl discs are CSS circles with conic gradients
-- Reuses existing UI primitives: `Button`, `Slider`, `Select`, `Input`, `Card`
-- Forced dark styling via `className="dark"` wrapper on the page root so it always appears dark regardless of theme setting
-- No backend or database changes needed -- purely presentational
+## Key Behavior Changes
 
+- Any paid subscription (Starter, Plus, or Pro) counts as "subscribed"
+- ElevenLabs premium voices require Plus or Pro (not Starter)
+- The yearly billing toggle is removed for now (only monthly pricing)
+- The `check-subscription` and `create-checkout` edge functions require no changes -- they already work with any Stripe price ID and return the product ID dynamically
+
+## No Database Changes Required
