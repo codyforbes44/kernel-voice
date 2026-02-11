@@ -53,7 +53,7 @@ export function ChatConversationCard() {
   return (
     <div className="rounded-2xl bg-card border border-border glow-border p-4 flex flex-col gap-3 h-full">
       <h3 className="text-sm font-semibold text-foreground px-2 font-display">Conversation</h3>
-      <div ref={scrollRef} className="flex flex-col gap-2.5 overflow-y-auto max-h-52 px-1 scrollbar-hide">
+      <div ref={scrollRef} className="flex-1 min-h-0 flex flex-col gap-2.5 overflow-y-auto max-h-28 px-1 scrollbar-hide">
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : ''}`}>
             {m.role === 'agent' && (

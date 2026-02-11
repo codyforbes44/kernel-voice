@@ -6,8 +6,8 @@ export function WaveformCard() {
   const { audioLevel, isActive, start, stop } = useShowcaseMic();
 
   return (
-    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-4">
-      <div className="h-24 relative">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-3 h-full">
+      <div className="h-16 relative">
         {!isActive && (
           <button
             onClick={start}

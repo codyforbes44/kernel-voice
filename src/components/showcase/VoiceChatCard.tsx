@@ -23,9 +23,9 @@ export function VoiceChatCard() {
   }, [isLive, gemini]);
 
   return (
-    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col items-center gap-4">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col items-center gap-3 h-full">
       <div
-        className="h-20 w-20 rounded-full bg-gradient-to-br from-primary via-secondary to-accent shadow-lg transition-transform"
+        className="h-16 w-16 rounded-full bg-gradient-to-br from-primary via-secondary to-accent shadow-lg transition-transform"
         style={{
           boxShadow: isLive ? '0 0 30px hsl(180 100% 50% / 0.3)' : undefined,
           transform: gemini.isSpeaking ? `scale(${1 + gemini.outputAudioLevel * 0.15})` : isLive ? `scale(${1 + gemini.inputAudioLevel * 0.1})` : 'scale(1)',
@@ -38,7 +38,7 @@ export function VoiceChatCard() {
         </p>
       </div>
       {transcripts.length > 0 && (
-        <div className="w-full max-h-20 overflow-y-auto space-y-1 px-1 scrollbar-hide">
+        <div className="w-full max-h-12 overflow-y-auto space-y-1 px-1 scrollbar-hide">
           {transcripts.map((t, i) => (
             <p key={i} className={`text-xs truncate ${t.role === 'user' ? 'text-primary/80 text-right' : 'text-muted-foreground'}`}>
               {t.text}

@@ -62,7 +62,7 @@ export function WidgetChatCard() {
   const lastAgentExists = messages.some((m) => m.role === 'agent');
 
   return (
-    <div className="rounded-2xl bg-card border border-border glow-border overflow-hidden flex flex-col">
+    <div className="rounded-2xl bg-card border border-border glow-border overflow-hidden flex flex-col h-full">
       <div className="p-4 flex items-center gap-3 border-b border-border">
         <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
           <User className="h-4 w-4 text-primary-foreground" />
@@ -73,7 +73,7 @@ export function WidgetChatCard() {
       {messages.length === 0 ? (
         <div className="flex-1 flex items-center justify-center py-8">
           <div
-            className="h-24 w-24 rounded-full bg-gradient-to-br from-primary via-secondary to-accent shadow-xl transition-transform"
+            className="h-16 w-16 rounded-full bg-gradient-to-br from-primary via-secondary to-accent shadow-xl transition-transform"
             style={{
               boxShadow: ttsPlaying ? '0 0 40px hsl(180 100% 50% / 0.3)' : undefined,
               transform: ttsPlaying ? 'scale(1.1)' : 'scale(1)',
@@ -81,7 +81,7 @@ export function WidgetChatCard() {
           />
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto max-h-48 p-3 space-y-2 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto max-h-24 p-3 space-y-2 scrollbar-hide">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'gap-2'}`}>
               {m.role === 'agent' && (

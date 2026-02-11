@@ -45,7 +45,7 @@ export function CharacterSelectCard() {
   }, [currentAudio]);
 
   return (
-    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-3">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-3 h-full justify-between">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground font-display">Character</h3>
         {loading && <Loader2 className="h-3 w-3 text-primary animate-spin" />}

@@ -47,17 +47,21 @@ export default function Showcase() {
           variants={stagger}
           initial="hidden"
           animate="show"
-          className="mx-auto max-w-7xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-auto"
+          className="mx-auto max-w-7xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:grid-rows-[repeat(4,minmax(0,1fr))] lg:min-h-[calc(100vh-120px)]"
         >
+          {/* Row 1: Input-focused */}
           <motion.div variants={fadeUp}><WaveformCard /></motion.div>
           <motion.div variants={fadeUp}><VoiceFillCard /></motion.div>
           <motion.div variants={fadeUp}><AgentOrbsCard /></motion.div>
+          {/* Row 2: Audio/viz */}
           <motion.div variants={fadeUp}><CharacterSelectCard /></motion.div>
           <motion.div variants={fadeUp}><ShowcaseWaveform /></motion.div>
-          <motion.div variants={fadeUp} className="lg:row-span-2"><MusicPlayerCard /></motion.div>
+          <motion.div variants={fadeUp}><MusicPlayerCard /></motion.div>
+          {/* Row 3: Conversation */}
           <motion.div variants={fadeUp}><VoiceChatCard /></motion.div>
-          <motion.div variants={fadeUp} className="lg:row-span-2"><ChatConversationCard /></motion.div>
+          <motion.div variants={fadeUp}><ChatConversationCard /></motion.div>
           <motion.div variants={fadeUp}><TrackListCard /></motion.div>
+          {/* Row 4: Playback/support */}
           <motion.div variants={fadeUp}><AudioPlayerCard /></motion.div>
           <motion.div variants={fadeUp}><LiveStatusCard /></motion.div>
           <motion.div variants={fadeUp}><WidgetChatCard /></motion.div>

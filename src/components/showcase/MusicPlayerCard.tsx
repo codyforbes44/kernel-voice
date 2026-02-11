@@ -127,17 +127,6 @@ export function MusicPlayerCard() {
         <button onClick={() => changeTrack(1)} className="text-muted-foreground hover:text-foreground transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center"><SkipForward className="h-5 w-5" /></button>
       </div>
 
-      <div className="flex justify-center gap-3 py-2">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="h-16 w-16 rounded-full border-4 border-border" style={{
-            background: `conic-gradient(from ${i * 120}deg, hsl(0 0% 4%), hsl(0 0% 8%), hsl(0 0% 4%), hsl(0 0% 8%), hsl(0 0% 4%))`,
-            animation: playing ? `spin ${3 + i}s linear infinite` : 'none',
-          }}>
-            <div className="h-full w-full rounded-full flex items-center justify-center"><div className="h-3 w-3 rounded-full bg-muted" /></div>
-          </div>
-        ))}
-      </div>
-
       <div className="flex items-center gap-3">
         <span className="text-xs text-muted-foreground w-6">🔊</span>
         <Slider value={volume} onValueChange={setVolume} max={100} step={1} className="flex-1 [&_[role=slider]]:bg-primary [&_[role=slider]]:border-primary [&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_span:first-child]:bg-muted [&_span:first-child_span]:bg-primary" />

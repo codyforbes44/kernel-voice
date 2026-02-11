@@ -17,7 +17,7 @@ export function ShowcaseWaveform() {
   }, [frequencyData, isActive, fallbackBars]);
 
   return (
-    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-3">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-3 h-full">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold text-foreground font-display">Waveform</h3>
@@ -33,7 +33,7 @@ export function ShowcaseWaveform() {
           </button>
         )}
       </div>
-      <div className="flex items-center gap-[2px] h-16">
+      <div className="flex items-center gap-[2px] h-12 flex-1 min-h-0">
         {bars.map((h, i) => (
           <div
             key={i}

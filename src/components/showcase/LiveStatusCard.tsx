@@ -44,7 +44,7 @@ export function LiveStatusCard() {
   }, [chatInput, chatLoading]);
 
   return (
-    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-5 flex flex-col gap-3">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-5 flex flex-col gap-3 h-full">
       <div className="h-12">
         <LiveWaveformCanvas level={activeLevel} isActive={mic.isActive || isCall} barColor="hsl(180, 100%, 50%)" barWidth={2} barGap={1} />
       </div>
