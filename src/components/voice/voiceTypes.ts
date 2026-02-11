@@ -42,6 +42,7 @@ export interface GeminiLiveSettings {
   model: string;
   customPrompt: string;
   customFirstMessage: string;
+  audioGateThreshold: number; // 0.005–0.05, RMS noise gate
 }
 
 export const DEFAULT_GEMINI_LIVE_SETTINGS: GeminiLiveSettings = {
@@ -49,6 +50,7 @@ export const DEFAULT_GEMINI_LIVE_SETTINGS: GeminiLiveSettings = {
   model: 'gemini-2.5-flash-native-audio-preview-12-2025',
   customPrompt: '',
   customFirstMessage: '',
+  audioGateThreshold: 0.01,
 };
 
 export const geminiLiveVoices: { id: GeminiLiveVoice; name: string; description: string }[] = [
@@ -99,17 +101,17 @@ export const OPENAI_PRESETS: Record<Exclude<OpenAISettingsPreset, 'custom'>, { s
   fast: {
     label: 'Snappy',
     description: 'Quick back-and-forth',
-    settings: { temperature: 0.6, vadThreshold: 0.25, silenceDuration: 250 },
+    settings: { temperature: 0.6, vadThreshold: 0.45, silenceDuration: 400 },
   },
   balanced: {
     label: 'Natural',
     description: 'Conversational flow',
-    settings: { temperature: 0.8, vadThreshold: 0.4, silenceDuration: 400 },
+    settings: { temperature: 0.8, vadThreshold: 0.55, silenceDuration: 600 },
   },
   relaxed: {
     label: 'Thoughtful',
     description: 'Patient, detailed responses',
-    settings: { temperature: 1.0, vadThreshold: 0.55, silenceDuration: 800 },
+    settings: { temperature: 1.0, vadThreshold: 0.7, silenceDuration: 1000 },
   },
 };
 
