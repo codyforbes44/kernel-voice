@@ -458,6 +458,24 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
     setConnectionError(null);
   }, []);
 
+  // Hardware-level mic mute: disables the WebRTC audio track so the provider receives silence
+  const setMicEnabled = useCallback((enabled: boolean) => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getAudioTracks().forEach(t => {
+        t.enabled = enabled;
+      });
+      console.log('[OpenAI] Mic tracks enabled:', enabled);
+    }
+  }, []);
+
+  // Hardware-level output volume: sets the <audio> element volume directly
+  const setOutputVolume = useCallback((vol: number) => {
+    if (audioElRef.current) {
+      audioElRef.current.volume = Math.max(0, Math.min(1, vol));
+      console.log('[OpenAI] Output volume set to:', vol);
+    }
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -477,6 +495,8 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
     endSession,
     sendTextMessage,
     clearError,
+    setMicEnabled,
+    setOutputVolume,
     connectionInfo: { tokenParam: 'ephemeral' },
     isFallbackMode: false,
   };

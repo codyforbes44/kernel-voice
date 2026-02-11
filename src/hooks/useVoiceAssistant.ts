@@ -414,24 +414,55 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     }
   }, [toast, clearTranscripts]);
 
-  // Pause conversation - mute mic, silence output, keep connection alive
+  // Helper to call setMicEnabled on the active provider (if available)
+  const setProviderMicEnabled = useCallback((enabled: boolean) => {
+    const provider = voiceProviderRef.current;
+    const convs = providerConversationsRef.current;
+    if (provider === 'elevenlabs') {
+      // ElevenLabs doesn't expose mic control; we can't hardware-mute it
+      // but setVolume(0) silences the agent output
+      return;
+    }
+    const conv = convs[provider] as any;
+    conv?.setMicEnabled?.(enabled);
+  }, []);
+
+  // Helper to call setOutputVolume on the active provider (if available)
+  const setProviderOutputVolume = useCallback((vol: number) => {
+    const provider = voiceProviderRef.current;
+    const convs = providerConversationsRef.current;
+    if (provider === 'elevenlabs') {
+      convs.elevenlabs.setVolume({ volume: vol });
+      return;
+    }
+    const conv = convs[provider] as any;
+    conv?.setOutputVolume?.(vol);
+  }, []);
+
+  // Pause conversation - mute mic at hardware level, silence output, keep connection alive
   const pauseConversation = useCallback(() => {
     if (!isConnected || isPaused) return;
     volumeBeforePauseRef.current = volume;
     setIsMuted(true);
     setVolume(0);
     setIsPaused(true);
+    // Hardware-level mute
+    setProviderMicEnabled(false);
+    setProviderOutputVolume(0);
     addTranscript('system', '⏸️ Conversation paused');
-  }, [isConnected, isPaused, volume, addTranscript]);
+  }, [isConnected, isPaused, volume, addTranscript, setProviderMicEnabled, setProviderOutputVolume]);
 
-  // Resume conversation - restore mic and volume
+  // Resume conversation - restore mic and volume at hardware level
   const resumeConversation = useCallback(() => {
     if (!isPaused) return;
     setIsMuted(false);
     setVolume(volumeBeforePauseRef.current);
     setIsPaused(false);
+    // Hardware-level unmute
+    setProviderMicEnabled(true);
+    setProviderOutputVolume(volumeBeforePauseRef.current);
     addTranscript('system', '▶️ Conversation resumed');
-  }, [isPaused, addTranscript]);
+  }, [isPaused, addTranscript, setProviderMicEnabled, setProviderOutputVolume]);
 
   // Detect "pause the conversation" in live transcripts
   useEffect(() => {
@@ -463,7 +494,10 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   };
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    // Hardware-level mute/unmute
+    setProviderMicEnabled(!newMuted);
   };
 
   // Text message state
