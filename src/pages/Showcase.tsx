@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { WaveformCard } from '@/components/showcase/WaveformCard';
-import { YouTubePlayerLinkCard } from '@/components/showcase/YouTubePlayerLinkCard';
 import { VoiceFillCard } from '@/components/showcase/VoiceFillCard';
 import { AgentOrbsCard } from '@/components/showcase/AgentOrbsCard';
 import { CharacterSelectCard } from '@/components/showcase/CharacterSelectCard';
@@ -25,6 +24,14 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="col-span-full text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60 pt-2">
+      {children}
+    </p>
+  );
+}
+
 export default function Showcase() {
   return (
     <PageWrapper
@@ -33,7 +40,7 @@ export default function Showcase() {
       showHeader={false}
       className="dark"
     >
-      <div className="px-4 pt-10 pb-20 safe-area-inset">
+      <div className="px-4 pt-6 sm:pt-10 pb-24 safe-area-inset">
         {/* Hero strip */}
         <div className="mx-auto max-w-7xl flex items-center gap-3 mb-6 sm:mb-8">
           <img src={logo} alt="ƷBI Voice" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg" />
@@ -48,25 +55,31 @@ export default function Showcase() {
           variants={stagger}
           initial="hidden"
           animate="show"
-          className="mx-auto max-w-7xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:grid-rows-[repeat(5,minmax(0,1fr))] lg:min-h-[calc(100vh-120px)]"
+          className="mx-auto max-w-7xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5"
         >
-          {/* Row 1: Input-focused */}
-          <motion.div variants={fadeUp}><YouTubePlayerLinkCard /></motion.div>
-          <motion.div variants={fadeUp}><WaveformCard /></motion.div>
-          <motion.div variants={fadeUp}><VoiceFillCard /></motion.div>
-          <motion.div variants={fadeUp}><AgentOrbsCard /></motion.div>
-          {/* Row 2: Audio/viz */}
-          <motion.div variants={fadeUp}><CharacterSelectCard /></motion.div>
-          <motion.div variants={fadeUp}><ShowcaseWaveform /></motion.div>
-          <motion.div variants={fadeUp}><MusicPlayerCard /></motion.div>
-          {/* Row 3: Conversation */}
+          {/* Voice Input */}
+          <SectionLabel>Voice Input</SectionLabel>
+          <motion.div variants={fadeUp} className="sm:col-span-2 lg:col-span-1"><AgentOrbsCard /></motion.div>
           <motion.div variants={fadeUp}><VoiceChatCard /></motion.div>
-          <motion.div variants={fadeUp}><ChatConversationCard /></motion.div>
-          <motion.div variants={fadeUp}><TrackListCard /></motion.div>
-          {/* Row 4: Playback/support */}
-          <motion.div variants={fadeUp}><AudioPlayerCard /></motion.div>
-          <motion.div variants={fadeUp}><LiveStatusCard /></motion.div>
+          <motion.div variants={fadeUp}><WaveformCard /></motion.div>
+
+          {/* Conversations */}
+          <SectionLabel>Conversations</SectionLabel>
+          <motion.div variants={fadeUp} className="sm:col-span-2 lg:col-span-1"><ChatConversationCard /></motion.div>
+          <motion.div variants={fadeUp}><VoiceFillCard /></motion.div>
           <motion.div variants={fadeUp}><WidgetChatCard /></motion.div>
+
+          {/* Visualizations */}
+          <SectionLabel>Visualizations</SectionLabel>
+          <motion.div variants={fadeUp}><ShowcaseWaveform /></motion.div>
+          <motion.div variants={fadeUp}><CharacterSelectCard /></motion.div>
+
+          {/* Audio Playback */}
+          <SectionLabel>Audio Playback</SectionLabel>
+          <motion.div variants={fadeUp}><MusicPlayerCard /></motion.div>
+          <motion.div variants={fadeUp}><AudioPlayerCard /></motion.div>
+          <motion.div variants={fadeUp}><TrackListCard /></motion.div>
+          <motion.div variants={fadeUp}><LiveStatusCard /></motion.div>
         </motion.div>
       </div>
     </PageWrapper>
