@@ -176,12 +176,17 @@ export function OpenAISettingsPanel({
               <Slider
                 value={[openaiSettings.vadThreshold]}
                 onValueChange={([v]) => onOpenAISettingChange('vadThreshold', v)}
-                min={0.1}
+                min={0.2}
                 max={0.9}
                 step={0.05}
                 disabled={disabled}
                 className="w-full"
               />
+              {openaiSettings.vadThreshold < 0.3 && (
+                <Badge variant="outline" className="text-xs text-amber-500 border-amber-500/30">
+                  May pick up background noise
+                </Badge>
+              )}
               <p className="text-xs text-muted-foreground">
                 Voice detection threshold (lower = more sensitive)
               </p>

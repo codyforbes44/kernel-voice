@@ -162,17 +162,29 @@ export function useGeminiLiveConversation(options: GeminiLiveConversationOptions
             setStatus('connected');
             options.onConnect?.();
 
-            // Start sending audio
+            // Start sending audio with RMS noise gate
+            const gateThreshold = settings.audioGateThreshold ?? 0.01;
             processor.onaudioprocess = (e) => {
               if (wsRef.current?.readyState === WebSocket.OPEN) {
                 const inputData = e.inputBuffer.getChannelData(0);
+
+                // Calculate RMS energy of this buffer
+                let sumSq = 0;
+                for (let i = 0; i < inputData.length; i++) {
+                  sumSq += inputData[i] * inputData[i];
+                }
+                const rms = Math.sqrt(sumSq / inputData.length);
+
                 // Convert Float32 to Int16 PCM
                 const pcm16 = new Int16Array(inputData.length);
-                for (let i = 0; i < inputData.length; i++) {
-                  const s = Math.max(-1, Math.min(1, inputData[i]));
-                  pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                if (rms >= gateThreshold) {
+                  for (let i = 0; i < inputData.length; i++) {
+                    const s = Math.max(-1, Math.min(1, inputData[i]));
+                    pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                  }
                 }
-                // Convert to base64
+                // else pcm16 stays zero-filled (silence) to keep stream alive
+
                 const bytes = new Uint8Array(pcm16.buffer);
                 let binary = '';
                 const chunkSize = 8192;
