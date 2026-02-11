@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Settings2, Bot, Rocket, ChevronRight } from 'lucide-react';
-import { useStaggeredAnimation } from '@/hooks/useScrollAnimation';
+import { motion } from 'framer-motion';
 
 const steps = [
   {
@@ -21,28 +21,45 @@ const steps = [
   },
 ];
 
+const stepVariants = {
+  hidden: { opacity: 0, y: 32 },
+  visible: { opacity: 1, y: 0 },
+};
+
 export const HowItWorksSection = () => {
   const navigate = useNavigate();
-  const animation = useStaggeredAnimation(3, { threshold: 0.15 });
 
   return (
-    <section ref={animation.ref} className="py-20 md:py-28 relative overflow-hidden">
+    <section className="py-20 md:py-28 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.05),transparent_70%)]" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <div className={`text-center mb-16 transition-all duration-700 ${animation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <motion.div
+          className="text-center mb-16"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6 }}
+        >
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">How It Works</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">Get started in three simple steps</p>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 relative">
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 relative"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.1 }}
+          transition={{ staggerChildren: 0.15 }}
+        >
           <div className="hidden md:block absolute top-24 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
           {steps.map((step, index) => (
-            <div
+            <motion.div
               key={step.title}
-              className={`relative text-center transition-all duration-700 ${animation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
-              style={animation.getItemDelay(index)}
+              className="relative text-center"
+              variants={stepVariants}
+              transition={{ duration: 0.6 }}
             >
               <div className="relative inline-block mb-6">
                 <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-card border-2 border-primary/30 flex items-center justify-center mx-auto shadow-lg card-elevated dark:shadow-glow-subtle group hover:border-primary/60 transition-all duration-300 hover:scale-105">
@@ -59,16 +76,22 @@ export const HowItWorksSection = () => {
                   <ChevronRight className="w-6 h-6 text-primary/50 rotate-90" />
                 </div>
               )}
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
-        <div className={`text-center mt-12 transition-all duration-700 delay-500 ${animation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <motion.div
+          className="text-center mt-12"
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
           <Button size="lg" onClick={() => navigate('/assistant')} className="px-8 py-6 text-lg glow-primary">
             Get Started Free
             <ChevronRight className="ml-2 h-5 w-5" />
           </Button>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

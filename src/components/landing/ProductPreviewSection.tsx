@@ -1,5 +1,5 @@
-import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import { Mic, Brain, Volume2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const orbStates = [
   { label: 'Listening', icon: Mic, color: 'from-primary to-primary-glow' },
@@ -7,16 +7,25 @@ const orbStates = [
   { label: 'Speaking', icon: Volume2, color: 'from-primary-glow to-secondary' },
 ];
 
-export const ProductPreviewSection = () => {
-  const animation = useScrollAnimation({ threshold: 0.15 });
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0 },
+};
 
+export const ProductPreviewSection = () => {
   return (
-    <section id="product-preview" ref={animation.ref} className="py-20 md:py-28 relative overflow-hidden">
+    <section id="product-preview" className="py-20 md:py-28 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.05),transparent_70%)]" />
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <div className={`max-w-4xl mx-auto transition-all duration-700 ${animation.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          
+        <motion.div
+          className="max-w-4xl mx-auto"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.7 }}
+          variants={fadeUp}
+        >
           {/* Stylized product mockup */}
           <div className="relative rounded-2xl border border-border bg-card p-6 md:p-10 card-elevated glow-border">
             {/* Fake window chrome */}
@@ -63,10 +72,16 @@ export const ProductPreviewSection = () => {
           </div>
 
           {/* Copy */}
-          <p className={`text-center text-lg md:text-xl text-muted-foreground mt-8 max-w-2xl mx-auto transition-all duration-700 delay-200 ${animation.isVisible ? 'opacity-100' : 'opacity-0'}`}>
+          <motion.p
+            className="text-center text-lg md:text-xl text-muted-foreground mt-8 max-w-2xl mx-auto"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+          >
             Real-time voice conversations with an AI that listens, thinks, and speaks naturally.
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
       </div>
     </section>
   );
