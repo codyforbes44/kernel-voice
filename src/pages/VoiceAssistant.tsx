@@ -94,6 +94,8 @@ const VoiceAssistant = () => {
     inputMode,
     setInputMode,
     activeToolCall,
+    isPaused,
+    resumeConversation,
   } = useVoiceAssistant();
 
   // Wake word detection - only active in text-only mode when not connected
@@ -115,6 +117,17 @@ const VoiceAssistant = () => {
     wakeWords: ['hey 3bi', 'ok 3bi', '3bi'],
     onWakeWordDetected: handleWakeWordDetected,
     enabled: wakeWordEnabled,
+  });
+
+  // Resume wake word detection - active only when paused
+  const handleResumeDetected = useCallback(() => {
+    resumeConversation();
+  }, [resumeConversation]);
+
+  useWakeWordDetection({
+    wakeWords: ['continue the conversation', 'resume the conversation', 'unpause'],
+    onWakeWordDetected: handleResumeDetected,
+    enabled: isPaused && isConnected,
   });
 
   // Keyboard shortcuts (Ctrl+M for mute, Escape to end, Enter to start)
@@ -246,6 +259,8 @@ const VoiceAssistant = () => {
     isWakeWordSupported,
     wakeWordLastHeard,
     onSaveAgent: () => { setEditingAgent(null); setSaveDialogOpen(true); },
+    isPaused,
+    onResume: resumeConversation,
   }), [
     voiceProvider, setVoiceProvider,
     openaiVoice, setOpenAIVoice, openaiSettings, setOpenAISettings,
@@ -256,6 +271,7 @@ const VoiceAssistant = () => {
     inputMode, setInputMode, startConversation, endConversation, retryConnection, clearConnectionError,
     sendTextMessage, isProcessingText, activeToolCall, permissionState, requestPermission, isReady,
     isAuthenticated, isMobile, isWakeWordListening, isWakeWordSupported, wakeWordLastHeard,
+    isPaused, resumeConversation,
   ]);
 
   // Mobile Layout

@@ -83,6 +83,11 @@ interface UseVoiceAssistantReturn {
   requestPermission: () => Promise<boolean>;
   isReady: boolean;
   
+  // Pause/resume
+  isPaused: boolean;
+  pauseConversation: () => void;
+  resumeConversation: () => void;
+
   // Guest mode
   guestMessages: Array<{ role: string; content: string }>;
   showRegistrationPrompt: boolean;
@@ -100,6 +105,10 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   // Controls
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
+
+  // Pause/resume state
+  const [isPaused, setIsPaused] = useState(false);
+  const volumeBeforePauseRef = useRef(1);
   
   // Guest mode
   const [guestMessages, setGuestMessages] = useState<Array<{ role: string; content: string }>>([]);
@@ -405,8 +414,39 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     }
   }, [toast, clearTranscripts]);
 
+  // Pause conversation - mute mic, silence output, keep connection alive
+  const pauseConversation = useCallback(() => {
+    if (!isConnected || isPaused) return;
+    volumeBeforePauseRef.current = volume;
+    setIsMuted(true);
+    setVolume(0);
+    setIsPaused(true);
+    addTranscript('system', '⏸️ Conversation paused');
+  }, [isConnected, isPaused, volume, addTranscript]);
+
+  // Resume conversation - restore mic and volume
+  const resumeConversation = useCallback(() => {
+    if (!isPaused) return;
+    setIsMuted(false);
+    setVolume(volumeBeforePauseRef.current);
+    setIsPaused(false);
+    addTranscript('system', '▶️ Conversation resumed');
+  }, [isPaused, addTranscript]);
+
+  // Detect "pause the conversation" in live transcripts
+  useEffect(() => {
+    if (!isConnected || isPaused || liveTranscripts.length === 0) return;
+    const last = liveTranscripts[liveTranscripts.length - 1];
+    if (last.role !== 'user') return;
+    const text = last.text.toLowerCase();
+    if (text.includes('pause the conversation') || text.includes('pause conversation')) {
+      pauseConversation();
+    }
+  }, [liveTranscripts, isConnected, isPaused, pauseConversation]);
+
   const endConversation = async () => {
     await conversation.endSession();
+    setIsPaused(false);
     
     if (!isAuthenticated && guestMessages.length > 0) {
       setShowRegistrationPrompt(true);
@@ -526,6 +566,11 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     requestPermission,
     isReady,
     
+    // Pause/resume
+    isPaused,
+    pauseConversation,
+    resumeConversation,
+
     // Guest mode
     guestMessages,
     showRegistrationPrompt,

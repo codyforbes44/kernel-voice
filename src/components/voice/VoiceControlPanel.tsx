@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, VolumeX, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Loader2, AlertCircle, RefreshCw, Pause, Play } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { WaveformOrb } from './AudioLevelMeter';
@@ -16,12 +16,14 @@ interface VoiceControlPanelProps {
   isReady: boolean;
   providerLoading: boolean;
   isMobile: boolean;
+  isPaused?: boolean;
   onStartConversation: () => void;
   onEndConversation: () => void;
   onRetryConnection: () => void;
   onClearError: () => void;
   onToggleMute: () => void;
   onVolumeChange: (volume: number) => void;
+  onResume?: () => void;
 }
 
 export const VoiceControlPanel = ({
@@ -42,6 +44,8 @@ export const VoiceControlPanel = ({
   onClearError,
   onToggleMute,
   onVolumeChange,
+  isPaused,
+  onResume,
 }: VoiceControlPanelProps) => {
   return (
     <div className="flex flex-col items-center gap-4">
@@ -49,7 +53,9 @@ export const VoiceControlPanel = ({
       <div className="flex items-center justify-center mb-2">
         <div className={`
           relative w-24 h-24 md:w-32 md:h-32 rounded-full flex items-center justify-center
-          ${isConnected 
+          ${isConnected && isPaused
+            ? 'bg-gradient-to-br from-amber-500/60 to-amber-600/30 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
+            : isConnected 
             ? 'bg-gradient-to-br from-primary to-primary/50 shadow-glow animate-glow-pulse' 
             : isConnecting
               ? 'bg-gradient-to-br from-primary/30 to-primary/10 shadow-glow-subtle'
@@ -70,6 +76,8 @@ export const VoiceControlPanel = ({
             <Loader2 className="w-10 h-10 md:w-12 md:h-12 text-primary animate-spin" />
           ) : connectionError ? (
             <AlertCircle className="w-10 h-10 md:w-12 md:h-12 text-destructive" />
+          ) : isPaused ? (
+            <Pause className="w-10 h-10 md:w-12 md:h-12 text-amber-100" />
           ) : (
             <Mic className={`w-10 h-10 md:w-12 md:h-12 ${isConnected ? 'text-primary-foreground' : 'text-primary-foreground/70'}`} />
           )}
@@ -130,6 +138,17 @@ export const VoiceControlPanel = ({
             >
               {isMobile ? 'End' : 'Continue Later'}
             </Button>
+
+            {isPaused && onResume && (
+              <Button
+                onClick={onResume}
+                size="lg"
+                className="min-h-[48px] bg-amber-500 hover:bg-amber-600 text-white"
+              >
+                <Play className="mr-2 h-5 w-5" />
+                Resume
+              </Button>
+            )}
             
             <Tooltip>
               <TooltipTrigger asChild>

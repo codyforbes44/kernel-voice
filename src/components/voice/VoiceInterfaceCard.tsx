@@ -62,6 +62,8 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
   isWakeWordSupported,
   wakeWordLastHeard,
   onSaveAgent,
+  isPaused,
+  onResume,
 }: VoiceInterfaceCardProps) {
   const showVoiceInterface = inputMode === 'voice' || inputMode === 'combined';
   const showTextInput = inputMode === 'text' || inputMode === 'combined';
@@ -195,6 +197,8 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
             onClearError={clearConnectionError}
             onToggleMute={toggleMute}
             onVolumeChange={setVolume}
+            isPaused={isPaused}
+            onResume={onResume}
           />
 
           {/* Audio Level Meters - Desktop only */}
@@ -222,17 +226,23 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
                 : isConnecting
                   ? 'Connecting...'
                   : isConnected 
-                    ? activeToolCall
-                      ? '🔧 Using tool...'
-                      : isSpeaking 
-                        ? '🗣️ Speaking...' 
-                        : '👂 Listening...'
+                    ? isPaused
+                      ? '⏸️ Paused'
+                      : activeToolCall
+                        ? '🔧 Using tool...'
+                        : isSpeaking 
+                          ? '🗣️ Speaking...' 
+                          : '👂 Listening...'
                     : 'Ready to connect'
               }
             </p>
             {connectionError ? (
               <p className="text-xs md:text-sm text-destructive mt-1 max-w-xs mx-auto">
                 {connectionError}
+              </p>
+            ) : isPaused ? (
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                Say &quot;continue the conversation&quot; to resume
               </p>
             ) : (
               <p className="text-xs md:text-sm text-muted-foreground mt-1">

@@ -1,11 +1,11 @@
 import { useRef, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { User, Bot } from 'lucide-react';
+import { User, Bot, Info } from 'lucide-react';
 
 export interface LiveTranscript {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   text: string;
   timestamp: Date;
   isPartial?: boolean;
@@ -58,34 +58,43 @@ export function LiveTranscripts({ transcripts, isConnected, isSpeaking, classNam
               <div
                 key={transcript.id}
                 className={`flex gap-1.5 md:gap-2 ${
-                  transcript.role === 'user' ? 'justify-end' : 'justify-start'
+                  transcript.role === 'user' ? 'justify-end' : transcript.role === 'system' ? 'justify-center' : 'justify-start'
                 }`}
               >
-                {transcript.role === 'assistant' && (
-                  <div className="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Bot className="w-2.5 h-2.5 md:w-3 md:h-3 text-primary" />
-                  </div>
-                )}
-                
-                <div
-                  className={`max-w-[85%] md:max-w-[80%] rounded-lg px-2.5 py-1.5 md:px-3 md:py-2 text-xs md:text-sm ${
-                    transcript.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-foreground'
-                  } ${transcript.isPartial ? 'opacity-70' : ''}`}
-                >
-                  <p className="break-words">
+                {transcript.role === 'system' ? (
+                  <div className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-muted/50 border border-border text-xs text-muted-foreground italic">
+                    <Info className="w-3 h-3" />
                     {transcript.text}
-                    {transcript.isPartial && (
-                      <span className="inline-block w-0.5 md:w-1 h-3 md:h-4 ml-0.5 md:ml-1 bg-current animate-pulse" />
-                    )}
-                  </p>
-                </div>
-
-                {transcript.role === 'user' && (
-                  <div className="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full bg-primary flex items-center justify-center">
-                    <User className="w-2.5 h-2.5 md:w-3 md:h-3 text-primary-foreground" />
                   </div>
+                ) : (
+                  <>
+                    {transcript.role === 'assistant' && (
+                      <div className="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                        <Bot className="w-2.5 h-2.5 md:w-3 md:h-3 text-primary" />
+                      </div>
+                    )}
+                    
+                    <div
+                      className={`max-w-[85%] md:max-w-[80%] rounded-lg px-2.5 py-1.5 md:px-3 md:py-2 text-xs md:text-sm ${
+                        transcript.role === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-foreground'
+                      } ${transcript.isPartial ? 'opacity-70' : ''}`}
+                    >
+                      <p className="break-words">
+                        {transcript.text}
+                        {transcript.isPartial && (
+                          <span className="inline-block w-0.5 md:w-1 h-3 md:h-4 ml-0.5 md:ml-1 bg-current animate-pulse" />
+                        )}
+                      </p>
+                    </div>
+
+                    {transcript.role === 'user' && (
+                      <div className="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full bg-primary flex items-center justify-center">
+                        <User className="w-2.5 h-2.5 md:w-3 md:h-3 text-primary-foreground" />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ))}
