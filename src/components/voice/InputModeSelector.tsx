@@ -1,10 +1,6 @@
-import { Mic, MessageSquare, MicIcon } from 'lucide-react';
+import { Mic, MessageSquare } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export type InputMode = 'voice' | 'text' | 'combined';
 
@@ -21,6 +17,8 @@ export function InputModeSelector({
   disabled = false,
   className = '',
 }: InputModeSelectorProps) {
+  const isMobile = useIsMobile();
+
   return (
     <ToggleGroup
       type="single"
@@ -29,48 +27,36 @@ export function InputModeSelector({
       disabled={disabled}
       className={`bg-muted/50 p-1 rounded-lg ${className}`}
     >
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <ToggleGroupItem
-            value="voice"
-            aria-label="Voice only mode"
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground px-3"
-          >
-            <Mic className="h-4 w-4" />
-          </ToggleGroupItem>
-        </TooltipTrigger>
-        <TooltipContent>Voice only</TooltipContent>
-      </Tooltip>
+      <ToggleGroupItem
+        value="voice"
+        aria-label="Voice only mode"
+        className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground min-w-[48px] min-h-[48px] px-3 gap-1.5"
+      >
+        <Mic className="h-4 w-4" />
+        {isMobile && <span className="text-xs">Voice</span>}
+      </ToggleGroupItem>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <ToggleGroupItem
-            value="combined"
-            aria-label="Voice and text mode"
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground px-3"
-          >
-            <div className="flex items-center gap-1">
-              <Mic className="h-3 w-3" />
-              <span className="text-xs">+</span>
-              <MessageSquare className="h-3 w-3" />
-            </div>
-          </ToggleGroupItem>
-        </TooltipTrigger>
-        <TooltipContent>Voice + Text</TooltipContent>
-      </Tooltip>
+      <ToggleGroupItem
+        value="combined"
+        aria-label="Voice and text mode"
+        className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground min-w-[48px] min-h-[48px] px-3 gap-1.5"
+      >
+        <div className="flex items-center gap-1">
+          <Mic className="h-3 w-3" />
+          <span className="text-xs">+</span>
+          <MessageSquare className="h-3 w-3" />
+        </div>
+        {isMobile && <span className="text-xs">Both</span>}
+      </ToggleGroupItem>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <ToggleGroupItem
-            value="text"
-            aria-label="Text only mode"
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground px-3"
-          >
-            <MessageSquare className="h-4 w-4" />
-          </ToggleGroupItem>
-        </TooltipTrigger>
-        <TooltipContent>Text only</TooltipContent>
-      </Tooltip>
+      <ToggleGroupItem
+        value="text"
+        aria-label="Text only mode"
+        className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground min-w-[48px] min-h-[48px] px-3 gap-1.5"
+      >
+        <MessageSquare className="h-4 w-4" />
+        {isMobile && <span className="text-xs">Text</span>}
+      </ToggleGroupItem>
     </ToggleGroup>
   );
 }

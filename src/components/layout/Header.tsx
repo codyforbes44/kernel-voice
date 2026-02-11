@@ -26,39 +26,55 @@ export const Header = () => {
     { path: '/pricing', label: 'Pricing', icon: Crown },
   ];
 
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (location.pathname === '/') {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <a href="#main-content" className="skip-to-content">Skip to content</a>
       <div className="container mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex h-12 sm:h-14 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
-            <img src="/logo.png" alt="ƷBI Voice" className="h-6 w-6 sm:h-7 sm:w-7" />
+          <Link to="/" className="flex items-center space-x-2 group" onClick={handleLogoClick}>
+            <img src="/logo.png" alt="ƷBI Voice" className="h-6 w-6 sm:h-7 sm:w-7" loading="lazy" />
             <span className="font-bold text-base sm:text-lg hidden sm:inline-block">ƷBI Voice</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
+          <nav className="hidden md:flex items-center space-x-1" aria-label="Main navigation">
             {navLinks.map(({ path, label, icon: Icon }) => (
               <Button
                 key={path}
-                variant={isActive(path) ? 'secondary' : 'ghost'}
+                variant="ghost"
                 size="sm"
                 onClick={() => navigate(path)}
-                className="gap-2"
+                className={`gap-2 relative ${isActive(path) ? 'text-primary' : ''}`}
+                aria-current={isActive(path) ? 'page' : undefined}
               >
                 <Icon className="h-4 w-4" />
                 {label}
+                {isActive(path) && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full" />
+                )}
               </Button>
             ))}
             {user && !roleLoading && isAdmin && (
               <Button
-                variant={location.pathname.startsWith('/admin') ? 'secondary' : 'ghost'}
+                variant="ghost"
                 size="sm"
                 onClick={() => navigate('/admin')}
-                className="gap-2"
+                className={`gap-2 relative ${location.pathname.startsWith('/admin') ? 'text-primary' : ''}`}
+                aria-current={location.pathname.startsWith('/admin') ? 'page' : undefined}
               >
                 <LayoutDashboard className="h-4 w-4" />
                 Admin
+                {location.pathname.startsWith('/admin') && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full" />
+                )}
               </Button>
             )}
           </nav>
@@ -68,7 +84,7 @@ export const Header = () => {
             {/* Mobile Navigation Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon" className="min-h-[44px]">
+                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" aria-label="Open menu">
                   <Menu className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -77,7 +93,7 @@ export const Header = () => {
                   <DropdownMenuItem
                     key={path}
                     onClick={() => navigate(path)}
-                    className="gap-2"
+                    className="gap-2 min-h-[44px]"
                   >
                     <Icon className="h-4 w-4" />
                     {label}
@@ -86,7 +102,7 @@ export const Header = () => {
                 {user && !roleLoading && isAdmin && (
                   <DropdownMenuItem
                     onClick={() => navigate('/admin')}
-                    className="gap-2"
+                    className="gap-2 min-h-[44px]"
                   >
                     <LayoutDashboard className="h-4 w-4" />
                     Admin

@@ -12,13 +12,13 @@ export const GuestModeBanner = ({ variant = 'full', className = '' }: GuestModeB
 
   if (variant === 'compact') {
     return (
-      <div className={`p-3 rounded-lg bg-primary/10 border border-primary/20 ${className}`}>
+      <div className={`p-3 rounded-lg bg-primary/10 border border-primary/20 ${className}`} role="status">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium">Guest Mode</p>
           <Button 
             size="sm" 
             variant="outline" 
-            className="h-9 min-h-[44px]"
+            className="min-h-[44px]"
             onClick={() => navigate('/auth')}
           >
             <LogIn className="h-3 w-3 mr-1" />
@@ -30,7 +30,7 @@ export const GuestModeBanner = ({ variant = 'full', className = '' }: GuestModeB
   }
 
   return (
-    <div className={`p-4 rounded-lg bg-primary/10 border border-primary/20 ${className}`}>
+    <div className={`p-4 rounded-lg bg-primary/10 border border-primary/20 ${className}`} role="status">
       <div className="flex items-center justify-between gap-4">
         <p className="font-medium">Guest Mode - Conversations won't be saved</p>
         <Button 
