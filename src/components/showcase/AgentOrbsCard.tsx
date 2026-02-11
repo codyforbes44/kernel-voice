@@ -52,9 +52,9 @@ export function AgentOrbsCard() {
       : 0.2;
     const glowR = baseR * (1.3 + glowIntensity * 0.4);
     const glow = ctx.createRadialGradient(cx, cy, baseR * 0.5, cx, cy, glowR);
-    glow.addColorStop(0, `rgba(139, 92, 246, ${glowIntensity * 0.5})`);
-    glow.addColorStop(0.5, `rgba(99, 102, 241, ${glowIntensity * 0.25})`);
-    glow.addColorStop(1, 'rgba(99, 102, 241, 0)');
+    glow.addColorStop(0, `hsla(180, 100%, 50%, ${glowIntensity * 0.5})`);
+    glow.addColorStop(0.5, `hsla(195, 100%, 55%, ${glowIntensity * 0.25})`);
+    glow.addColorStop(1, 'hsla(195, 100%, 55%, 0)');
     ctx.fillStyle = glow;
     ctx.beginPath();
     ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
@@ -67,10 +67,10 @@ export function AgentOrbsCard() {
       : 0;
     const r = baseR + pulse;
     const grad = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1, cx, cy, r);
-    grad.addColorStop(0, '#c4b5fd');
-    grad.addColorStop(0.4, '#8b5cf6');
-    grad.addColorStop(0.8, '#6366f1');
-    grad.addColorStop(1, '#312e81');
+    grad.addColorStop(0, 'hsl(180, 80%, 85%)');
+    grad.addColorStop(0.4, 'hsl(180, 100%, 50%)');
+    grad.addColorStop(0.8, 'hsl(195, 100%, 55%)');
+    grad.addColorStop(1, 'hsl(200, 80%, 15%)');
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -102,10 +102,10 @@ export function AgentOrbsCard() {
   };
 
   return (
-    <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-6 flex flex-col gap-4">
+    <div className="rounded-2xl bg-card border border-border glow-border p-4 sm:p-6 flex flex-col gap-4">
       <div>
-        <h3 className="text-sm font-semibold text-zinc-100">Agent Orbs</h3>
-        <p className="text-xs text-zinc-500">
+        <h3 className="text-sm font-semibold text-foreground font-display">Agent Orbs</h3>
+        <p className="text-xs text-muted-foreground">
           {isLive ? (gemini.isSpeaking ? 'Agent speaking…' : 'Listening…') : 'Interactive animated orb visualization'}
         </p>
       </div>
@@ -118,7 +118,7 @@ export function AgentOrbsCard() {
             variant={orbState === s ? 'default' : 'outline'}
             onClick={() => handleButton(s)}
             disabled={gemini.status === 'connecting'}
-            className={`flex-1 text-xs capitalize ${orbState === s ? 'bg-violet-600 hover:bg-violet-700 text-white border-violet-500' : 'border-zinc-700 text-zinc-400 hover:text-zinc-200 bg-transparent'}`}
+            className={`flex-1 text-xs capitalize min-h-[48px] ${orbState === s ? 'bg-primary hover:bg-primary/90 text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground bg-transparent'}`}
           >
             {s === 'listening' && gemini.status === 'connecting' ? 'Connecting…' : s}
           </Button>
