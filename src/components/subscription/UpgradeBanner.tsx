@@ -24,8 +24,8 @@ export function UpgradeBanner({ className }: UpgradeBannerProps) {
       <Sparkles className="h-4 w-4 text-primary" />
       <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <span className="text-sm">
-          <strong className="text-foreground">Upgrade to ƷBI Voice Pro</strong>
-          <span className="text-muted-foreground"> — Unlock premium ElevenLabs voices and more features.</span>
+          <strong className="text-foreground">Upgrade to Kernel Plus</strong>
+          <span className="text-muted-foreground"> — Unlock premium voices, advanced customization, and more.</span>
         </span>
         <div className="flex items-center gap-2">
           <Button 

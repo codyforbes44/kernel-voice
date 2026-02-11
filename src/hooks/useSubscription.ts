@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { PRO_PRODUCT_IDS } from '@/lib/stripe';
+import { PAID_PRODUCT_IDS, getTierName, type TierName } from '@/lib/stripe';
 
 interface SubscriptionData {
   subscribed: boolean;
@@ -14,6 +14,7 @@ export interface UseSubscriptionReturn {
   isSubscribed: boolean;
   isLoading: boolean;
   productId: string | null;
+  tierName: TierName | null;
   subscriptionEnd: string | null;
   refetch: () => void;
   createCheckout: (priceId: string) => Promise<{ url?: string; error?: string }>;
@@ -95,14 +96,15 @@ export function useSubscription(): UseSubscriptionReturn {
     return { url: response.data.url };
   }, [session]);
 
-  const isProSubscribed = data?.subscribed && 
+  const isPaidSubscribed = data?.subscribed && 
     data.product_id && 
-    PRO_PRODUCT_IDS.includes(data.product_id as typeof PRO_PRODUCT_IDS[number]);
+    PAID_PRODUCT_IDS.includes(data.product_id as typeof PAID_PRODUCT_IDS[number]);
 
   return {
-    isSubscribed: isProSubscribed || false,
+    isSubscribed: isPaidSubscribed || false,
     isLoading,
     productId: data?.product_id || null,
+    tierName: getTierName(data?.product_id || null),
     subscriptionEnd: data?.subscription_end || null,
     refetch: () => refetch(),
     createCheckout,
