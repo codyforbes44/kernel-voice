@@ -52,7 +52,9 @@ export function YouTubePlayerCard() {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const playerHostRef = useRef<HTMLDivElement>(null);
   const playerDivId = useMemo(() => `yt-player-${Math.random().toString(36).slice(2, 8)}`, []);
+  const initialVideoId = useRef(PRESETS[0].id);
 
   const bars = useMemo(() => Array.from({ length: 40 }, () => 0.1 + Math.random() * 0.9), []);
 
@@ -69,27 +71,21 @@ export function YouTubePlayerCard() {
   }, []);
   const stopPoll = useCallback(() => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } }, []);
 
-  /* ── init player ── */
+  /* ── init player (once) ── */
   useEffect(() => {
     let destroyed = false;
     setLoading(true);
-    setReady(false);
-    setShowVideo(false);
-    setPlaying(false);
-    setProgress(0);
-    setDuration(0);
-    stopPoll();
 
     loadYTApi().then(() => {
-      if (destroyed) return;
-      // Destroy previous player
-      if (playerRef.current) { try { playerRef.current.destroy(); } catch {} playerRef.current = null; }
-      // Ensure target div exists
-      const target = document.getElementById(playerDivId);
-      if (!target) return;
+      if (destroyed || !playerHostRef.current) return;
+      // Create a fresh div for the player
+      const div = document.createElement('div');
+      div.id = playerDivId;
+      playerHostRef.current.innerHTML = '';
+      playerHostRef.current.appendChild(div);
 
       playerRef.current = new (window as any).YT.Player(playerDivId, {
-        videoId,
+        videoId: initialVideoId.current,
         width: '100%',
         height: '100%',
         playerVars: { autoplay: 0, controls: 0, modestbranding: 1, rel: 0, showinfo: 0, fs: 0, iv_load_policy: 3 },
@@ -117,7 +113,25 @@ export function YouTubePlayerCard() {
 
     return () => { destroyed = true; stopPoll(); if (playerRef.current) { try { playerRef.current.destroy(); } catch {} playerRef.current = null; } };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoId, playerDivId]);
+  }, [playerDivId]);
+
+  /* ── switch video via API (no player destroy) ── */
+  useEffect(() => {
+    const p = playerRef.current;
+    if (!p?.cueVideoById) return;
+    setShowVideo(false);
+    setPlaying(false);
+    setProgress(0);
+    setDuration(0);
+    stopPoll();
+    p.cueVideoById(videoId);
+    // Update duration once metadata loads
+    const tid = setTimeout(() => {
+      if (p?.getDuration) setDuration(p.getDuration() || 0);
+    }, 1000);
+    return () => clearTimeout(tid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoId]);
 
   /* ── volume sync ── */
   useEffect(() => { if (playerRef.current?.setVolume) playerRef.current.setVolume(volume[0]); }, [volume]);
@@ -188,7 +202,7 @@ export function YouTubePlayerCard() {
             </div>
           </button>
         )}
-        <div id={playerDivId} className="absolute inset-0 w-full h-full" style={{ opacity: showVideo ? 1 : 0, pointerEvents: showVideo ? 'auto' : 'none' }} />
+        <div ref={playerHostRef} className="absolute inset-0 w-full h-full" style={{ opacity: showVideo ? 1 : 0, pointerEvents: showVideo ? 'auto' : 'none' }} />
       </div>
 
       {/* Waveform bars */}
