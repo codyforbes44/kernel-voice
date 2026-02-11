@@ -2,17 +2,10 @@ import { useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Cloud, Loader2, Sparkles, Crown } from 'lucide-react';
+import { Cloud, Loader2, Sparkles, Crown, Check } from 'lucide-react';
 import { OpenAISettingsPanel } from './OpenAISettingsPanel';
 import { ElevenLabsSettingsPanel } from './ElevenLabsSettingsPanel';
 import { VAPISettingsPanel } from './VAPISettingsPanel';
@@ -31,6 +24,7 @@ import {
   providerInfo,
 } from './voiceTypes';
 import { useUserFeatures } from '@/hooks/useUserFeatures';
+import { cn } from '@/lib/utils';
 
 // Re-export types for backwards compatibility
 export type {
@@ -103,7 +97,6 @@ export function VoiceProviderSelector({
   const availableProviders = useMemo(() => {
     const providers: VoiceProvider[] = ['openai'];
     
-    // Add premium providers if user has the feature (Pro tier grants access to all)
     if (hasFeature('elevenlabs_voice')) {
       providers.push('elevenlabs');
       providers.push('vapi');
@@ -113,6 +106,7 @@ export function VoiceProviderSelector({
     return providers;
   }, [hasFeature]);
 
+  const allProviders: VoiceProvider[] = ['openai', 'elevenlabs', 'vapi', 'gemini'];
   const hasPremiumAccess = hasFeature('elevenlabs_voice');
 
   const withSync = async (fn: () => Promise<void>) => {
@@ -124,7 +118,6 @@ export function VoiceProviderSelector({
     try {
       await fn();
       
-      // Debounce toast to avoid spam on rapid changes
       if (toastTimeoutRef.current) {
         clearTimeout(toastTimeoutRef.current);
       }
@@ -140,6 +133,9 @@ export function VoiceProviderSelector({
   };
 
   const handleProviderChange = async (newProvider: VoiceProvider) => {
+    if (disabled || saving || featuresLoading) return;
+    if (!availableProviders.includes(newProvider)) return;
+    
     onChange(newProvider);
     
     if (!isAuthenticated) return;
@@ -155,7 +151,6 @@ export function VoiceProviderSelector({
         .update({ voice_provider: newProvider })
         .eq('id', user.id);
       
-      // Debounce toast for provider change too
       if (toastTimeoutRef.current) {
         clearTimeout(toastTimeoutRef.current);
       }
@@ -234,87 +229,91 @@ export function VoiceProviderSelector({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Provider Selection */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="voice-provider" className="text-sm font-medium">
-            Voice Provider
-          </Label>
-          {isAuthenticated && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              {syncing ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>Syncing...</span>
-                </>
-              ) : (
-                <>
-                  <Cloud className="h-3 w-3" />
-                  <span>Synced</span>
-                </>
-              )}
-            </div>
+    <div className="space-y-3">
+      {/* Sync indicator */}
+      {isAuthenticated && (
+        <div className="flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
+          {syncing ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Syncing…</span>
+            </>
+          ) : (
+            <>
+              <Cloud className="h-3 w-3" />
+              <span>Synced</span>
+            </>
           )}
         </div>
-        <Select
-          value={value}
-          onValueChange={(v) => handleProviderChange(v as VoiceProvider)}
-          disabled={disabled || saving || featuresLoading}
-        >
-          <SelectTrigger id="voice-provider" className="w-full">
-            <SelectValue placeholder="Select voice provider" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableProviders.map((key) => {
-              const info = providerInfo[key];
-              return (
-                <SelectItem key={key} value={key}>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{info.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      - {info.description}
-                    </span>
-                    {info.isPremium && (
-                      <Badge variant="secondary" className="text-xs ml-1">
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        Premium
-                      </Badge>
-                    )}
-                  </div>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-        
-        {/* Show upgrade prompt if premium providers are not available */}
-        {!hasPremiumAccess && isAuthenticated && (
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-muted-foreground flex items-center">
-              <Crown className="h-3 w-3 mr-1 text-primary" />
-              Premium voices available with ƷBI Voice Pro
-            </p>
-            <Button 
-              variant="link" 
-              size="sm" 
-              className="h-auto p-0 text-xs"
-              onClick={() => navigate('/pricing')}
+      )}
+
+      {/* Provider Tiles */}
+      <div className="grid grid-cols-2 gap-1.5">
+        {allProviders.map((key) => {
+          const info = providerInfo[key];
+          const isActive = value === key;
+          const isLocked = !availableProviders.includes(key);
+
+          return (
+            <button
+              key={key}
+              onClick={() => !isLocked && handleProviderChange(key)}
+              disabled={disabled || saving || featuresLoading}
+              className={cn(
+                'relative flex flex-col items-start gap-0.5 rounded-lg border p-2.5 text-left transition-all',
+                isActive
+                  ? 'border-primary/50 bg-primary/8 ring-1 ring-primary/20'
+                  : isLocked
+                    ? 'border-border/50 opacity-50 cursor-not-allowed'
+                    : 'border-border hover:border-primary/30 hover:bg-muted/50 cursor-pointer',
+                (disabled || saving) && 'opacity-50 cursor-not-allowed'
+              )}
             >
-              <Sparkles className="h-3 w-3 mr-1" />
-              Upgrade
-            </Button>
-          </div>
-        )}
-        
-        {/* Feature badges */}
-        <div className="flex flex-wrap gap-1">
-          {providerInfo[value].features.map((feature) => (
-            <Badge key={feature} variant="secondary" className="text-xs">
-              {feature}
-            </Badge>
-          ))}
+              {/* Active check */}
+              {isActive && (
+                <div className="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                  <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                </div>
+              )}
+              {/* Premium lock */}
+              {isLocked && (
+                <div className="absolute top-1.5 right-1.5">
+                  <Crown className="h-3 w-3 text-muted-foreground" />
+                </div>
+              )}
+              <span className="text-xs font-semibold leading-tight">{info.name}</span>
+              <span className="text-[10px] text-muted-foreground leading-tight">{info.description}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Upgrade prompt */}
+      {!hasPremiumAccess && isAuthenticated && (
+        <div className="flex items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5">
+          <Crown className="h-3 w-3 text-primary shrink-0" />
+          <p className="text-[10px] text-muted-foreground flex-1">
+            Premium voices with Pro
+          </p>
+          <Button 
+            variant="link" 
+            size="sm" 
+            className="h-auto p-0 text-[10px]"
+            onClick={() => navigate('/pricing')}
+          >
+            <Sparkles className="h-3 w-3 mr-0.5" />
+            Upgrade
+          </Button>
         </div>
+      )}
+
+      {/* Feature tags */}
+      <div className="flex flex-wrap gap-1">
+        {providerInfo[value].features.map((feature) => (
+          <Badge key={feature} variant="secondary" className="text-[10px] px-1.5 py-0 h-5 font-normal">
+            {feature}
+          </Badge>
+        ))}
       </div>
 
       {/* Provider-specific Settings */}
