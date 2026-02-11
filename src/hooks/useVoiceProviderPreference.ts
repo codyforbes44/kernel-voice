@@ -87,8 +87,9 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
       }
 
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user;
+        if (!currentUser) {
           setLoading(false);
           return;
         }
@@ -96,7 +97,7 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
         const { data } = await supabase
           .from('profiles')
           .select('voice_provider, openai_voice, openai_settings')
-          .eq('id', user.id)
+          .eq('id', currentUser.id)
           .maybeSingle();
 
         if (data) {

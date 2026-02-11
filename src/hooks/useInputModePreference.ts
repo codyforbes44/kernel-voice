@@ -21,8 +21,9 @@ export function useInputModePreference(isAuthenticated: boolean) {
       }
 
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user;
+        if (!currentUser) {
           setLoading(false);
           return;
         }
@@ -30,7 +31,7 @@ export function useInputModePreference(isAuthenticated: boolean) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('input_mode')
-          .eq('id', user.id)
+          .eq('id', currentUser.id)
           .single();
 
         if (profile?.input_mode && ['voice', 'text', 'combined'].includes(profile.input_mode)) {
@@ -55,13 +56,14 @@ export function useInputModePreference(isAuthenticated: boolean) {
     if (!isAuthenticated) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user;
+      if (!currentUser) return;
 
       await supabase
         .from('profiles')
         .update({ input_mode: mode })
-        .eq('id', user.id);
+        .eq('id', currentUser.id);
     } catch (error) {
       console.error('Error saving input mode preference:', error);
     }
