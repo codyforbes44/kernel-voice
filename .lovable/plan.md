@@ -1,46 +1,60 @@
 
-
-# Fix: Ensure Agent Cannot Hear During Pause
+# Persist Voice Transcripts for Admin Visibility
 
 ## Problem
+Voice conversations conducted over WebRTC (OpenAI Realtime, ElevenLabs, VAPI, Gemini Live) are never saved to the database. Transcripts exist only in React state and disappear when the session ends. Admins cannot review or manage voice interactions.
 
-The current pause implementation only sets React state flags (`isMuted = true`, `volume = 0`) but these flags are **never applied** to the actual audio infrastructure. The WebRTC microphone track continues streaming audio to the AI provider, and the output `<audio>` element volume is unchanged. The agent can still hear the user even after "pause."
+## Solution
+Save voice transcripts to the existing `conversations` and `messages` tables when a voice session ends, reusing the same schema and admin UI that already works for text-based chat.
 
-## Root Cause
+## How It Works
 
-- `isMuted` is a UI-only boolean -- it changes icons/labels but never calls `mediaStreamTrack.enabled = false`
-- `setVolume(0)` updates React state but never sets `audioElement.volume = 0`
+1. When a voice session starts, create a conversation record in the database (if authenticated)
+2. When the session ends, batch-insert all accumulated transcripts as messages
+3. Admins see voice conversations alongside text conversations in the existing admin panel -- no new admin UI needed
 
-## Fix
+## Technical Changes
 
-### 1. `src/hooks/useOpenAIConversation.ts` -- expose mute/volume controls
+### 1. `src/hooks/useVoiceAssistant.ts` -- Save transcripts on session end
 
-- Add a `setMicEnabled(enabled: boolean)` method that sets `mediaStreamRef.current.getAudioTracks().forEach(t => t.enabled = enabled)`
-- Add a `setOutputVolume(vol: number)` method that sets `audioElRef.current.volume = vol`
-- Return both methods from the hook
+- On `startConversation`: if authenticated and no `conversationId` exists, create a new conversation record with a title like "Voice Session - [date]" and store the ID
+- On `endConversation`: before clearing state, batch-insert all `liveTranscripts` (user + assistant messages, excluding system markers like pause/resume) into the `messages` table linked to the conversation ID
+- Auto-generate a title from the first user transcript if the title is still the default
+- Skip persistence entirely for unauthenticated (guest) users -- their data stays ephemeral
 
-### 2. `src/hooks/useVoiceAssistant.ts` -- wire up real mute/volume
+### 2. `src/hooks/useTranscriptManager.ts` -- Expose raw transcript data
 
-- Call the provider's `setMicEnabled(false)` inside `pauseConversation()` and `setMicEnabled(true)` inside `resumeConversation()`
-- Call the provider's `setOutputVolume(0)` on pause and `setOutputVolume(volumeBeforePauseRef.current)` on resume
-- Also wire `toggleMute` to call `setMicEnabled` so the existing mute button works at the hardware level too
-- Do the same for ElevenLabs (the `@11labs/react` `useConversation` hook likely exposes a `setVolume` method -- we need to verify and use it)
+- Add a `getTranscriptsForSave()` method that returns transcripts filtered to only `user` and `assistant` roles (excluding `system` entries like pause/resume markers)
+- This keeps the save logic clean and avoids polluting the messages table with system metadata
 
-### 3. `src/hooks/useGeminiLiveConversation.ts` and `src/hooks/useVAPIConversation.ts`
+### 3. `src/pages/VoiceAssistant.tsx` -- Wire up conversation creation
 
-- Apply the same pattern: expose `setMicEnabled` and `setOutputVolume` so pause works for all providers
+- Pass the `conversationId` and `setConversationId` to the voice assistant hook (already exposed)
+- Ensure the ConversationHistory sidebar reflects voice sessions in real-time via the existing realtime subscription
 
-### 4. Verification points
+### 4. No database changes needed
 
-After the fix:
-- When paused, `mediaStreamTrack.enabled` is `false` -- the browser sends silence frames over WebRTC
-- When paused, `audioElement.volume` is `0` -- no agent audio is audible
-- When resumed, both are restored to their previous values
-- The wake word detection (browser SpeechRecognition API) operates on a **separate** audio pipeline and is unaffected by disabling the WebRTC track
+- The existing `conversations` and `messages` tables already support this use case
+- RLS policies already allow users to insert into their own conversations and messages
+- Admin RLS policies already grant SELECT on all conversations and messages
 
-## What stays the same
+### 5. No admin UI changes needed
 
-- The wake word detection for resume phrases continues to work independently (it uses the browser's SpeechRecognition API, not the WebRTC stream)
-- The UI state flags (`isPaused`, `isMuted`) and visual indicators remain as-is
-- The WebRTC connection stays alive throughout
+- The existing `/admin/conversations` page with ConversationPreview already displays all conversations and their messages
+- Voice conversations will appear alongside text conversations with their full transcript history
 
+## What Gets Saved
+
+| Content | Saved? | Notes |
+|---------|--------|-------|
+| User speech transcripts | Yes | Stored as `role: 'user'` messages |
+| Assistant responses | Yes | Stored as `role: 'assistant'` messages |
+| System markers (pause/resume) | No | Filtered out before save |
+| Guest conversations | No | Not authenticated, no persistence |
+| Audio files | No | Only text transcripts are saved |
+
+## Edge Cases
+
+- If a session disconnects unexpectedly (browser crash, network loss), transcripts in memory are lost. A periodic auto-save (every N messages) will be added as a safeguard.
+- Very short sessions (no user messages) will not create a conversation record to avoid clutter.
+- The `updated_at` timestamp on the conversation will be set to the session end time.
