@@ -5,12 +5,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const MAX_CONTEXT_MESSAGES = 50;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-
-  const MAX_CONTEXT_MESSAGES = 50;
 
   try {
     const { messages, conversationId, userId, stream = false } = await req.json();
@@ -20,13 +20,14 @@ Deno.serve(async (req) => {
       throw new Error('AI service not configured');
     }
 
+    // Create Supabase client once and reuse
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     // Get conversation context if conversationId provided
     let conversationContext: Array<{ role: string; content: string }> = [];
     if (conversationId) {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
       const { data: previousMessages } = await supabase
         .from('messages')
         .select('role, content')
@@ -114,17 +115,13 @@ Deno.serve(async (req) => {
 
     // Save message to database if conversationId and userId provided
     if (conversationId && userId) {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabaseClient = createClient(supabaseUrl, supabaseKey);
-
       // Get the last user message
       const lastUserMessage = messages.length > 0 && messages[messages.length - 1].role === 'user'
         ? messages[messages.length - 1].content
         : '';
 
       // Save both user message and assistant response
-      await supabaseClient
+      await supabase
         .from('messages')
         .insert([
           ...(lastUserMessage ? [{
@@ -140,7 +137,7 @@ Deno.serve(async (req) => {
         ]);
 
       // Auto-generate title from first message if still default
-      const { data: conv } = await supabaseClient
+      const { data: conv } = await supabase
         .from('conversations')
         .select('title')
         .eq('id', conversationId)
@@ -148,7 +145,7 @@ Deno.serve(async (req) => {
 
       if (conv?.title === 'New Conversation' && lastUserMessage) {
         const title = lastUserMessage.substring(0, 45) + (lastUserMessage.length > 45 ? '...' : '');
-        await supabaseClient
+        await supabase
           .from('conversations')
           .update({ 
             title,
@@ -156,8 +153,7 @@ Deno.serve(async (req) => {
           })
           .eq('id', conversationId);
       } else {
-        // Just update timestamp
-        await supabaseClient
+        await supabase
           .from('conversations')
           .update({ updated_at: new Date().toISOString() })
           .eq('id', conversationId);

@@ -13,6 +13,7 @@ export const AnimatedHeroBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animationRef = useRef<number>();
+  const isVisibleRef = useRef(true);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -20,6 +21,18 @@ export const AnimatedHeroBackground = () => {
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // IntersectionObserver to pause animation when off-screen
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisibleRef.current = entry.isIntersecting;
+        if (entry.isIntersecting && !animationRef.current) {
+          animate();
+        }
+      },
+      { threshold: 0 }
+    );
+    observer.observe(canvas);
 
     const resizeCanvas = () => {
       const parent = canvas.parentElement;
@@ -50,7 +63,6 @@ export const AnimatedHeroBackground = () => {
       ctx.strokeStyle = isDark ? 'rgba(0, 255, 255, 0.03)' : 'rgba(0, 200, 200, 0.05)';
       ctx.lineWidth = 1;
 
-      // Vertical lines
       for (let x = 0; x <= canvas.width; x += gridSize) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
@@ -58,7 +70,6 @@ export const AnimatedHeroBackground = () => {
         ctx.stroke();
       }
 
-      // Horizontal lines
       for (let y = 0; y <= canvas.height; y += gridSize) {
         ctx.beginPath();
         ctx.moveTo(0, y);
@@ -71,17 +82,14 @@ export const AnimatedHeroBackground = () => {
       const isDark = document.documentElement.classList.contains('dark');
       
       particlesRef.current.forEach((particle) => {
-        // Update position
         particle.x += particle.vx;
         particle.y += particle.vy;
 
-        // Wrap around edges
         if (particle.x < 0) particle.x = canvas.width;
         if (particle.x > canvas.width) particle.x = 0;
         if (particle.y < 0) particle.y = canvas.height;
         if (particle.y > canvas.height) particle.y = 0;
 
-        // Draw particle
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fillStyle = isDark 
@@ -89,7 +97,6 @@ export const AnimatedHeroBackground = () => {
           : `rgba(0, 200, 200, ${particle.opacity * 0.4})`;
         ctx.fill();
 
-        // Draw glow for larger particles
         if (particle.size > 1.5) {
           const gradient = ctx.createRadialGradient(
             particle.x, particle.y, 0,
@@ -107,7 +114,6 @@ export const AnimatedHeroBackground = () => {
         }
       });
 
-      // Draw connections between nearby particles
       particlesRef.current.forEach((p1, i) => {
         particlesRef.current.slice(i + 1).forEach((p2) => {
           const dx = p1.x - p2.x;
@@ -130,6 +136,10 @@ export const AnimatedHeroBackground = () => {
     };
 
     const animate = () => {
+      if (!isVisibleRef.current) {
+        animationRef.current = undefined;
+        return;
+      }
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawGrid();
       drawParticles();
@@ -139,6 +149,7 @@ export const AnimatedHeroBackground = () => {
     animate();
 
     return () => {
+      observer.disconnect();
       window.removeEventListener('resize', resizeCanvas);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);

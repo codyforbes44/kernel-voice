@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, Plus, Trash2 } from 'lucide-react';
@@ -38,18 +39,37 @@ const ConversationHistory = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     loadConversations();
-    subscribeToConversations();
+
+    // Use unique channel name to prevent collisions
+    const channelName = `conversations-${user?.id ?? 'anon'}-${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+        },
+        () => {
+          loadConversations();
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
 
     return () => {
-      supabase.channel('conversations').unsubscribe();
+      channel.unsubscribe();
     };
-  }, []);
+  }, [user?.id]);
 
   const loadConversations = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setLoading(false);
       return;
@@ -70,25 +90,7 @@ const ConversationHistory = ({
     setLoading(false);
   };
 
-  const subscribeToConversations = () => {
-    const channel = supabase
-      .channel('conversations')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-        },
-        () => {
-          loadConversations();
-        }
-      )
-      .subscribe();
-  };
-
   const createNewConversation = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast({
         title: 'Authentication Required',
@@ -119,13 +121,11 @@ const ConversationHistory = ({
   };
 
   const deleteConversation = async (id: string) => {
-    // Delete all messages in the conversation first
     await supabase
       .from('messages')
       .delete()
       .eq('conversation_id', id);
 
-    // Delete the conversation
     const { error } = await supabase
       .from('conversations')
       .delete()

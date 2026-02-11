@@ -20,17 +20,47 @@ const MessageHistory = ({ conversationId }: MessageHistoryProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
+    // Cleanup previous channel
+    if (channelRef.current) {
+      channelRef.current.unsubscribe();
+      channelRef.current = null;
+    }
+
     if (conversationId) {
       loadMessages();
-      subscribeToMessages();
+
+      // Use unique channel name with conversation ID
+      const channelName = `messages-${conversationId}`;
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => {
+            const newMessage = payload.new as Message;
+            setMessages((prev) => [...prev, newMessage]);
+          }
+        )
+        .subscribe();
+
+      channelRef.current = channel;
     } else {
       setMessages([]);
     }
 
     return () => {
-      supabase.channel('messages').unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        channelRef.current = null;
+      }
     };
   }, [conversationId]);
 
@@ -57,31 +87,6 @@ const MessageHistory = ({ conversationId }: MessageHistoryProps) => {
       setMessages((data || []) as Message[]);
     }
     setLoading(false);
-  };
-
-  const subscribeToMessages = () => {
-    if (!conversationId) return;
-
-    const channel = supabase
-      .channel('messages')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const newMessage = payload.new as Message;
-          setMessages((prev) => [...prev, newMessage]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      channel.unsubscribe();
-    };
   };
 
   if (!conversationId) {
