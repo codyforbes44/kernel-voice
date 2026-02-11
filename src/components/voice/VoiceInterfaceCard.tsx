@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import { MessageSquare as MessageIcon } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ConnectionStatusBadge } from '@/components/voice/ConnectionStatusBadge';
 import { VoiceControlPanel } from '@/components/voice/VoiceControlPanel';
@@ -37,6 +36,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
   isReady, isAuthenticated, isMobile,
   isWakeWordListening, isWakeWordSupported, wakeWordLastHeard,
   onSaveAgent, isPaused, onResume,
+  onToggleSettings, settingsOpen,
 }: VoiceInterfaceCardProps) {
   const showVoiceInterface = inputMode === 'voice' || inputMode === 'combined';
   const showTextInput = inputMode === 'text' || inputMode === 'combined';
@@ -106,37 +106,15 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
               </SheetContent>
             </Sheet>
           ) : (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" disabled={isConnected} className="min-h-[44px] min-w-[44px]">
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 max-h-[70vh] p-0" align="end">
-                <ScrollArea className="max-h-[70vh] p-4">
-                  <VoiceSettingsPanel
-                    voiceProvider={voiceProvider}
-                    onVoiceProviderChange={setVoiceProvider}
-                    openaiVoice={openaiVoice}
-                    onOpenAIVoiceChange={setOpenAIVoice}
-                    openaiSettings={openaiSettings}
-                    onOpenAISettingsChange={setOpenAISettings}
-                    elevenlabsSettings={elevenlabsSettings}
-                    onElevenLabsSettingsChange={setElevenLabsSettings}
-                    geminiLiveSettings={geminiLiveSettings}
-                    onGeminiLiveSettingsChange={setGeminiLiveSettings}
-                    systemPrompt={systemPrompt}
-                    onSystemPromptChange={setSystemPrompt}
-                    inputMode={inputMode}
-                    onInputModeChange={setInputMode}
-                    isConnected={isConnected}
-                    providerLoading={providerLoading}
-                    isAuthenticated={isAuthenticated}
-                    onSaveAgent={onSaveAgent}
-                  />
-                </ScrollArea>
-              </PopoverContent>
-            </Popover>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={isConnected}
+              className={`min-h-[44px] min-w-[44px] ${settingsOpen ? 'bg-accent text-accent-foreground' : ''}`}
+              onClick={onToggleSettings}
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
           )}
         </div>
       </div>

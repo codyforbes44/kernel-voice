@@ -94,4 +94,6 @@ export interface VoiceInterfaceCardProps
   isPaused: boolean;
   onResume: () => void;
   onSaveAgent?: () => void;
+  onToggleSettings?: () => void;
+  settingsOpen?: boolean;
 }

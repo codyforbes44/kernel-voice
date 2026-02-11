@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Upload, Plus } from 'lucide-react';
+import { MessageSquare, Upload, Plus, X } from 'lucide-react';
 import ConversationHistory from '@/components/voice/ConversationHistory';
 import DocumentUpload from '@/components/voice/DocumentUpload';
 import MessageHistory from '@/components/voice/MessageHistory';
@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/sidebar';
 import RegistrationPromptModal from '@/components/voice/RegistrationPromptModal';
 import { LiveTranscripts } from '@/components/voice/LiveTranscripts';
+import { VoiceSettingsPanel } from '@/components/voice/VoiceSettingsPanel';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { GuestModeBanner } from '@/components/voice/GuestModeBanner';
 import { ConversationBanner } from '@/components/voice/ConversationBanner';
 import { VoiceInterfaceCard } from '@/components/voice/VoiceInterfaceCard';
@@ -40,7 +42,7 @@ const VoiceAssistant = () => {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<SavedAgent | null>(null);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
-  
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const {
     isAuthenticated,
     conversationId,
@@ -215,6 +217,8 @@ const VoiceAssistant = () => {
     isWakeWordListening, isWakeWordSupported, wakeWordLastHeard,
     onSaveAgent: () => { setEditingAgent(null); setSaveDialogOpen(true); },
     isPaused, onResume: resumeConversation,
+    onToggleSettings: () => setSettingsOpen(prev => !prev),
+    settingsOpen,
   }), [
     voiceProvider, setVoiceProvider, openaiVoice, setOpenAIVoice, openaiSettings, setOpenAISettings,
     elevenlabsSettings, setElevenLabsSettings, geminiLiveSettings, setGeminiLiveSettings,
@@ -224,7 +228,7 @@ const VoiceAssistant = () => {
     inputMode, setInputMode, startConversation, endConversation, retryConnection, clearConnectionError,
     sendTextMessage, isProcessingText, activeToolCall, permissionState, requestPermission, isReady,
     isAuthenticated, isMobile, isWakeWordListening, isWakeWordSupported, wakeWordLastHeard,
-    isPaused, resumeConversation,
+    isPaused, resumeConversation, settingsOpen,
   ]);
 
   // Shared dialogs
@@ -371,7 +375,7 @@ const VoiceAssistant = () => {
               </Sidebar>
             )}
 
-            <SidebarInset>
+            <SidebarInset className="flex-1 min-w-0">
               <main id="main-content" className="h-full overflow-y-auto scrollbar-hide">
                 <div className="container mx-auto px-4 py-8 max-w-4xl">
                   {isAuthenticated && <UpgradeBanner className="mb-4" />}
@@ -422,6 +426,46 @@ const VoiceAssistant = () => {
                 </div>
               </main>
             </SidebarInset>
+
+            {/* Right Settings Panel */}
+            <div
+              className={`border-l border-border bg-card transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0 ${
+                settingsOpen ? 'w-80' : 'w-0'
+              }`}
+            >
+              <div className="w-80 h-full flex flex-col">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+                  <h2 className="text-sm font-semibold">Settings</h2>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSettingsOpen(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <ScrollArea className="flex-1">
+                  <div className="p-4">
+                    <VoiceSettingsPanel
+                      voiceProvider={voiceProvider}
+                      onVoiceProviderChange={setVoiceProvider}
+                      openaiVoice={openaiVoice}
+                      onOpenAIVoiceChange={setOpenAIVoice}
+                      openaiSettings={openaiSettings}
+                      onOpenAISettingsChange={setOpenAISettings}
+                      elevenlabsSettings={elevenlabsSettings}
+                      onElevenLabsSettingsChange={setElevenLabsSettings}
+                      geminiLiveSettings={geminiLiveSettings}
+                      onGeminiLiveSettingsChange={setGeminiLiveSettings}
+                      systemPrompt={systemPrompt}
+                      onSystemPromptChange={setSystemPrompt}
+                      inputMode={inputMode}
+                      onInputModeChange={setInputMode}
+                      isConnected={isConnected}
+                      providerLoading={providerLoading}
+                      isAuthenticated={isAuthenticated}
+                      onSaveAgent={() => { setEditingAgent(null); setSaveDialogOpen(true); }}
+                    />
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
           </div>
         </SidebarProvider>
       </div>
