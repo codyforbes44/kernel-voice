@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { WaveformCard } from '@/components/showcase/WaveformCard';
+import { YouTubePlayerCard } from '@/components/showcase/YouTubePlayerCard';
 import { VoiceFillCard } from '@/components/showcase/VoiceFillCard';
 import { AgentOrbsCard } from '@/components/showcase/AgentOrbsCard';
 import { CharacterSelectCard } from '@/components/showcase/CharacterSelectCard';
@@ -32,7 +33,7 @@ export default function Showcase() {
       showHeader={false}
       className="dark"
     >
-      <div className="px-4 pt-6 pb-20 safe-area-inset">
+      <div className="px-4 pt-10 pb-20 safe-area-inset">
         {/* Hero strip */}
         <div className="mx-auto max-w-7xl flex items-center gap-3 mb-6 sm:mb-8">
           <img src={logo} alt="ƷBI Voice" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg" />
@@ -47,9 +48,10 @@ export default function Showcase() {
           variants={stagger}
           initial="hidden"
           animate="show"
-          className="mx-auto max-w-7xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:grid-rows-[repeat(4,minmax(0,1fr))] lg:min-h-[calc(100vh-120px)]"
+          className="mx-auto max-w-7xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:grid-rows-[repeat(5,minmax(0,1fr))] lg:min-h-[calc(100vh-120px)]"
         >
           {/* Row 1: Input-focused */}
+          <motion.div variants={fadeUp}><YouTubePlayerCard /></motion.div>
           <motion.div variants={fadeUp}><WaveformCard /></motion.div>
           <motion.div variants={fadeUp}><VoiceFillCard /></motion.div>
           <motion.div variants={fadeUp}><AgentOrbsCard /></motion.div>
