@@ -1,211 +1,169 @@
 
-# Best-in-Class UX Refactor -- Mobile-First
+
+# ElevenLabs UI Integration -- Best-in-Class Voice UX
 
 ## Overview
 
-A comprehensive refactor across all pages and components to achieve best-in-class UX with mobile-first design, consistent patterns, improved accessibility, and polished interactions.
+Integrate production-grade voice UX patterns from the ElevenLabs UI library into the voice assistant, replacing custom implementations with polished, audio-reactive equivalents. Includes API modernization, expanded language support, and a chat-style conversation interface matching the reference screenshot.
 
 ---
 
-## 1. App-Level Cleanup
+## 1. Canvas-Based Waveform Visualizer
 
-**`src/App.css`** -- Delete all contents. This file contains default Vite boilerplate CSS (`#root max-width`, `.logo`, `.card`, `.read-the-docs`) that conflicts with the Tailwind-based design system. The `#root` max-width restriction (1280px) actively clips the layout.
+**Problem**: Current `WaveformOrb` uses SVG with `Date.now()` in render -- no smooth animation, no real audio reactivity.
 
-**`src/App.tsx`** -- Remove the `#root` max-width constraint by deleting the App.css import if present, or ensuring `#root` has no constraining styles. Wrap admin routes with `ProtectedRoute` for security consistency.
+**Solution**: Build a canvas-based `LiveWaveformCanvas` component using `requestAnimationFrame` and the audio level data already available via props.
 
----
+- Smooth scrolling bar visualization matching the reference screenshot's waveform style
+- Configurable bar width, gap, color, and fade edges
+- Static mode (for playback) and live mode (for mic input)
+- HiDPI canvas rendering for crisp visuals on retina displays
 
-## 2. Header -- Mobile Polish
-
-**`src/components/layout/Header.tsx`**:
-- Add `aria-label="Main navigation"` to nav elements
-- Add active indicator animation (underline or dot) for current route instead of just `variant="secondary"`
-- Add smooth scroll-to-top on logo click when already on `/`
-- Ensure the mobile hamburger menu closes after navigation (it does via DropdownMenu, but verify)
+**New file**: `src/components/voice/LiveWaveformCanvas.tsx`
 
 ---
 
-## 3. Voice Assistant Page -- Major UX Overhaul
+## 2. Agent State Orb with Visual Transitions
 
-**`src/pages/VoiceAssistant.tsx`**:
+**Problem**: Orb has basic CSS gradient states but no animated transitions or distinct agent states (Idle / Listening / Talking / Thinking / Paused) as shown in the reference.
 
-### Mobile Layout Improvements
-- Use `100dvh` instead of `min-h-screen` to avoid mobile address bar issues
-- Remove redundant action buttons row (Conversations + Upload); integrate them into a single bottom sheet triggered by a FAB (floating action button) or swipe gesture
-- Move the SavedAgentsList to a collapsible horizontal strip with better touch targets (current 140px cards are good but the overflow menu button is only 24px -- too small for mobile)
-- Make the voice orb area take more vertical space on mobile for a more immersive feel
-- Add pull-to-refresh gesture support for conversation reload
+**Solution**: Replace the orb implementation in `VoiceControlPanel.tsx` with a Framer Motion-powered orb that:
 
-### Desktop Layout Improvements
-- Increase sidebar width for better readability
-- Add keyboard shortcut hints in the sidebar trigger tooltip
+- Derives state: `idle`, `listening`, `talking`, `thinking` (tool execution), `paused`
+- Uses layered radial gradients with smooth color transitions per state
+- Adds animated ring/pulse effects (cyan for listening, green/primary for talking, amber for paused, purple for thinking)
+- Displays a state label below the orb (e.g., "Listening", "Speaking") matching the reference
+- Make the entire orb tappable on mobile as a start/stop toggle
+- Replace `WaveformOrb` with the new `LiveWaveformCanvas` as a ring around the orb
 
----
-
-## 4. Voice Control Panel -- Interaction Polish
-
-**`src/components/voice/VoiceControlPanel.tsx`**:
-- The "End" button label on mobile (`isMobile ? 'End' : 'Continue Later'`) is confusing -- rename to "End Session" for clarity
-- Group mute/volume buttons with a visual separator from the end/resume buttons
-- Add haptic feedback trigger (via `navigator.vibrate`) on state changes (start, pause, resume, end) for mobile
-- Add a volume slider on mobile too (currently hidden with `!isMobile`) -- place it inline or in a small expandable section
-- Animate the orb more smoothly -- the `WaveformOrb` SVG uses `Date.now()` in render which doesn't animate (static snapshot). Use `requestAnimationFrame` or CSS animations instead
+**Edit**: `src/components/voice/VoiceControlPanel.tsx`, `src/components/voice/AudioLevelMeter.tsx`
 
 ---
 
-## 5. Voice Interface Card -- Simplification
+## 3. Conversation Container with Auto-Scroll and Empty State
 
-**`src/components/voice/VoiceInterfaceCard.tsx`**:
-- The card has too much visual weight on mobile. Reduce padding from `p-4` to `p-3` on mobile
-- The title "ZBI Voice" in the card header is redundant (already in the Header). Remove it on mobile, keep on desktop
-- Make the Settings sheet trigger more discoverable -- add a label "Settings" next to the icon on mobile
+**Problem**: `LiveTranscripts.tsx` force-scrolls on every update (frustrating when reading history), no scroll-to-bottom button, basic empty state.
 
----
+**Solution**: Inspired by the reference conversation UI:
 
-## 6. Input Mode Selector -- Mobile Touch UX
+- Add `IntersectionObserver` sentinel at bottom to detect if user is scrolled to bottom
+- Auto-scroll only when already at bottom; show a "scroll to bottom" (ChevronDown) button when scrolled up
+- Add a proper empty state with orb icon and "Start a conversation" text matching the reference
+- Add Framer Motion `AnimatePresence` for message entry animation (fade + slide up)
+- Replace the blinking cursor for partial transcripts with animated typing dots
+- Show a "Thinking..." shimmer when `activeToolCall` is present
 
-**`src/components/voice/InputModeSelector.tsx`**:
-- Tooltips don't work on mobile (hover-only). Add visible labels below each icon on mobile, or use `aria-label` with a long-press tooltip alternative
-- Increase toggle item size to 48px minimum touch target (currently relying on parent padding)
-
----
-
-## 7. Live Transcripts -- Readability
-
-**`src/components/voice/LiveTranscripts.tsx`**:
-- Increase the mobile height from `h-32` to `h-40` for better readability
-- Add a subtle fade-out gradient at the top of the scroll area to indicate scrollable content
-- Add timestamps to messages (relative, e.g., "2m ago") on long-press or always visible in compact form
+**Edit**: `src/components/voice/LiveTranscripts.tsx`
 
 ---
 
-## 8. Text Message Input -- Mobile Keyboard UX
+## 4. Inline Volume Control
 
-**`src/components/voice/TextMessageInput.tsx`**:
-- Use a `textarea` instead of `input` with auto-grow behavior for multi-line messages
-- Add a character counter for long messages
-- Ensure the input stays visible above the mobile keyboard (use `scrollIntoView` on focus)
+**Problem**: Volume slider is hidden on mobile (collapsible) and detached on desktop.
 
----
+**Solution**: Match the reference's inline volume bar:
 
-## 9. Saved Agents List -- Touch Targets
+- Render an always-visible inline volume slider below the orb (both mobile and desktop) when connected
+- Show speaker icon, slider, and percentage label in one row (matching the reference: `speaker icon -- slider -- 70%`)
+- Remove the separate desktop slider and the mobile collapsible pattern
 
-**`src/components/voice/SavedAgentsList.tsx`**:
-- The overflow menu button is 24x24px (`h-6 w-6`) -- increase to 36x36px minimum
-- Show the menu on mobile by default (not opacity-0 with hover) since hover doesn't exist on touch
-- Add long-press to open context menu as an alternative
+**Edit**: `src/components/voice/VoiceControlPanel.tsx`
 
 ---
 
-## 10. Conversation History -- Swipe Actions
+## 5. Chat-Style Message Input with Voice Button
 
-**`src/components/voice/ConversationHistory.tsx`**:
-- The delete button is hover-only (`opacity-0 group-hover:opacity-100`) -- on mobile, add a visible delete icon or swipe-to-delete
-- Add a search/filter input for users with many conversations
-- Show a relative timestamp ("2 hours ago") instead of just the date
+**Problem**: Text input is a plain textarea with only a send button. No voice input option in text mode.
 
----
+**Solution**: Match the reference's input bar:
 
-## 11. Landing Page -- Performance & Polish
+- Add a microphone icon button alongside the send button
+- When pressed, use `useScribe` from `@elevenlabs/react` (already installed) to stream real-time transcription into the textarea
+- Show a "Listening..." indicator above the input while recording
+- Add a sparkle/magic button for AI suggestions (visual only, or connected to existing system prompt)
+- Input bar layout: `[textarea] [send] [mic] [sparkle]` matching the reference
 
-**`src/pages/LandingPage.tsx`**:
-- The animated hero background may cause jank on low-end mobile devices. Add `will-change: transform` and use `IntersectionObserver` to pause when offscreen (already partially done per memory)
-- Add `loading="lazy"` to the logo image
-- The CTA buttons stack vertically on mobile but could use more spacing
-- Add a testimonial or social proof section
+**Edit**: `src/components/voice/TextMessageInput.tsx`
 
 ---
 
-## 12. Auth Page -- Form UX
+## 6. Microphone Device Selector
 
-**`src/pages/Auth.tsx`**:
-- Add password strength indicator on signup
-- Add "Show password" toggle button
-- Auto-focus the email field on mount
-- Add transition animation between Sign In / Sign Up tabs
+**Problem**: No ability to select which microphone to use.
 
----
+**Solution**: Add a mic selector dropdown:
 
-## 13. Profile Page -- Mobile Layout
+- Uses `navigator.mediaDevices.enumerateDevices()` for audio input devices
+- Renders as a Select dropdown in the settings panel
+- Stores selected device ID in localStorage
+- Passes `deviceId` to `getUserMedia` constraints
 
-**`src/pages/Profile.tsx`**:
-- The avatar upload has a hover-only overlay (`opacity-0 group-hover:opacity-100`) -- on mobile this is invisible. Always show the camera icon overlay at reduced opacity, or add a "Change Photo" button below
-- Add a "Delete Account" section
-- Add input validation (display name length, format)
+**New file**: `src/components/voice/MicSelector.tsx`
+**Edit**: `src/components/voice/VoiceInterfaceCard.tsx`, `src/hooks/useMicrophonePermission.ts`
 
 ---
 
-## 14. Pricing Page -- Comparison UX
+## 7. Modernize Scribe Token Endpoint
 
-**`src/pages/Pricing.tsx`**:
-- Add feature comparison checkmarks in a table format on desktop
-- Animate the billing toggle with a smooth price transition
-- Add a "Most Popular" badge animation
+**Problem**: Legacy endpoint `/v1/speech-to-text/get-websocket-token` is deprecated.
 
----
+**Solution**: Update to `/v1/single-use-token/realtime_scribe` and remove unused `createClient` import.
 
-## 15. Install Page -- Better Guidance
-
-**`src/pages/Install.tsx`**:
-- Add device-specific illustrations or screenshots
-- Animate the installation steps with staggered entry
-- Add a "Not now, remind me later" dismissible option
+**Edit**: `supabase/functions/elevenlabs-scribe-token/index.ts`
 
 ---
 
-## 16. 404 Page -- Better Recovery
+## 8. Expand Language Support
 
-**`src/pages/NotFound.tsx`**:
-- Add suggested pages based on common routes
-- Add a search input to help find content
-- Add a fun animation or illustration
+**Problem**: Only 13 languages listed. ElevenLabs supports 70+.
 
----
+**Solution**: Expand to 30+ commonly used languages grouped by region:
 
-## 17. CSS / Theme Improvements
+- Europe: Dutch, Swedish, Norwegian, Danish, Finnish, Czech, Romanian, Hungarian, Turkish, Ukrainian, Greek
+- Asia: Thai, Vietnamese, Indonesian, Malay, Filipino, Bengali, Tamil
+- Middle East: Hebrew
+- Africa: Swahili
+- Group with `SelectGroup` + `SelectLabel` for region headers
+- Add a search/filter input at the top of the language selector
 
-**`src/index.css`**:
-- Add `scroll-behavior: smooth` to html
-- Add focus-visible styles for better keyboard navigation visibility
-- Add reduced-motion media query overrides for all animations
-
----
-
-## 18. Accessibility Audit
-
-Across all components:
-- Ensure all interactive elements have `aria-label` or visible labels
-- Add `role="status"` and `aria-live="polite"` to the connection status and transcript areas
-- Ensure color contrast meets WCAG AA (the cyan primary on white in light mode needs verification)
-- Add skip-to-content link in Header
+**Edit**: `src/components/voice/ElevenLabsSettingsPanel.tsx`
 
 ---
 
-## Technical Details
+## 9. Voice Button States
 
-### Files to Modify (priority order)
-1. `src/App.css` -- Clear boilerplate
-2. `src/index.css` -- Add global accessibility/motion styles
-3. `src/pages/VoiceAssistant.tsx` -- Mobile layout overhaul (100dvh, FAB, spacing)
-4. `src/components/voice/VoiceControlPanel.tsx` -- Touch targets, haptics, volume on mobile
-5. `src/components/voice/VoiceInterfaceCard.tsx` -- Simplify mobile header, reduce padding
-6. `src/components/voice/SavedAgentsList.tsx` -- Touch target sizes, mobile menu visibility
-7. `src/components/voice/ConversationHistory.tsx` -- Mobile delete UX, relative timestamps
-8. `src/components/voice/InputModeSelector.tsx` -- Mobile labels, touch targets
-9. `src/components/voice/LiveTranscripts.tsx` -- Height, fade gradient
-10. `src/components/voice/TextMessageInput.tsx` -- Auto-grow textarea
-11. `src/components/voice/AudioLevelMeter.tsx` -- Fix WaveformOrb animation
-12. `src/pages/Auth.tsx` -- Password toggle, strength indicator
-13. `src/pages/Profile.tsx` -- Mobile avatar UX
-14. `src/pages/LandingPage.tsx` -- Performance, lazy loading
-15. `src/pages/Pricing.tsx` -- Price transition animation
-16. `src/pages/Install.tsx` -- Step animations
-17. `src/pages/NotFound.tsx` -- Better recovery options
-18. `src/components/layout/Header.tsx` -- Accessibility, active indicators
-19. `src/components/voice/ConnectionStatusBadge.tsx` -- Mobile-friendly (no tooltip reliance)
-20. `src/components/voice/GuestModeBanner.tsx` -- Touch targets
+**Problem**: The "Start Conversation" button is a plain Button with no recording feedback.
+
+**Solution**: Multi-state voice button:
+
+- Idle: Mic icon with subtle pulse animation
+- Connecting: Spinner with "Connecting..." text
+- Recording (connected + listening): Inline miniature waveform bars inside the button
+- Speaking (AI talking): Animated equalizer bars
+- Keep separate End Session / Resume / Mute buttons but restyle with rounded pill shapes matching the reference
+
+**Edit**: `src/components/voice/VoiceControlPanel.tsx`
+
+---
+
+## Technical Summary
+
+### Files to Create
+1. `src/components/voice/LiveWaveformCanvas.tsx`
+2. `src/components/voice/MicSelector.tsx`
+
+### Files to Edit
+1. `supabase/functions/elevenlabs-scribe-token/index.ts` -- Update API endpoint
+2. `src/components/voice/VoiceControlPanel.tsx` -- Agent state orb, inline volume, voice button states
+3. `src/components/voice/AudioLevelMeter.tsx` -- Replace WaveformOrb with canvas component
+4. `src/components/voice/LiveTranscripts.tsx` -- Auto-scroll, empty state, message animation
+5. `src/components/voice/TextMessageInput.tsx` -- Voice input button, sparkle button
+6. `src/components/voice/ElevenLabsSettingsPanel.tsx` -- 30+ languages, grouped, searchable
+7. `src/components/voice/VoiceInterfaceCard.tsx` -- Wire MicSelector
+8. `src/hooks/useMicrophonePermission.ts` -- Accept deviceId
+
+### Dependencies
+No new dependencies. Uses existing `@elevenlabs/react` (useScribe), `framer-motion`, canvas APIs, and Web Audio API.
 
 ### No Database Changes Required
-### No New Dependencies Required
 
-All improvements use existing Tailwind utilities, Radix primitives, and native browser APIs (IntersectionObserver, navigator.vibrate, scrollIntoView).
