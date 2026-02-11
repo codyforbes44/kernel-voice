@@ -4,6 +4,7 @@ import { Settings } from 'lucide-react';
 import { MessageSquare as MessageIcon } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { ConnectionStatusBadge } from '@/components/voice/ConnectionStatusBadge';
 import { VoiceControlPanel } from '@/components/voice/VoiceControlPanel';
 import { VoiceSettingsPanel } from '@/components/voice/VoiceSettingsPanel';
@@ -72,12 +73,46 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
                   <span className="text-xs">Settings</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-auto max-h-[80vh] rounded-t-2xl">
-                <SheetHeader>
+              <SheetContent side="bottom" className="h-auto max-h-[85vh] rounded-t-2xl flex flex-col">
+                <SheetHeader className="flex-shrink-0">
                   <SheetTitle>Voice Settings</SheetTitle>
                   <SheetDescription>Configure your voice assistant preferences</SheetDescription>
                 </SheetHeader>
-                <div className="pt-4 pb-8">
+                <ScrollArea className="flex-1 overflow-y-auto -mx-6 px-6">
+                  <div className="pt-4 pb-8">
+                    <VoiceSettingsPanel
+                      voiceProvider={voiceProvider}
+                      onVoiceProviderChange={setVoiceProvider}
+                      openaiVoice={openaiVoice}
+                      onOpenAIVoiceChange={setOpenAIVoice}
+                      openaiSettings={openaiSettings}
+                      onOpenAISettingsChange={setOpenAISettings}
+                      elevenlabsSettings={elevenlabsSettings}
+                      onElevenLabsSettingsChange={setElevenLabsSettings}
+                      geminiLiveSettings={geminiLiveSettings}
+                      onGeminiLiveSettingsChange={setGeminiLiveSettings}
+                      systemPrompt={systemPrompt}
+                      onSystemPromptChange={setSystemPrompt}
+                      inputMode={inputMode}
+                      onInputModeChange={setInputMode}
+                      isConnected={isConnected}
+                      providerLoading={providerLoading}
+                      isAuthenticated={isAuthenticated}
+                      onSaveAgent={onSaveAgent}
+                    />
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" disabled={isConnected} className="min-h-[44px] min-w-[44px]">
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 max-h-[70vh] p-0" align="end">
+                <ScrollArea className="max-h-[70vh] p-4">
                   <VoiceSettingsPanel
                     voiceProvider={voiceProvider}
                     onVoiceProviderChange={setVoiceProvider}
@@ -98,37 +133,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
                     isAuthenticated={isAuthenticated}
                     onSaveAgent={onSaveAgent}
                   />
-                </div>
-              </SheetContent>
-            </Sheet>
-          ) : (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" disabled={isConnected} className="min-h-[44px] min-w-[44px]">
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" align="end">
-                <VoiceSettingsPanel
-                  voiceProvider={voiceProvider}
-                  onVoiceProviderChange={setVoiceProvider}
-                  openaiVoice={openaiVoice}
-                  onOpenAIVoiceChange={setOpenAIVoice}
-                  openaiSettings={openaiSettings}
-                  onOpenAISettingsChange={setOpenAISettings}
-                  elevenlabsSettings={elevenlabsSettings}
-                  onElevenLabsSettingsChange={setElevenLabsSettings}
-                  geminiLiveSettings={geminiLiveSettings}
-                  onGeminiLiveSettingsChange={setGeminiLiveSettings}
-                  systemPrompt={systemPrompt}
-                  onSystemPromptChange={setSystemPrompt}
-                  inputMode={inputMode}
-                  onInputModeChange={setInputMode}
-                  isConnected={isConnected}
-                  providerLoading={providerLoading}
-                  isAuthenticated={isAuthenticated}
-                  onSaveAgent={onSaveAgent}
-                />
+                </ScrollArea>
               </PopoverContent>
             </Popover>
           )}
