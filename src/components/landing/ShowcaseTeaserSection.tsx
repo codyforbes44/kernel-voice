@@ -29,7 +29,7 @@ export const ShowcaseTeaserSection = () => {
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Showcase</h2>
+          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Playground</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Explore interactive components built with our platform.
           </p>
@@ -66,7 +66,7 @@ export const ShowcaseTeaserSection = () => {
           transition={{ duration: 0.6, delay: 0.3 }}
         >
           <Button variant="outline" size="lg" onClick={() => navigate('/showcase')} className="px-8 py-6 text-lg">
-            Explore the Showcase
+            Explore the Playground
             <ChevronRight className="ml-2 h-5 w-5" />
           </Button>
         </motion.div>
