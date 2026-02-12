@@ -31,7 +31,10 @@ export function WidgetCodeSnippet({ widget, open, onClose }: WidgetCodeSnippetPr
   const voiceProvider = config.voiceProvider || 'native';
   const enableTTS = config.enableTTS === true;
   const ttsVoiceId = config.ttsVoiceId || 'EXAVITQu4vr4xnSDxMaL';
-  const needsSupabaseCredentials = (enableVoice && voiceProvider === 'elevenlabs') || enableTTS;
+  const enableVoiceConversation = config.enableVoiceConversation === true;
+  const elevenlabsAgentId = config.elevenlabsAgentId as string | undefined;
+  const elevenlabsVoiceId = config.elevenlabsVoiceId as string | undefined;
+  const needsSupabaseCredentials = (enableVoice && voiceProvider === 'elevenlabs') || enableTTS || enableVoiceConversation;
 
   const scriptEmbed = `<!-- ƷBI Voice AI Widget -->
 <script>
@@ -46,7 +49,10 @@ export function WidgetCodeSnippet({ widget, open, onClose }: WidgetCodeSnippetPr
     enableVoice: true,
     voiceProvider: '${voiceProvider}'` : ''}${enableTTS ? `,
     enableTTS: true,
-    ttsVoiceId: '${ttsVoiceId}'` : ''}${needsSupabaseCredentials ? `,
+    ttsVoiceId: '${ttsVoiceId}'` : ''}${enableVoiceConversation ? `,
+    enableVoiceConversation: true` : ''}${elevenlabsAgentId ? `,
+    elevenlabsAgentId: '${elevenlabsAgentId}'` : ''}${elevenlabsVoiceId ? `,
+    elevenlabsVoiceId: '${elevenlabsVoiceId}'` : ''}${needsSupabaseCredentials ? `,
     supabaseUrl: '${supabaseUrl}',
     supabaseKey: '${supabaseKey}'` : ''}
   };
@@ -55,7 +61,7 @@ export function WidgetCodeSnippet({ widget, open, onClose }: WidgetCodeSnippetPr
 
   const iframeEmbed = `<!-- ƷBI Voice AI Widget (iframe) -->
 <iframe
-  src="${baseUrl}/widget.html?apiKey=${widget.api_key}${enableVoice ? `&enableVoice=true&voiceProvider=${voiceProvider}` : ''}${enableTTS ? `&enableTTS=true&ttsVoiceId=${ttsVoiceId}` : ''}${needsSupabaseCredentials ? `&supabaseUrl=${encodeURIComponent(supabaseUrl)}&supabaseKey=${encodeURIComponent(supabaseKey)}` : ''}"
+  src="${baseUrl}/widget.html?apiKey=${widget.api_key}${enableVoice ? `&enableVoice=true&voiceProvider=${voiceProvider}` : ''}${enableTTS ? `&enableTTS=true&ttsVoiceId=${ttsVoiceId}` : ''}${enableVoiceConversation ? '&enableVoiceConversation=true' : ''}${elevenlabsAgentId ? `&elevenlabsAgentId=${encodeURIComponent(elevenlabsAgentId)}` : ''}${elevenlabsVoiceId ? `&elevenlabsVoiceId=${encodeURIComponent(elevenlabsVoiceId)}` : ''}${needsSupabaseCredentials ? `&supabaseUrl=${encodeURIComponent(supabaseUrl)}&supabaseKey=${encodeURIComponent(supabaseKey)}` : ''}"
   style="
     position: fixed;
     bottom: 20px;
@@ -82,7 +88,10 @@ function App() {
       enableVoice: true,
       voiceProvider: '${voiceProvider}'` : ''}${enableTTS ? `,
       enableTTS: true,
-      ttsVoiceId: '${ttsVoiceId}'` : ''}${needsSupabaseCredentials ? `,
+      ttsVoiceId: '${ttsVoiceId}'` : ''}${enableVoiceConversation ? `,
+      enableVoiceConversation: true` : ''}${elevenlabsAgentId ? `,
+      elevenlabsAgentId: '${elevenlabsAgentId}'` : ''}${elevenlabsVoiceId ? `,
+      elevenlabsVoiceId: '${elevenlabsVoiceId}'` : ''}${needsSupabaseCredentials ? `,
       supabaseUrl: '${supabaseUrl}',
       supabaseKey: '${supabaseKey}'` : ''}
     };
@@ -214,6 +223,9 @@ function App() {
             <p><code>position</code> - "bottom-right" or "bottom-left"</p>
             <p><code>enableVoice</code> - Enable voice input (true/false)</p>
             <p><code>voiceProvider</code> - "native" or "elevenlabs"</p>
+            <p><code>enableVoiceConversation</code> - Full voice conversation mode (true/false)</p>
+            <p><code>elevenlabsAgentId</code> - Custom ElevenLabs Agent ID</p>
+            <p><code>elevenlabsVoiceId</code> - Custom ElevenLabs Voice ID</p>
           </div>
         </div>
 
