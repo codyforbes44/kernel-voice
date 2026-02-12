@@ -4,6 +4,7 @@ import { MessageSquare, Upload, Plus, X } from 'lucide-react';
 import ConversationHistory from '@/components/voice/ConversationHistory';
 import DocumentUpload from '@/components/voice/DocumentUpload';
 import MessageHistory from '@/components/voice/MessageHistory';
+import { ConversationReceipt } from '@/components/voice/ConversationReceipt';
 import SEO from '@/components/SEO';
 import { Header } from '@/components/layout/Header';
 import { 
@@ -94,6 +95,7 @@ const VoiceAssistant = () => {
     activeToolCall,
     isPaused,
     resumeConversation,
+    lastSessionStats,
   } = useVoiceAssistant();
 
   // Wake word detection
@@ -237,7 +239,6 @@ const VoiceAssistant = () => {
       <RegistrationPromptModal 
         open={showRegistrationPrompt}
         onOpenChange={setShowRegistrationPrompt}
-        messageCount={guestMessages.length / 2}
       />
       <SaveAgentDialog
         open={saveDialogOpen}
@@ -304,6 +305,14 @@ const VoiceAssistant = () => {
                     isSpeaking={isSpeaking}
                   />
                 </div>
+              )}
+
+              {/* Conversation Receipt (mobile) */}
+              {isAuthenticated && lastSessionStats && !isConnected && (
+                <ConversationReceipt 
+                  stats={lastSessionStats} 
+                  onDismiss={() => {}} 
+                />
               )}
 
               {/* Message History for guests */}
@@ -418,6 +427,14 @@ const VoiceAssistant = () => {
                         isSpeaking={isSpeaking}
                       />
                     </div>
+                  )}
+
+                  {/* Conversation Receipt */}
+                  {isAuthenticated && lastSessionStats && !isConnected && (
+                    <ConversationReceipt 
+                      stats={lastSessionStats} 
+                      onDismiss={() => {}} 
+                    />
                   )}
 
                   <div className="mt-6">

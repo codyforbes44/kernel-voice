@@ -16,7 +16,8 @@ import {
   Settings as SettingsIcon, 
   Save, 
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -49,6 +50,8 @@ export default function AdminSettings() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cleanupRunning, setCleanupRunning] = useState(false);
+  const [lastCleanupResult, setLastCleanupResult] = useState<string | null>(null);
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -309,6 +312,49 @@ export default function AdminSettings() {
                       <Save className="h-4 w-4" />
                     </Button>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Data Lifecycle */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trash2 className="h-5 w-5" />
+                  Data Lifecycle
+                </CardTitle>
+                <CardDescription>
+                  Anonymize old analytics (90+ days) and clean up orphaned guest data (30+ days)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Button
+                    onClick={async () => {
+                      setCleanupRunning(true);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('data-lifecycle');
+                        if (error) throw error;
+                        const result = data?.result;
+                        setLastCleanupResult(
+                          `Anonymized ${result?.anonymized_analytics ?? 0} analytics rows, deleted ${result?.deleted_conversations ?? 0} orphaned conversations`
+                        );
+                        toast.success('Data cleanup completed');
+                      } catch (err) {
+                        console.error('Cleanup failed:', err);
+                        toast.error('Data cleanup failed');
+                      } finally {
+                        setCleanupRunning(false);
+                      }
+                    }}
+                    disabled={cleanupRunning}
+                  >
+                    <Trash2 className={`h-4 w-4 mr-2 ${cleanupRunning ? 'animate-spin' : ''}`} />
+                    {cleanupRunning ? 'Running...' : 'Run Data Cleanup'}
+                  </Button>
+                  {lastCleanupResult && (
+                    <p className="text-sm text-muted-foreground">{lastCleanupResult}</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
