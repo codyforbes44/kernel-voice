@@ -1,74 +1,44 @@
 
 
-# Refactor /showcase for Best Mobile-First UX
+# Add ElevenLabs Voice ID Setting
 
 ## Overview
-Remove the YouTube Player link card and restructure the showcase grid from 13 cards down to 12 with an optimized mobile-first layout that groups cards by category, uses responsive grid sizing, and ensures every card looks great on all screen sizes.
+Add the ability to specify a custom ElevenLabs Voice ID for the assistant and external widgets. This overrides the default TTS voice used by the ElevenLabs agent, letting users pick any voice from the ElevenLabs voice library.
 
 ## What Changes
 
-### 1. Remove YouTube Player Link Card
-- Remove `YouTubePlayerLinkCard` import and usage from `Showcase.tsx`
-- Delete `src/components/showcase/YouTubePlayerLinkCard.tsx` file
-- Grid goes from 13 cards to 12 (a cleaner 4x3 on desktop)
+### 1. Add `voiceId` to ElevenLabs Settings Type
+Add an optional `voiceId` field to the `ElevenLabsSettings` interface in `src/components/voice/voiceTypes.ts`. This keeps it alongside the existing `elevenlabsAgentId` override.
 
-### 2. Restructure Grid Layout (Mobile-First)
-Current grid uses a flat `grid-cols-1 / sm:grid-cols-2 / lg:grid-cols-3` with a forced `lg:grid-rows-[repeat(5,...)]` that creates awkward spacing. The new layout:
+### 2. Add Voice ID Input to Settings Panel
+Add a new text input field in the Advanced Settings accordion of `src/components/voice/ElevenLabsSettingsPanel.tsx`, right after the Agent ID field. It will have a placeholder of "Default agent voice" and helper text explaining where to find a Voice ID in the ElevenLabs voice library.
 
-- **Mobile (default)**: Single column, full-width cards with natural height
-- **Tablet (sm/md)**: 2-column grid with select cards spanning 2 columns for visual hierarchy
-- **Desktop (lg+)**: 3-column grid, 4 rows, with featured cards spanning strategically
+### 3. Pass Voice ID to Edge Function
+Update `src/hooks/useVoiceAssistant.ts` to include the `voiceId` from ElevenLabs settings in the `voice-session` edge function call body. The edge function already handles `voiceId` and creates a `tts.voiceId` override -- no backend changes needed.
 
-### 3. Categorized Card Sections
-Group the 12 cards into logical sections with subtle section labels for scannability:
+### 4. Persist in Saved Agents
+The `provider_settings` JSON column already stores the full `ElevenLabsSettings` object, so saved agents will automatically include the new `voiceId` field with no database changes.
 
-- **Voice Input** (3 cards): WaveformCard, VoiceFillCard, AgentOrbsCard
-- **Audio Playback** (3 cards): MusicPlayerCard, AudioPlayerCard, TrackListCard
-- **Visualizations** (2 cards): ShowcaseWaveform, CharacterSelectCard
-- **Conversations** (4 cards): VoiceChatCard, ChatConversationCard, LiveStatusCard, WidgetChatCard
-
-### 4. Card Height Improvements for Mobile
-- Remove fixed `h-full` stretching that causes awkward empty space on mobile
-- Let cards size naturally on mobile; only stretch to fill on larger grids
-- Ensure all interactive elements maintain 48px minimum touch targets (already in place)
-
-### 5. Safe Area and Spacing Polish
-- Keep `safe-area-inset` for notch-aware padding
-- Reduce top padding on mobile (`pt-6` instead of `pt-10`)
-- Increase bottom padding for FAB clearance (`pb-24`)
-- Use `gap-3` on mobile, `gap-4` on tablet, `gap-5` on desktop
+### 5. Widget Support
+Add an optional `elevenlabsVoiceId` field to `KernelWidgetConfig` in `src/embed/types.ts` and pass it through the widget voice conversation flow so external widgets can also override the ElevenLabs TTS voice. Update the Widget Editor to include the Voice ID input when ElevenLabs voice conversation is enabled.
 
 ---
 
 ## Technical Details
 
 ### Files Modified
-- `src/pages/Showcase.tsx` -- Complete restructure of the grid layout with category sections and responsive spanning
 
-### Files Deleted
-- `src/components/showcase/YouTubePlayerLinkCard.tsx` -- No longer needed
+- **`src/components/voice/voiceTypes.ts`** -- Add `voiceId?: string` to `ElevenLabsSettings`
+- **`src/components/voice/ElevenLabsSettingsPanel.tsx`** -- Add Voice ID input in Advanced Settings
+- **`src/hooks/useVoiceAssistant.ts`** -- Pass `settings.voiceId` in the `voice-session` request body
+- **`src/embed/types.ts`** -- Add `elevenlabsVoiceId?: string` to `KernelWidgetConfig`
+- **`src/embed/KernelWidget.tsx`** -- Pass `elevenlabsVoiceId` to voice conversation component
+- **`src/embed/WidgetVoiceMode.tsx`** -- Accept and forward `elevenlabsVoiceId` to the voice session call
+- **`src/components/admin/widgets/WidgetEditor.tsx`** -- Add Voice ID input in the Voice & Audio tab
 
-### Grid CSS Strategy
-```text
-Mobile:    grid-cols-1, gap-3
-Tablet:    grid-cols-2, gap-4, select cards span-2
-Desktop:   grid-cols-3, gap-5, natural row flow (no forced min-height)
-```
+### No Backend Changes
+The `voice-session` edge function (lines 67-76, 128-130) already accepts `voiceId` in the request body and creates a `tts: { voiceId }` override. No edge function modifications are needed.
 
-### Card Ordering (Priority for Mobile Scroll)
-1. AgentOrbsCard (hero/visual impact first)
-2. VoiceChatCard (primary interactive demo)
-3. WaveformCard (mic visualization)
-4. ChatConversationCard (text interaction)
-5. VoiceFillCard (form dictation)
-6. ShowcaseWaveform (visualization)
-7. MusicPlayerCard (audio playback)
-8. CharacterSelectCard (voice selection)
-9. AudioPlayerCard (simple player)
-10. TrackListCard (track list)
-11. LiveStatusCard (multi-mode support)
-12. WidgetChatCard (widget demo)
-
-### Featured Card Spanning
-On tablet (sm), the first card (AgentOrbsCard) and ChatConversationCard span 2 columns for visual hierarchy. On desktop, the grid flows naturally in 3 columns x 4 rows.
+### No Database Changes
+The `provider_settings` JSONB column on `saved_agents` stores the full settings object, so the new field is automatically persisted.
 
