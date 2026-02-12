@@ -23,7 +23,6 @@ export const Header = () => {
   const navLinks = [
     { path: '/assistant', label: 'Assistant', icon: Mic },
     { path: '/install', label: 'Install', icon: Download },
-    { path: '/pricing', label: 'Pricing', icon: Crown },
   ];
 
   const handleLogoClick = (e: React.MouseEvent) => {
