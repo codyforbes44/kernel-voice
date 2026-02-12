@@ -15,6 +15,7 @@ interface WidgetVoiceModeProps {
   ttsVoiceId?: string;
   autoListen?: boolean;
   elevenlabsAgentId?: string;
+  elevenlabsVoiceId?: string;
   onMessage: (message: WidgetMessage) => void;
   onExitVoiceMode: () => void;
 }
@@ -144,6 +145,7 @@ export function WidgetVoiceMode({
   supabaseKey,
   ttsVoiceId,
   autoListen = true,
+  elevenlabsVoiceId,
   onMessage,
   onExitVoiceMode,
 }: WidgetVoiceModeProps) {

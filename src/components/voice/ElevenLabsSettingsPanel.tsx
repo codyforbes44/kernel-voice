@@ -238,6 +238,27 @@ export function ElevenLabsSettingsPanel({
               </p>
             </div>
 
+            {/* Voice ID */}
+            <div className="space-y-2">
+              <Label htmlFor="elevenlabs-voice-id" className="text-sm font-medium">
+                Voice ID
+              </Label>
+              <Input
+                id="elevenlabs-voice-id"
+                value={settings.voiceId || ''}
+                onChange={(e) => handleSettingChange('voiceId', e.target.value || undefined)}
+                placeholder="Default agent voice"
+                disabled={disabled}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Override the TTS voice. Find Voice IDs in the{' '}
+                <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="underline text-primary">
+                  ElevenLabs Voice Library
+                </a>.
+              </p>
+            </div>
+
             {/* RAG Toggle */}
             <div className="flex items-center justify-between py-2">
               <div className="space-y-0.5">

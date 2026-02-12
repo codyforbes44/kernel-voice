@@ -19,6 +19,7 @@ export interface ElevenLabsSettings {
   customPrompt: string;
   customFirstMessage: string;
   elevenlabsAgentId?: string;
+  voiceId?: string;
 }
 
 export const DEFAULT_ELEVENLABS_SETTINGS: ElevenLabsSettings = {
