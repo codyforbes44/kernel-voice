@@ -35,8 +35,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export default function Showcase() {
   return (
     <PageWrapper
-      title="ƷBI Voice Showcase"
-      description="Interactive showcase of voice AI components powered by Gemini and ElevenLabs"
+      title="ƷBI Voice Playground"
+      description="Interactive playground of voice AI components powered by Gemini and ElevenLabs"
       showHeader={false}
       className="dark"
     >
@@ -45,7 +45,7 @@ export default function Showcase() {
         <div className="mx-auto max-w-7xl flex items-center gap-3 mb-6 sm:mb-8">
           <img src={logo} alt="ƷBI Voice" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg" />
           <div>
-            <h1 className="text-lg sm:text-xl font-display font-bold text-gradient">ƷBI Voice Showcase</h1>
+            <h1 className="text-lg sm:text-xl font-display font-bold text-gradient">ƷBI Voice Playground</h1>
             <p className="text-xs sm:text-sm text-muted-foreground">Interactive voice AI components</p>
           </div>
         </div>
