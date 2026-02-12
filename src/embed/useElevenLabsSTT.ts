@@ -158,7 +158,7 @@ export function useElevenLabsSTT({
       mediaStreamRef.current = stream;
 
       // Setup WebSocket connection to ElevenLabs
-      const ws = new WebSocket(`wss://api.elevenlabs.io/v1/speech-to-text/stream?model_id=scribe_v2_realtime&token=${token}`);
+      const ws = new WebSocket(`wss://api.elevenlabs.io/v1/speech-to-text/realtime?model_id=scribe_v2_realtime&token=${token}`);
       wsRef.current = ws;
 
       ws.onopen = () => {

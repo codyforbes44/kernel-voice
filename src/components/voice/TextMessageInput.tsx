@@ -86,7 +86,7 @@ export function TextMessageInput({
       mediaStreamRef.current = stream;
 
       // Connect WebSocket
-      const ws = new WebSocket(`wss://api.elevenlabs.io/v1/speech-to-text/stream?model_id=scribe_v2_realtime&token=${data.token}`);
+      const ws = new WebSocket(`wss://api.elevenlabs.io/v1/speech-to-text/realtime?model_id=scribe_v2_realtime&token=${data.token}`);
       wsRef.current = ws;
 
       ws.onopen = () => {
