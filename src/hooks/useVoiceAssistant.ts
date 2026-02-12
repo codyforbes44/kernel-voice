@@ -92,6 +92,9 @@ interface UseVoiceAssistantReturn {
   guestMessages: Array<{ role: string; content: string }>;
   showRegistrationPrompt: boolean;
   setShowRegistrationPrompt: (show: boolean) => void;
+
+  // Session stats (for ConversationReceipt)
+  lastSessionStats: { messageCount: number; conversationId: string; conversationTitle: string; duration: number; timestamp: string } | null;
 }
 
 export function useVoiceAssistant(): UseVoiceAssistantReturn {
@@ -113,6 +116,9 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
   // Guest mode
   const [guestMessages, setGuestMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
+  const [guestAssistantResponseCount, setGuestAssistantResponseCount] = useState(0);
+  const [lastSessionStats, setLastSessionStats] = useState<UseVoiceAssistantReturn['lastSessionStats']>(null);
+  const sessionStartRef = useRef<number | null>(null);
   
   // Microphone permission
   const { permissionState, requestPermission, isReady } = useMicrophonePermission();
@@ -374,6 +380,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     
     try {
       clearTranscripts();
+      sessionStartRef.current = Date.now();
+      setLastSessionStats(null);
 
       // Create a new conversation record for authenticated users
       if (user) {
@@ -500,12 +508,24 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     }
   }, [liveTranscripts, isConnected, isPaused, pauseConversation]);
 
+  // Value-based registration prompt: trigger after 3 assistant responses for guests
+  useEffect(() => {
+    if (isAuthenticated || showRegistrationPrompt) return;
+    const assistantCount = liveTranscripts.filter(t => t.role === 'assistant').length;
+    if (assistantCount >= 3 && guestAssistantResponseCount < 3) {
+      setGuestAssistantResponseCount(assistantCount);
+      setShowRegistrationPrompt(true);
+    }
+  }, [liveTranscripts, isAuthenticated, showRegistrationPrompt, guestAssistantResponseCount]);
+
   const endConversation = async () => {
     // Save transcripts before ending
     const currentConvId = conversationIdRef.current;
+    const transcriptsToSave = getTranscriptsForSave();
+    const sessionDuration = sessionStartRef.current ? Math.round((Date.now() - sessionStartRef.current) / 1000) : 0;
+    
     if (user && currentConvId) {
       try {
-        const transcriptsToSave = getTranscriptsForSave();
         if (transcriptsToSave.length > 0) {
           const messages = transcriptsToSave.map(t => ({
             conversation_id: currentConvId,
@@ -525,17 +545,27 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
 
           // Update conversation title from first user message
           const firstUserMsg = transcriptsToSave.find(t => t.role === 'user');
+          const title = firstUserMsg ? firstUserMsg.text.slice(0, 80) || 'Voice Session' : 'Voice Session';
           if (firstUserMsg) {
-            const title = firstUserMsg.text.slice(0, 80) || 'Voice Session';
             await supabase
               .from('conversations')
               .update({ title, updated_at: new Date().toISOString() })
               .eq('id', currentConvId);
           }
+
+          // Set session stats for ConversationReceipt
+          setLastSessionStats({
+            messageCount: messages.length,
+            conversationId: currentConvId,
+            conversationTitle: title,
+            duration: sessionDuration,
+            timestamp: new Date().toISOString(),
+          });
         } else {
           // No messages — delete the empty conversation to avoid clutter
           await supabase.from('conversations').delete().eq('id', currentConvId);
           console.log('[VoiceAssistant] Deleted empty conversation:', currentConvId);
+          setLastSessionStats(null);
         }
       } catch (e) {
         console.error('[VoiceAssistant] Error saving voice transcripts:', e);
@@ -544,6 +574,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
 
     await conversation.endSession();
     setIsPaused(false);
+    sessionStartRef.current = null;
     
     if (!isAuthenticated && guestMessages.length > 0) {
       setShowRegistrationPrompt(true);
@@ -675,5 +706,8 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
     guestMessages,
     showRegistrationPrompt,
     setShowRegistrationPrompt,
+
+    // Session stats
+    lastSessionStats,
   };
 }

@@ -2,33 +2,43 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Save, Shield, History, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 
 interface RegistrationPromptModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  messageCount: number;
 }
 
-const RegistrationPromptModal = ({ open, onOpenChange, messageCount }: RegistrationPromptModalProps) => {
+const DISMISS_KEY = 'zbi_registration_prompt_dismissed';
+
+const RegistrationPromptModal = ({ open, onOpenChange }: RegistrationPromptModalProps) => {
   const navigate = useNavigate();
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  // If dismissed in session, don't show
+  const isDismissed = sessionStorage.getItem(DISMISS_KEY) === 'true';
+  const effectiveOpen = open && !isDismissed;
 
   const handleCreateAccount = () => {
     navigate('/auth');
   };
 
   const handleContinueAsGuest = () => {
+    if (dontShowAgain) {
+      sessionStorage.setItem(DISMISS_KEY, 'true');
+    }
     onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={effectiveOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-2xl bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Save Your Conversation
+            You're Having a Great Conversation
           </DialogTitle>
           <DialogDescription className="text-base">
-            You had {messageCount} message{messageCount !== 1 ? 's' : ''} in this session.
+            Create an account to save this session and unlock the full experience.
           </DialogDescription>
         </DialogHeader>
 
@@ -76,7 +86,7 @@ const RegistrationPromptModal = ({ open, onOpenChange, messageCount }: Registrat
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Button 
             onClick={handleCreateAccount}
             className="w-full h-12 text-base font-semibold"
@@ -90,6 +100,15 @@ const RegistrationPromptModal = ({ open, onOpenChange, messageCount }: Registrat
           >
             Continue as Guest
           </Button>
+          <label className="flex items-center gap-2 cursor-pointer justify-center text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={dontShowAgain}
+              onChange={(e) => setDontShowAgain(e.target.checked)}
+              className="rounded border-muted-foreground/40"
+            />
+            Don't show this again
+          </label>
         </div>
       </DialogContent>
     </Dialog>
