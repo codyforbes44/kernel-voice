@@ -404,6 +404,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
             connectionType: 'webrtc',
             language: settings.autoLanguageDetection ? 'auto' : settings.language,
             ...(settings.elevenlabsAgentId && { agentId: settings.elevenlabsAgentId }),
+            ...(settings.voiceId && { voiceId: settings.voiceId }),
           }
         });
         

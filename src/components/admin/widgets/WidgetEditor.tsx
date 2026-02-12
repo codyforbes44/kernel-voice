@@ -89,6 +89,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
   const [enableVoiceConversation, setEnableVoiceConversation] = useState(false);
   const [autoListen, setAutoListen] = useState(true);
   const [elevenlabsAgentId, setElevenlabsAgentId] = useState('');
+  const [elevenlabsVoiceId, setElevenlabsVoiceId] = useState('');
   const [enableTTS, setEnableTTS] = useState(false);
   const [ttsVoiceId, setTtsVoiceId] = useState('EXAVITQu4vr4xnSDxMaL');
   // Limits
@@ -161,6 +162,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
       setEnableVoiceConversation((c.enableVoiceConversation as boolean) || false);
       setAutoListen((c.autoListen as boolean) ?? true);
       setElevenlabsAgentId((c.elevenlabsAgentId as string) || '');
+      setElevenlabsVoiceId((c.elevenlabsVoiceId as string) || '');
       setEnableTTS((c.enableTTS as boolean) || false);
       setTtsVoiceId((c.ttsVoiceId as string) || 'EXAVITQu4vr4xnSDxMaL');
       const rl = c.rateLimit as { messagesPerMinute?: number; messagesPerHour?: number } | undefined;
@@ -174,7 +176,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
       setGreeting('Hi! How can I help you today?'); setPlaceholder('Type your message...');
       setSystemPrompt(''); setEnableKB(false);
       setEnableVoice(false); setVoiceProvider('native'); setWaveformStyle('bars');
-      setEnableVoiceConversation(false); setAutoListen(true); setElevenlabsAgentId('');
+      setEnableVoiceConversation(false); setAutoListen(true); setElevenlabsAgentId(''); setElevenlabsVoiceId('');
       setEnableTTS(false); setTtsVoiceId('EXAVITQu4vr4xnSDxMaL');
       setRateLimitPerMinute(10); setRateLimitPerHour(100);
     }
@@ -192,6 +194,7 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
         enableVoice, voiceProvider, waveformStyle,
         enableVoiceConversation, autoListen,
         ...(elevenlabsAgentId && { elevenlabsAgentId }),
+        ...(elevenlabsVoiceId && { elevenlabsVoiceId }),
         enableTTS, ttsVoiceId,
         rateLimit: { messagesPerMinute: rateLimitPerMinute, messagesPerHour: rateLimitPerHour },
       };
@@ -436,6 +439,19 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
                       />
                       <p className="text-xs text-muted-foreground">
                         Optional. Override the default ElevenLabs agent for this widget.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>ElevenLabs Voice ID</Label>
+                      <Input
+                        value={elevenlabsVoiceId}
+                        onChange={(e) => setElevenlabsVoiceId(e.target.value)}
+                        placeholder="Default agent voice"
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Optional. Override the TTS voice. Find IDs in the{' '}
+                        <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="underline text-primary">Voice Library</a>.
                       </p>
                     </div>
                   </div>

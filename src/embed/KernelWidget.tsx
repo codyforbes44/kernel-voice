@@ -171,6 +171,7 @@ function WidgetContent() {
               ttsVoiceId={config.ttsVoiceId}
               autoListen={config.autoListen}
               elevenlabsAgentId={config.elevenlabsAgentId}
+              elevenlabsVoiceId={config.elevenlabsVoiceId}
               onMessage={handleVoiceMessage}
               onExitVoiceMode={() => setVoiceMode(false)}
             />
