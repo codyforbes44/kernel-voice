@@ -287,12 +287,22 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
       
       // Handle remote audio
       pc.ontrack = (e) => {
-        console.log('[OpenAI] Received remote audio track');
+        console.log('[OpenAI] Received remote audio track, streams:', e.streams.length);
         if (audioElRef.current) {
           audioElRef.current.srcObject = e.streams[0];
+          audioElRef.current.volume = 1.0;
+          audioElRef.current.muted = false;
           // Explicitly call play() to ensure audio starts
-          audioElRef.current.play().catch(err => {
-            console.warn('[OpenAI] Audio autoplay blocked:', err);
+          audioElRef.current.play().then(() => {
+            console.log('[OpenAI] Audio playback started successfully');
+          }).catch(err => {
+            console.warn('[OpenAI] Audio autoplay blocked, retrying unmuted:', err);
+            // Retry after a short delay
+            setTimeout(() => {
+              audioElRef.current?.play().catch(e2 => {
+                console.error('[OpenAI] Audio playback retry failed:', e2);
+              });
+            }, 100);
           });
         }
       };
@@ -311,6 +321,11 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
       
       // Set up audio level monitoring
       audioContextRef.current = new AudioContext();
+      // Resume AudioContext in case browser suspended it
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+        console.log('[OpenAI] AudioContext resumed from suspended state');
+      }
       const source = audioContextRef.current.createMediaStreamSource(ms);
       const analyser = audioContextRef.current.createAnalyser();
       analyser.fftSize = 256;
