@@ -1,88 +1,94 @@
 
+## Fix: OpenAI (3BI) Agent First Message on Session Initiation
 
-# Customer-First Platform Enhancements
+### Root Cause Analysis
 
-## Overview
-Four improvements inspired by best-in-class customer-first principles: smarter registration prompts, richer analytics, transparent data receipts, and automatic data lifecycle management.
+There are three compounding bugs preventing the agent from speaking the first message:
 
----
+**Bug 1 — Model mismatch between token creation and WebRTC connection**
+The `openai-realtime-token` edge function creates a session with model `gpt-4o-realtime-preview-2025-06-03`, but the WebRTC SDP request in `useOpenAIConversation.ts` connects using the hardcoded model `gpt-4o-realtime-preview-2024-12-17`. OpenAI requires these to be identical — the mismatch causes silent session state inconsistencies.
 
-## 1. Value-Based Registration Prompt
+**Bug 2 — First message sent too early (wrong event)**
+The greeting is triggered on `session.created`, but at that point the session hasn't been fully configured yet. The data channel `open` handler (which runs before `session.created`) sends a `session.update` event (adding tools, transcription config, etc.). OpenAI then replies with `session.updated` to confirm everything is ready. The correct sequence is to send the first message **after `session.updated`**, not `session.created`.
 
-**Current behavior:** The registration modal shows when a guest ends a conversation (any number of messages).
-
-**New behavior:** Show the prompt after the guest has received 3 meaningful AI responses (not on conversation end), creating a "value-first" moment where the user has experienced enough to want to save their session.
-
-### Changes
-- **`src/hooks/useVoiceAssistant.ts`**: Track `guestAssistantResponseCount`. Increment when an assistant transcript or text response is added. When count reaches 3, set `showRegistrationPrompt = true` automatically (mid-conversation, not at the end). Remove the end-of-conversation trigger.
-- **`src/components/voice/RegistrationPromptModal.tsx`**: Update copy from "You had X messages" to "You've had a great conversation so far" -- value-oriented framing. Add a "Don't show again" option that persists to sessionStorage so the modal doesn't re-appear if dismissed.
+**Bug 3 — Stale closure on `options` object**
+`handleDataChannelMessage` has `[options]` in its dependency array. The entire `options` object is passed inline (a new object reference every render), which causes the `useCallback` to be recreated constantly and potentially capture stale values — particularly `firstMessage`. The fix is to store mutable values like `firstMessage` in a stable `useRef` that is always up-to-date.
 
 ---
 
-## 2. Enhanced Widget Analytics Dashboard
+### Fix Plan
 
-**Current state:** Tracks sessions, messages, opens, errors.
+#### 1. `supabase/functions/openai-realtime-token/index.ts`
+- Change the model from `gpt-4o-realtime-preview-2025-06-03` to `gpt-4o-realtime-preview-2024-12-17` to match the WebRTC SDP connection model (or alternatively update both to the same 2025 model — we'll align both to the latest `gpt-4o-realtime-preview-2025-06-03`).
 
-**New metrics to add (computed from existing data, no schema changes):**
+#### 2. `src/hooks/useOpenAIConversation.ts`
 
-### Changes
-- **`src/components/admin/widgets/WidgetAnalytics.tsx`**:
-  - Add **Completion Rate** stat card: % of sessions that had at least 2 messages (open + message events with matching session_id)
-  - Add **Avg Messages/Session**: total messages / unique sessions
-  - Add **Avg Session Duration**: difference between first and last event timestamp per session
-  - Add **Engagement Rate**: sessions with 3+ messages / total sessions
-  - Reorganize stats grid from 4 to 6 cards (3x2 on desktop)
+**Ref stabilization**: Create a `firstMessageRef` using `useRef` that is updated via `useEffect` whenever `options.firstMessage` changes. This decouples the `handleDataChannelMessage` callback from `options` and eliminates stale closures.
 
----
+**Move greeting trigger from `session.created` to `session.updated`**: The `session.updated` event is the correct signal that the session is fully configured and ready to accept `conversation.item.create` and `response.create` messages. Add a `greetingSentRef` (a `useRef<boolean>`) flag to ensure the greeting is only sent once per session, even if multiple `session.updated` events are received.
 
-## 3. Conversation Data Receipt
+**Updated event sequence**:
+```text
+dc.open
+  └─> session.update (configure tools + transcription)
+        └─> session.created  [set status=connected, call onConnect]
+              └─> session.updated  [send firstMessage here, only once]
+```
 
-A new component shown at the end of voice sessions for authenticated users, summarizing what was captured.
+**Concrete changes to `handleDataChannelMessage`**:
 
-### Changes
-- **New file: `src/components/voice/ConversationReceipt.tsx`**:
-  - A dismissible card shown after `endConversation` completes
-  - Shows: number of messages saved, conversation title, timestamp, duration estimate
-  - Includes a "Delete This Conversation" button that removes the conversation from the database
-  - Includes a "Download Transcript" button that exports messages as a .txt file
-- **`src/pages/VoiceAssistant.tsx`**: Add state `showReceipt` and render `ConversationReceipt` after conversation ends for authenticated users
-- **`src/hooks/useVoiceAssistant.ts`**: Expose `lastSessionStats` (message count, duration, conversation ID) computed during `endConversation`
+- In `session.created`: Keep status/phase update and `onConnect` call. Remove first message injection.
+- In `session.updated`: Add first message injection logic guarded by `greetingSentRef.current === false`. After sending, set `greetingSentRef.current = true`.
 
----
+**Update `startSession`**: Reset `greetingSentRef.current = false` at the top of `startSession` (before `cleanup()`) so each new session starts fresh.
 
-## 4. Automatic Data Anonymization (90-Day Cleanup)
+**Align WebRTC model**: Change the hardcoded model string from `gpt-4o-realtime-preview-2024-12-17` to `gpt-4o-realtime-preview-2025-06-03` to match the token creation model.
 
-A scheduled database function and edge function to anonymize old widget analytics and clean up stale guest data.
-
-### Changes
-- **Database migration**: Create a SQL function `anonymize_old_analytics()` that:
-  - Updates `widget_analytics` rows older than 90 days: nullifies `session_id` and `referrer_domain`, keeps aggregate event type/count
-  - Deletes conversations with no user_id (orphaned guest data) older than 30 days
-- **New edge function: `supabase/functions/data-lifecycle/index.ts`**:
-  - Invokes the `anonymize_old_analytics()` database function via RPC
-  - Designed to be called via a cron job or manually from admin settings
-  - Returns summary of rows affected
-- **`src/pages/admin/Settings.tsx`**: Add a "Run Data Cleanup" button in admin settings that invokes the edge function on demand, with a last-run timestamp display
+**Edge function model alignment**: Update `openai-realtime-token/index.ts` to use the same model `gpt-4o-realtime-preview-2025-06-03` (already set correctly there) — and update `useOpenAIConversation.ts` to match it.
 
 ---
 
-## Technical Details
+### Files to Change
 
-### File Summary
+| File | Change |
+|---|---|
+| `supabase/functions/openai-realtime-token/index.ts` | Ensure model is `gpt-4o-realtime-preview-2025-06-03` (already correct) |
+| `src/hooks/useOpenAIConversation.ts` | Fix model string; add `firstMessageRef` + `greetingSentRef`; move greeting from `session.created` to `session.updated` |
 
-| File | Action |
-|------|--------|
-| `src/hooks/useVoiceAssistant.ts` | Modify - value-based prompt trigger, expose lastSessionStats |
-| `src/components/voice/RegistrationPromptModal.tsx` | Modify - value-oriented copy, "don't show again" |
-| `src/components/admin/widgets/WidgetAnalytics.tsx` | Modify - add 4 new computed metrics |
-| `src/components/voice/ConversationReceipt.tsx` | Create - post-session data receipt |
-| `src/pages/VoiceAssistant.tsx` | Modify - render ConversationReceipt |
-| `supabase/functions/data-lifecycle/index.ts` | Create - anonymization edge function |
-| Database migration | Create `anonymize_old_analytics()` function |
-| `src/pages/admin/Settings.tsx` | Modify - add cleanup trigger button |
+---
 
-### Sequencing
-1. Database migration (anonymization function)
-2. Edge function (data-lifecycle)
-3. Frontend changes (all can be done in parallel)
+### Technical Details
 
+The corrected first-message flow in `useOpenAIConversation.ts`:
+
+```typescript
+// Stable ref — always current, no stale closure
+const firstMessageRef = useRef(options.firstMessage);
+useEffect(() => { firstMessageRef.current = options.firstMessage; }, [options.firstMessage]);
+
+// Guard: send greeting only once per session
+const greetingSentRef = useRef(false);
+
+// In handleDataChannelMessage (no longer depends on `options`):
+case 'session.updated':
+  console.log('[OpenAI] Session updated — ready');
+  if (!greetingSentRef.current && firstMessageRef.current?.trim() && dcRef.current?.readyState === 'open') {
+    greetingSentRef.current = true;
+    console.log('[OpenAI] Sending first message greeting');
+    dcRef.current.send(JSON.stringify({
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: `[System: Greet the user with: "${firstMessageRef.current}"]` }]
+      }
+    }));
+    dcRef.current.send(JSON.stringify({ type: 'response.create' }));
+  }
+  break;
+
+// In startSession, before cleanup():
+greetingSentRef.current = false;
+```
+
+The `handleDataChannelMessage` dependency array changes from `[options]` to `[]` (using refs for all mutable values), making the callback stable across renders.
