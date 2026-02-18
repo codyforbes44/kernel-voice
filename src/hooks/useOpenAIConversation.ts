@@ -48,6 +48,27 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const levelIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Stable refs for options — prevents stale closures in callbacks
+  const firstMessageRef = useRef(options.firstMessage);
+  const clientToolsRef = useRef(options.clientTools);
+  const onConnectRef = useRef(options.onConnect);
+  const onDisconnectRef = useRef(options.onDisconnect);
+  const onMessageRef = useRef(options.onMessage);
+  const onErrorRef = useRef(options.onError);
+  const onTranscriptRef = useRef(options.onTranscript);
+
+  // Keep refs in sync with latest options every render
+  useEffect(() => { firstMessageRef.current = options.firstMessage; }, [options.firstMessage]);
+  useEffect(() => { clientToolsRef.current = options.clientTools; }, [options.clientTools]);
+  useEffect(() => { onConnectRef.current = options.onConnect; }, [options.onConnect]);
+  useEffect(() => { onDisconnectRef.current = options.onDisconnect; }, [options.onDisconnect]);
+  useEffect(() => { onMessageRef.current = options.onMessage; }, [options.onMessage]);
+  useEffect(() => { onErrorRef.current = options.onError; }, [options.onError]);
+  useEffect(() => { onTranscriptRef.current = options.onTranscript; }, [options.onTranscript]);
+
+  // Guard: send greeting exactly once per session
+  const greetingSentRef = useRef(false);
+
   // Track accumulated function call arguments
   const functionCallArgsRef = useRef<Map<string, { name: string; call_id: string; args: string }>>(new Map());
 
@@ -104,18 +125,23 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
     try {
       const message: OpenAIMessage = JSON.parse(event.data);
       console.log('[OpenAI] Message:', message.type);
-      options.onMessage?.(message);
+      onMessageRef.current?.(message);
       
       switch (message.type) {
         case 'session.created':
           console.log('[OpenAI] Session created');
           setConnectionPhase('ready');
           setStatus('connected');
-          options.onConnect?.();
+          onConnectRef.current?.();
+          break;
           
-          // Trigger first message if configured
-          if (options.firstMessage?.trim() && dcRef.current?.readyState === 'open') {
-            console.log('[OpenAI] Triggering first message greeting');
+        case 'session.updated':
+          // session.updated fires after our session.update is processed — 
+          // this is the correct moment to send the first message (session is fully configured)
+          console.log('[OpenAI] Session updated — fully configured');
+          if (!greetingSentRef.current && firstMessageRef.current?.trim() && dcRef.current?.readyState === 'open') {
+            greetingSentRef.current = true;
+            console.log('[OpenAI] Sending first message greeting:', firstMessageRef.current);
             dcRef.current.send(JSON.stringify({
               type: 'conversation.item.create',
               item: {
@@ -123,16 +149,12 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
                 role: 'user',
                 content: [{
                   type: 'input_text',
-                  text: `[System: Start the conversation by greeting the user with exactly this message: "${options.firstMessage}"]`
+                  text: `[System: Start the conversation by greeting the user with exactly this message: "${firstMessageRef.current}"]`
                 }]
               }
             }));
             dcRef.current.send(JSON.stringify({ type: 'response.create' }));
           }
-          break;
-          
-        case 'session.updated':
-          console.log('[OpenAI] Session updated');
           break;
           
         case 'input_audio_buffer.speech_started':
@@ -146,13 +168,13 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
         case 'conversation.item.input_audio_transcription.completed':
           if (message.transcript) {
             console.log('[OpenAI] User transcript:', message.transcript);
-            options.onTranscript?.({ role: 'user', text: message.transcript });
+            onTranscriptRef.current?.({ role: 'user', text: message.transcript });
           }
           break;
           
         case 'response.audio_transcript.delta':
           if (message.delta) {
-            options.onTranscript?.({ role: 'assistant', text: message.delta });
+            onTranscriptRef.current?.({ role: 'assistant', text: message.delta });
           }
           break;
           
@@ -183,14 +205,14 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
           break;
           
         case 'response.function_call_arguments.done':
-          if (message.call_id && message.name && options.clientTools?.[message.name]) {
+          if (message.call_id && message.name && clientToolsRef.current?.[message.name]) {
             console.log('[OpenAI] Executing tool:', message.name);
             setActiveToolCall({ name: message.name, status: 'executing', startedAt: new Date() });
             
             try {
               const args = JSON.parse(message.arguments || '{}');
               console.log('[OpenAI] Tool arguments:', args);
-              const result = await options.clientTools[message.name](args);
+              const result = await clientToolsRef.current[message.name](args);
               console.log('[OpenAI] Tool result:', result);
               
               setActiveToolCall(prev => prev ? { ...prev, status: 'completed' } : null);
@@ -225,19 +247,23 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
           
         case 'error':
           console.error('[OpenAI] Error:', message);
-          options.onError?.(new Error(message.error?.message || 'OpenAI error'));
+          onErrorRef.current?.(new Error(message.error?.message || 'OpenAI error'));
           break;
       }
     } catch (error) {
       console.error('[OpenAI] Error parsing message:', error);
     }
-  }, [options]);
+  // Stable callback — all mutable values accessed via refs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startSession = useCallback(async () => {
     try {
       console.log('[OpenAI] ====== Starting WebRTC connection ======');
       console.log('[OpenAI] Timestamp:', new Date().toISOString());
       
+      // Reset greeting guard for each new session
+      greetingSentRef.current = false;
       cleanup();
       setConnectionError(null);
       setStatus('connecting');
@@ -396,7 +422,7 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
       // Connect to OpenAI's Realtime API
       console.log('[OpenAI] Sending offer to OpenAI...');
       const baseUrl = 'https://api.openai.com/v1/realtime';
-      const model = 'gpt-4o-realtime-preview-2024-12-17';
+      const model = 'gpt-4o-realtime-preview-2025-06-03';
       
       const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
         method: 'POST',
@@ -429,18 +455,18 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
       setConnectionError(errorMessage);
       setConnectionPhase('error');
       setStatus('disconnected');
-      options.onError?.(error instanceof Error ? error : new Error(errorMessage));
+      onErrorRef.current?.(error instanceof Error ? error : new Error(errorMessage));
       cleanup();
     }
-  }, [options, cleanup, handleDataChannelMessage]);
+  }, [cleanup, handleDataChannelMessage]);
 
   const endSession = useCallback(async () => {
     console.log('[OpenAI] Ending session...');
     cleanup();
     setStatus('disconnected');
     setConnectionPhase('idle');
-    options.onDisconnect?.();
-  }, [cleanup, options]);
+    onDisconnectRef.current?.();
+  }, [cleanup]);
 
   const sendTextMessage = useCallback(async (text: string) => {
     if (!dcRef.current || dcRef.current.readyState !== 'open') {
