@@ -73,6 +73,7 @@ export default {
         'glow-accent': 'var(--shadow-accent-glow)',
         'glow-subtle': '0 0 20px hsl(var(--primary) / 0.15)',
         'glow-intense': '0 0 40px hsl(var(--primary) / 0.4), 0 0 80px hsl(var(--primary) / 0.2)',
+        'glow-hover': '0 0 25px hsl(var(--primary) / 0.25), 0 0 50px hsl(var(--primary) / 0.1)',
       },
       keyframes: {
         "accordion-down": {
