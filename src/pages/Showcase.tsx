@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import {
   DndContext,
   closestCenter,
@@ -12,7 +13,7 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Pencil, Lock, RotateCcw } from 'lucide-react';
+import { Pencil, Lock, RotateCcw, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { DraggableSection } from '@/components/showcase/DraggableSection';
@@ -26,9 +27,19 @@ const stagger = {
 };
 
 export default function Showcase() {
-  const { sections, editMode, toggleEditMode, moveCard, moveSection, resetLayout, getCardSize, setCardSize } =
+  const { sections, editMode, toggleEditMode, moveCard, moveSection, resetLayout, getCardSize, setCardSize, exportLayoutUrl } =
     useShowcaseLayout();
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  const handleShare = useCallback(() => {
+    const url = exportLayoutUrl();
+    navigator.clipboard.writeText(url).then(() => {
+      toast.success('Layout URL copied to clipboard!');
+    }).catch(() => {
+      // Fallback: prompt
+      window.prompt('Copy this URL to share your layout:', url);
+    });
+  }, [exportLayoutUrl]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -86,6 +97,15 @@ export default function Showcase() {
 
           {/* Edit controls */}
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleShare}
+              className="text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              Share
+            </Button>
             {editMode && (
               <Button
                 size="sm"
