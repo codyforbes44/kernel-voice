@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSystemPromptPreference } from '@/components/voice/SystemPromptEditor';
-import { useUserFeatures } from '@/hooks/useUserFeatures';
 import {
   VoiceProvider,
   OpenAIVoice,
@@ -26,7 +25,6 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
   const [geminiLiveSettings, setGeminiLiveSettings] = useState<GeminiLiveSettings>(DEFAULT_GEMINI_LIVE_SETTINGS);
   const [loading, setLoading] = useState(true);
   const { systemPrompt, setSystemPrompt, loading: promptLoading } = useSystemPromptPreference();
-  const { hasFeature, loading: featuresLoading } = useUserFeatures();
 
   useEffect(() => {
     const loadPreference = async () => {
@@ -121,37 +119,12 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     loadPreference();
   }, [isAuthenticated]);
 
-  // Fallback to 3ʙɪ if user loses premium access
-  useEffect(() => {
-    if (!featuresLoading) {
-      const isPremiumProvider = provider === 'elevenlabs' || provider === 'vapi';
-      const hasPremiumAccess = hasFeature('elevenlabs_voice'); // Pro tier grants all premium
-      
-      if (isPremiumProvider && !hasPremiumAccess) {
-        console.log('User does not have premium access, falling back to 3ʙɪ');
-        setProvider('openai');
-        if (!isAuthenticated) {
-          localStorage.setItem('voice_provider', 'openai');
-        }
-      }
-    }
-  }, [featuresLoading, provider, hasFeature, isAuthenticated]);
-
   const updateProvider = useCallback((newProvider: VoiceProvider) => {
-    // Validate access before switching to premium provider
-    const isPremiumProvider = newProvider === 'elevenlabs' || newProvider === 'vapi';
-    const hasPremiumAccess = hasFeature('elevenlabs_voice'); // Pro tier grants all premium
-    
-    if (isPremiumProvider && !hasPremiumAccess) {
-      console.warn('User does not have access to premium providers');
-      return;
-    }
-    
     setProvider(newProvider);
     if (!isAuthenticated) {
       localStorage.setItem('voice_provider', newProvider);
     }
-  }, [hasFeature, isAuthenticated]);
+  }, [isAuthenticated]);
 
   const updateOpenAIVoice = (newVoice: OpenAIVoice) => {
     setOpenAIVoice(newVoice);
@@ -193,7 +166,6 @@ export function useVoiceProviderPreference(isAuthenticated: boolean) {
     setGeminiLiveSettings: updateGeminiLiveSettings,
     systemPrompt,
     setSystemPrompt,
-    loading: loading || promptLoading || featuresLoading,
-    hasElevenLabsAccess: hasFeature('elevenlabs_voice'),
+    loading: loading || promptLoading,
   };
 }
