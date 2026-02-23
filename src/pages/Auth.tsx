@@ -9,10 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import SEO from '@/components/SEO';
-import { Header } from '@/components/layout/Header';
+import { PageWrapper } from '@/components/layout/PageWrapper';
 import { OAuthButtons } from '@/components/auth/OAuthButtons';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/AuthContext';
 
 const REMEMBERED_EMAIL_KEY = 'remembered_email';
 
@@ -43,19 +43,23 @@ const Auth = () => {
   const emailRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const rememberedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY);
     if (rememberedEmail) { setEmail(rememberedEmail); setRememberMe(true); }
-    supabase.auth.getSession().then(({ data: { session } }) => { if (session) navigate('/'); });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    
+    // Redirect if already authenticated
+    if (isAuthenticated && !showUpdatePassword) navigate('/');
+    
+    // Listen for PASSWORD_RECOVERY event only
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') { setShowUpdatePassword(true); setShowResetPassword(false); }
-      else if (session && !showUpdatePassword) navigate('/');
     });
     // Auto-focus email
     setTimeout(() => emailRef.current?.focus(), 100);
     return () => subscription.unsubscribe();
-  }, [navigate, showUpdatePassword]);
+  }, [navigate, showUpdatePassword, isAuthenticated]);
 
   const handleRememberMe = (checked: boolean) => {
     setRememberMe(checked);
@@ -161,108 +165,110 @@ const Auth = () => {
   );
 
   return (
-    <>
-      <SEO title="Sign In - ƷBI Voice" description="Sign in or create an account to access ƷBI Voice." image="/og-auth.png" noIndex={true} />
-      <div className="min-h-[100dvh] bg-background">
-        <Header />
-        <main id="main-content" className="flex items-center justify-center py-6 md:py-16 px-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <CardTitle className="text-3xl font-bold">ƷBI Voice</CardTitle>
-              <CardDescription>
-                {showUpdatePassword ? 'Enter your new password'
-                  : showResetPassword ? 'Enter your email to reset your password'
-                  : 'Sign in or create an account to get started'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-4 sm:px-6">
-              {showUpdatePassword ? (
-                <form onSubmit={handleUpdatePassword} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="new-password">New Password</Label>
-                    <PasswordInput id="new-password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-password">Confirm Password</Label>
-                    <PasswordInput id="confirm-password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
-                  </div>
-                  <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
-                    {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Updating...</> : 'Update Password'}
-                  </Button>
-                </form>
-              ) : showResetPassword ? (
-                <form onSubmit={handleResetPassword} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reset-email">Email</Label>
-                    <Input id="reset-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} autoComplete="email" className="min-h-[44px]" />
-                  </div>
-                  <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
-                    {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</> : 'Send Reset Link'}
-                  </Button>
-                  <Button type="button" variant="ghost" className="w-full min-h-[44px]" onClick={() => setShowResetPassword(false)}>Back to Sign In</Button>
-                </form>
-              ) : (
-                <Tabs defaultValue="signin" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="signin">Sign In</TabsTrigger>
-                    <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="signin" className="space-y-4">
-                    <OAuthButtons />
-                    <form onSubmit={handleSignIn} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="signin-email">Email</Label>
-                        <Input ref={emailRef} id="signin-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} autoComplete="email" className="min-h-[44px]" />
+    <PageWrapper
+      title="Sign In - ƷBI Voice"
+      description="Sign in or create an account to access ƷBI Voice."
+      image="/og-auth.png"
+      noIndex
+      showFooter
+    >
+      <main id="main-content" className="flex-1 flex items-center justify-center py-6 md:py-16 px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold">ƷBI Voice</CardTitle>
+            <CardDescription>
+              {showUpdatePassword ? 'Enter your new password'
+                : showResetPassword ? 'Enter your email to reset your password'
+                : 'Sign in or create an account to get started'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6">
+            {showUpdatePassword ? (
+              <form onSubmit={handleUpdatePassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <PasswordInput id="new-password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <PasswordInput id="confirm-password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
+                </div>
+                <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
+                  {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Updating...</> : 'Update Password'}
+                </Button>
+              </form>
+            ) : showResetPassword ? (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email</Label>
+                  <Input id="reset-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} autoComplete="email" className="min-h-[44px]" />
+                </div>
+                <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
+                  {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</> : 'Send Reset Link'}
+                </Button>
+                <Button type="button" variant="ghost" className="w-full min-h-[44px]" onClick={() => setShowResetPassword(false)}>Back to Sign In</Button>
+              </form>
+            ) : (
+              <Tabs defaultValue="signin" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="signin">Sign In</TabsTrigger>
+                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="signin" className="space-y-4">
+                  <OAuthButtons />
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-email">Email</Label>
+                      <Input ref={emailRef} id="signin-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} autoComplete="email" className="min-h-[44px]" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-password">Password</Label>
+                      <PasswordInput id="signin-password" value={password} onChange={setPassword} />
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
+                      <div className="flex items-center space-x-2 min-h-[44px]">
+                        <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(checked) => handleRememberMe(checked === true)} className="h-5 w-5" />
+                        <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">Remember me</Label>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signin-password">Password</Label>
-                        <PasswordInput id="signin-password" value={password} onChange={setPassword} />
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
-                        <div className="flex items-center space-x-2 min-h-[44px]">
-                          <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(checked) => handleRememberMe(checked === true)} className="h-5 w-5" />
-                          <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">Remember me</Label>
-                        </div>
-                        <Button type="button" variant="link" className="h-auto p-0 text-sm justify-start sm:justify-end min-h-[44px] sm:min-h-0" onClick={() => setShowResetPassword(true)}>Forgot password?</Button>
-                      </div>
-                      <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</> : 'Sign In'}
-                      </Button>
-                    </form>
-                  </TabsContent>
-                  
-                  <TabsContent value="signup" className="space-y-4">
-                    <OAuthButtons />
-                    <form onSubmit={handleSignUp} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-displayname">Display Name (Optional)</Label>
-                        <Input id="signup-displayname" type="text" placeholder="Your Name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} disabled={isLoading} autoComplete="name" className="min-h-[44px]" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-email">Email</Label>
-                        <Input id="signup-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} autoComplete="email" className="min-h-[44px]" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-password">Password</Label>
-                        <PasswordInput id="signup-password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-                        <PasswordInput id="signup-confirm-password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
-                      </div>
-                      <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating account...</> : 'Create Account'}
-                      </Button>
-                    </form>
-                  </TabsContent>
-                </Tabs>
-              )}
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    </>
+                      <Button type="button" variant="link" className="h-auto p-0 text-sm justify-start sm:justify-end min-h-[44px] sm:min-h-0" onClick={() => setShowResetPassword(true)}>Forgot password?</Button>
+                    </div>
+                    <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
+                      {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</> : 'Sign In'}
+                    </Button>
+                  </form>
+                </TabsContent>
+                
+                <TabsContent value="signup" className="space-y-4">
+                  <OAuthButtons />
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-displayname">Display Name (Optional)</Label>
+                      <Input id="signup-displayname" type="text" placeholder="Your Name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} disabled={isLoading} autoComplete="name" className="min-h-[44px]" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input id="signup-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} autoComplete="email" className="min-h-[44px]" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <PasswordInput id="signup-password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+                      <PasswordInput id="signup-confirm-password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
+                    </div>
+                    <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
+                      {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating account...</> : 'Create Account'}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+    </PageWrapper>
   );
 };
 

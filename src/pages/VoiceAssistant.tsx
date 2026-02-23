@@ -24,7 +24,7 @@ import { VoiceInterfaceCard } from '@/components/voice/VoiceInterfaceCard';
 import { VoiceErrorBoundary } from '@/components/voice/VoiceErrorBoundary';
 import { SavedAgentsList } from '@/components/voice/SavedAgentsList';
 import { SaveAgentDialog } from '@/components/voice/SaveAgentDialog';
-import { useSavedAgents, type SavedAgent } from '@/hooks/useSavedAgents';
+import { useAgentManager } from '@/hooks/useAgentManager';
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
 import { useWakeWordDetection } from '@/hooks/useWakeWordDetection';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -32,79 +32,39 @@ import { useCallback, useMemo, useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { UpgradeBanner } from '@/components/subscription/UpgradeBanner';
-import { toast } from 'sonner';
-import type { Json } from '@/integrations/supabase/types';
 
 const VoiceAssistant = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { agents, isLoading: agentsLoading, createAgent, updateAgent, deleteAgent, duplicateAgent } = useSavedAgents();
-  const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<SavedAgent | null>(null);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const {
-    isAuthenticated,
-    conversationId,
-    setConversationId,
-    conversationTitle,
-    setConversationTitle,
-    voiceProvider,
-    setVoiceProvider,
-    openaiVoice,
-    setOpenAIVoice,
-    openaiSettings,
-    setOpenAISettings,
-    elevenlabsSettings,
-    setElevenLabsSettings,
-    vapiSettings,
-    setVapiSettings,
-    geminiLiveSettings,
-    setGeminiLiveSettings,
-    systemPrompt,
-    setSystemPrompt,
-    providerLoading,
-    isConnected,
-    isConnecting,
-    connectionError,
-    connectionAuthMethod,
-    connectionPhase,
-    isSpeaking,
-    inputAudioLevel,
-    outputAudioLevel,
-    isMuted,
-    toggleMute,
-    volume,
-    setVolume,
-    startConversation,
-    endConversation,
-    retryConnection,
-    clearConnectionError,
-    liveTranscripts,
-    permissionState,
-    requestPermission,
-    isReady,
-    guestMessages,
-    showRegistrationPrompt,
-    setShowRegistrationPrompt,
-    sendTextMessage,
-    isProcessingText,
-    inputMode,
-    setInputMode,
-    activeToolCall,
-    isPaused,
-    resumeConversation,
-    lastSessionStats,
-  } = useVoiceAssistant();
+
+  const va = useVoiceAssistant();
+
+  const agentManager = useAgentManager({
+    voiceProvider: va.voiceProvider,
+    openaiVoice: va.openaiVoice,
+    openaiSettings: va.openaiSettings,
+    elevenlabsSettings: va.elevenlabsSettings,
+    vapiSettings: va.vapiSettings,
+    geminiLiveSettings: va.geminiLiveSettings,
+    systemPrompt: va.systemPrompt,
+    setVoiceProvider: va.setVoiceProvider,
+    setOpenAIVoice: va.setOpenAIVoice,
+    setOpenAISettings: va.setOpenAISettings,
+    setElevenLabsSettings: va.setElevenLabsSettings,
+    setVapiSettings: va.setVapiSettings,
+    setGeminiLiveSettings: va.setGeminiLiveSettings,
+    setSystemPrompt: va.setSystemPrompt,
+  });
 
   // Wake word detection
   const handleWakeWordDetected = useCallback(() => {
-    setInputMode('voice');
-    setTimeout(() => { startConversation(); }, 100);
-  }, [setInputMode, startConversation]);
+    va.setInputMode('voice');
+    setTimeout(() => { va.startConversation(); }, 100);
+  }, [va.setInputMode, va.startConversation]);
 
-  const wakeWordEnabled = inputMode === 'text' && !isConnected && isReady;
+  const wakeWordEnabled = va.inputMode === 'text' && !va.isConnected && va.isReady;
   
   const { 
     isListening: isWakeWordListening, 
@@ -116,140 +76,92 @@ const VoiceAssistant = () => {
     enabled: wakeWordEnabled,
   });
 
-  const handleResumeDetected = useCallback(() => { resumeConversation(); }, [resumeConversation]);
+  const handleResumeDetected = useCallback(() => { va.resumeConversation(); }, [va.resumeConversation]);
 
   useWakeWordDetection({
     wakeWords: ['continue the conversation', 'resume the conversation', 'unpause'],
     onWakeWordDetected: handleResumeDetected,
-    enabled: isPaused && isConnected,
+    enabled: va.isPaused && va.isConnected,
   });
 
   useKeyboardShortcuts({
-    onMuteToggle: toggleMute,
-    onEndConversation: endConversation,
-    onStartConversation: startConversation,
-    isConnected,
-    isReady,
+    onMuteToggle: va.toggleMute,
+    onEndConversation: va.endConversation,
+    onStartConversation: va.startConversation,
+    isConnected: va.isConnected,
+    isReady: va.isReady,
     enabled: true,
   });
 
   const handleNewConversation = useCallback(() => {
-    setConversationId(null);
-    setConversationTitle(null);
-  }, [setConversationId, setConversationTitle]);
-
-  // Agent management handlers
-  const getCurrentConfig = useCallback(() => {
-    let voiceId = '';
-    let providerSettings: Json = {};
-    let firstMessage = '';
-    if (voiceProvider === 'openai') {
-      voiceId = openaiVoice;
-      providerSettings = openaiSettings as unknown as Json;
-      firstMessage = openaiSettings.firstMessage || '';
-    } else if (voiceProvider === 'elevenlabs') {
-      providerSettings = elevenlabsSettings as unknown as Json;
-      firstMessage = elevenlabsSettings.customFirstMessage || '';
-    } else if (voiceProvider === 'vapi' && vapiSettings) {
-      providerSettings = vapiSettings as unknown as Json;
-    } else if (voiceProvider === 'gemini' && geminiLiveSettings) {
-      voiceId = geminiLiveSettings.voice;
-      providerSettings = geminiLiveSettings as unknown as Json;
-      firstMessage = geminiLiveSettings.customFirstMessage || '';
-    }
-    return { voiceProvider, voiceId, providerSettings, systemPrompt, firstMessage };
-  }, [voiceProvider, openaiVoice, openaiSettings, elevenlabsSettings, vapiSettings, geminiLiveSettings, systemPrompt]);
-
-  const handleLoadAgent = useCallback((agent: SavedAgent) => {
-    setVoiceProvider(agent.voice_provider as any);
-    if (agent.voice_provider === 'openai' && agent.voice_id) {
-      setOpenAIVoice(agent.voice_id as any);
-    }
-    if (agent.provider_settings && typeof agent.provider_settings === 'object') {
-      const settings = agent.provider_settings as Record<string, any>;
-      if (agent.voice_provider === 'openai') setOpenAISettings(settings as any);
-      else if (agent.voice_provider === 'elevenlabs') setElevenLabsSettings(settings as any);
-      else if (agent.voice_provider === 'vapi') setVapiSettings?.(settings as any);
-      else if (agent.voice_provider === 'gemini') setGeminiLiveSettings?.(settings as any);
-    }
-
-    let prompt = agent.system_prompt;
-    const rq = agent.required_questions;
-    if (rq && rq.length > 0) {
-      const lines = rq.map((q, i) => {
-        const tag = q.required ? '[Required]' : '[Optional]';
-        return `${i + 1}. ${tag} ${q.question} (expect: ${q.type.replace('_', '/')})`;
-      });
-      prompt += `\n\nIMPORTANT: You must collect answers to the following questions during this conversation. Ask them naturally in the flow of conversation. Do not skip required questions.\n\nQuestions to collect:\n${lines.join('\n')}`;
-    }
-
-    setSystemPrompt(prompt);
-    setActiveAgentId(agent.id);
-    toast.success(`Loaded agent: ${agent.name}`);
-  }, [setVoiceProvider, setOpenAIVoice, setOpenAISettings, setElevenLabsSettings, setVapiSettings, setGeminiLiveSettings, setSystemPrompt]);
-
-  const handleSaveAgent = useCallback(async (input: Parameters<typeof createAgent.mutateAsync>[0]) => {
-    await createAgent.mutateAsync(input);
-  }, [createAgent]);
-
-  const handleUpdateAgent = useCallback(async (id: string, input: Record<string, any>) => {
-    await updateAgent.mutateAsync({ id, ...input });
-  }, [updateAgent]);
-
-  const handleEditAgent = useCallback((agent: SavedAgent) => {
-    setEditingAgent(agent);
-    setSaveDialogOpen(true);
-  }, []);
-
-  const handleDeleteAgent = useCallback((id: string) => {
-    deleteAgent.mutate(id);
-    if (activeAgentId === id) setActiveAgentId(null);
-  }, [deleteAgent, activeAgentId]);
+    va.setConversationId(null);
+    va.setConversationTitle(null);
+  }, [va.setConversationId, va.setConversationTitle]);
 
   const voiceInterfaceProps = useMemo(() => ({
-    voiceProvider, setVoiceProvider,
-    openaiVoice, setOpenAIVoice, openaiSettings, setOpenAISettings,
-    elevenlabsSettings, setElevenLabsSettings, geminiLiveSettings, setGeminiLiveSettings,
-    systemPrompt, setSystemPrompt, providerLoading,
-    isConnected, isConnecting, connectionError, connectionAuthMethod, connectionPhase,
-    isSpeaking, inputAudioLevel, outputAudioLevel, isMuted, toggleMute, volume, setVolume,
-    inputMode, setInputMode, startConversation, endConversation, retryConnection, clearConnectionError,
-    sendTextMessage, isProcessingText, activeToolCall, permissionState, requestPermission, isReady,
-    isAuthenticated, isMobile: isMobile ?? false,
+    voiceProvider: va.voiceProvider, setVoiceProvider: va.setVoiceProvider,
+    openaiVoice: va.openaiVoice, setOpenAIVoice: va.setOpenAIVoice, 
+    openaiSettings: va.openaiSettings, setOpenAISettings: va.setOpenAISettings,
+    elevenlabsSettings: va.elevenlabsSettings, setElevenLabsSettings: va.setElevenLabsSettings, 
+    geminiLiveSettings: va.geminiLiveSettings, setGeminiLiveSettings: va.setGeminiLiveSettings,
+    systemPrompt: va.systemPrompt, setSystemPrompt: va.setSystemPrompt, providerLoading: va.providerLoading,
+    isConnected: va.isConnected, isConnecting: va.isConnecting, connectionError: va.connectionError, 
+    connectionAuthMethod: va.connectionAuthMethod, connectionPhase: va.connectionPhase,
+    isSpeaking: va.isSpeaking, inputAudioLevel: va.inputAudioLevel, outputAudioLevel: va.outputAudioLevel, 
+    isMuted: va.isMuted, toggleMute: va.toggleMute, volume: va.volume, setVolume: va.setVolume,
+    inputMode: va.inputMode, setInputMode: va.setInputMode, startConversation: va.startConversation, 
+    endConversation: va.endConversation, retryConnection: va.retryConnection, clearConnectionError: va.clearConnectionError,
+    sendTextMessage: va.sendTextMessage, isProcessingText: va.isProcessingText, activeToolCall: va.activeToolCall, 
+    permissionState: va.permissionState, requestPermission: va.requestPermission, isReady: va.isReady,
+    isAuthenticated: va.isAuthenticated, isMobile: isMobile ?? false,
     isWakeWordListening, isWakeWordSupported, wakeWordLastHeard,
-    onSaveAgent: () => { setEditingAgent(null); setSaveDialogOpen(true); },
-    isPaused, onResume: resumeConversation,
+    onSaveAgent: agentManager.openSaveDialog,
+    isPaused: va.isPaused, onResume: va.resumeConversation,
     onToggleSettings: () => setSettingsOpen(prev => !prev),
     settingsOpen,
-  }), [
-    voiceProvider, setVoiceProvider, openaiVoice, setOpenAIVoice, openaiSettings, setOpenAISettings,
-    elevenlabsSettings, setElevenLabsSettings, geminiLiveSettings, setGeminiLiveSettings,
-    systemPrompt, setSystemPrompt, providerLoading,
-    isConnected, isConnecting, connectionError, connectionAuthMethod, connectionPhase,
-    isSpeaking, inputAudioLevel, outputAudioLevel, isMuted, toggleMute, volume, setVolume,
-    inputMode, setInputMode, startConversation, endConversation, retryConnection, clearConnectionError,
-    sendTextMessage, isProcessingText, activeToolCall, permissionState, requestPermission, isReady,
-    isAuthenticated, isMobile, isWakeWordListening, isWakeWordSupported, wakeWordLastHeard,
-    isPaused, resumeConversation, settingsOpen,
-  ]);
+  }), [va, isMobile, isWakeWordListening, isWakeWordSupported, wakeWordLastHeard, agentManager.openSaveDialog, settingsOpen]);
 
   // Shared dialogs
   const dialogs = (
     <>
       <RegistrationPromptModal 
-        open={showRegistrationPrompt}
-        onOpenChange={setShowRegistrationPrompt}
+        open={va.showRegistrationPrompt}
+        onOpenChange={va.setShowRegistrationPrompt}
       />
       <SaveAgentDialog
-        open={saveDialogOpen}
-        onOpenChange={setSaveDialogOpen}
-        onSave={handleSaveAgent}
-        onUpdate={handleUpdateAgent}
-        editingAgent={editingAgent}
-        currentConfig={getCurrentConfig()}
-        saving={createAgent.isPending || updateAgent.isPending}
+        open={agentManager.saveDialogOpen}
+        onOpenChange={agentManager.setSaveDialogOpen}
+        onSave={agentManager.handleSaveAgent}
+        onUpdate={agentManager.handleUpdateAgent}
+        editingAgent={agentManager.editingAgent}
+        currentConfig={agentManager.getCurrentConfig()}
+        saving={agentManager.createAgent.isPending || agentManager.updateAgent.isPending}
       />
     </>
+  );
+
+  const agentsList = va.isAuthenticated && (
+    <SavedAgentsList
+      agents={agentManager.agents}
+      isLoading={agentManager.agentsLoading}
+      activeAgentId={agentManager.activeAgentId}
+      onLoadAgent={agentManager.handleLoadAgent}
+      onEditAgent={agentManager.handleEditAgent}
+      onDuplicateAgent={agentManager.duplicateAgent}
+      onDeleteAgent={agentManager.handleDeleteAgent}
+    />
+  );
+
+  const transcripts = (va.isConnected || va.liveTranscripts.length > 0 || va.inputMode === 'text') && (
+    <LiveTranscripts 
+      transcripts={va.liveTranscripts}
+      isConnected={va.isConnected || va.inputMode === 'text'}
+      isSpeaking={va.isSpeaking}
+    />
+  );
+
+  const receipt = va.isAuthenticated && va.lastSessionStats && !va.isConnected && (
+    <ConversationReceipt stats={va.lastSessionStats} onDismiss={() => {}} />
   );
 
   // ─── Mobile Layout ───
@@ -266,73 +178,25 @@ const VoiceAssistant = () => {
           <Header />
           <main id="main-content" className="flex-1 flex flex-col overflow-y-auto scrollbar-hide">
             <div className="flex-1 flex flex-col px-3 pt-2 pb-4">
-              {/* Banners */}
-              {isAuthenticated && <UpgradeBanner className="mb-2" />}
-              {!isAuthenticated && <GuestModeBanner variant="compact" className="mb-2" />}
-              {isAuthenticated && conversationTitle && (
-                <ConversationBanner 
-                  title={conversationTitle} 
-                  onNewConversation={handleNewConversation}
-                  variant="compact"
-                  className="mb-2"
-                />
+              {va.isAuthenticated && <UpgradeBanner className="mb-2" />}
+              {!va.isAuthenticated && <GuestModeBanner variant="compact" className="mb-2" />}
+              {va.isAuthenticated && va.conversationTitle && (
+                <ConversationBanner title={va.conversationTitle} onNewConversation={handleNewConversation} variant="compact" className="mb-2" />
               )}
-
-              {/* Saved Agents */}
-              {isAuthenticated && (
-                <SavedAgentsList
-                  agents={agents}
-                  isLoading={agentsLoading}
-                  activeAgentId={activeAgentId}
-                  onLoadAgent={handleLoadAgent}
-                  onEditAgent={handleEditAgent}
-                  onDuplicateAgent={duplicateAgent}
-                  onDeleteAgent={handleDeleteAgent}
-                />
-              )}
-
-              {/* Main Voice Interface - expanded for immersion */}
-              <VoiceErrorBoundary>
-                <VoiceInterfaceCard {...voiceInterfaceProps} />
-              </VoiceErrorBoundary>
-
-              {/* Live Transcripts */}
-              {(isConnected || liveTranscripts.length > 0 || inputMode === 'text') && (
-                <div className="mt-3">
-                  <LiveTranscripts 
-                    transcripts={liveTranscripts}
-                    isConnected={isConnected || inputMode === 'text'}
-                    isSpeaking={isSpeaking}
-                  />
-                </div>
-              )}
-
-              {/* Conversation Receipt (mobile) */}
-              {isAuthenticated && lastSessionStats && !isConnected && (
-                <ConversationReceipt 
-                  stats={lastSessionStats} 
-                  onDismiss={() => {}} 
-                />
-              )}
-
-              {/* Message History for guests */}
-              {!isAuthenticated && guestMessages.length > 0 && (
-                <div className="mt-3">
-                  <MessageHistory conversationId={conversationId} />
-                </div>
+              {agentsList}
+              <VoiceErrorBoundary><VoiceInterfaceCard {...voiceInterfaceProps} /></VoiceErrorBoundary>
+              {transcripts && <div className="mt-3">{transcripts}</div>}
+              {receipt}
+              {!va.isAuthenticated && va.guestMessages.length > 0 && (
+                <div className="mt-3"><MessageHistory conversationId={va.conversationId} /></div>
               )}
             </div>
           </main>
 
-          {/* FAB for Conversations & Upload */}
-          {isAuthenticated && (
+          {va.isAuthenticated && (
             <Sheet open={mobileActionsOpen} onOpenChange={setMobileActionsOpen}>
               <SheetTrigger asChild>
-                <Button
-                  size="icon"
-                  className="fixed bottom-6 right-4 z-40 h-14 w-14 rounded-full shadow-lg glow-primary"
-                  aria-label="Open actions menu"
-                >
+                <Button size="icon" className="fixed bottom-6 right-4 z-40 h-14 w-14 rounded-full shadow-lg glow-primary" aria-label="Open actions menu">
                   <Plus className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
@@ -343,11 +207,11 @@ const VoiceAssistant = () => {
                 </SheetHeader>
                 <div className="pt-4 pb-8 space-y-6">
                   <ConversationHistory 
-                    currentConversationId={conversationId}
-                    onSelectConversation={(id) => { setConversationId(id); setMobileActionsOpen(false); }}
+                    currentConversationId={va.conversationId}
+                    onSelectConversation={(id) => { va.setConversationId(id); setMobileActionsOpen(false); }}
                     onConversationCreated={() => {}}
                   />
-                  <DocumentUpload conversationId={conversationId} />
+                  <DocumentUpload conversationId={va.conversationId} />
                 </div>
               </SheetContent>
             </Sheet>
@@ -369,17 +233,17 @@ const VoiceAssistant = () => {
       />
       <div className="h-screen bg-background flex flex-col">
         <Header />
-        <SidebarProvider defaultOpen={isAuthenticated}>
+        <SidebarProvider defaultOpen={va.isAuthenticated}>
           <div className="flex flex-1 w-full overflow-hidden">
-            {isAuthenticated && (
+            {va.isAuthenticated && (
               <Sidebar collapsible="offcanvas" className="w-72">
                 <SidebarContent className="p-4 space-y-6">
                   <ConversationHistory 
-                    currentConversationId={conversationId}
-                    onSelectConversation={setConversationId}
+                    currentConversationId={va.conversationId}
+                    onSelectConversation={va.setConversationId}
                     onConversationCreated={() => {}}
                   />
-                  <DocumentUpload conversationId={conversationId} />
+                  <DocumentUpload conversationId={va.conversationId} />
                 </SidebarContent>
               </Sidebar>
             )}
@@ -387,102 +251,63 @@ const VoiceAssistant = () => {
             <SidebarInset className="flex-1 min-w-0">
               <main id="main-content" className="h-full overflow-y-auto scrollbar-hide">
                 <div className="container mx-auto px-4 py-8 max-w-4xl">
-                  {isAuthenticated && <UpgradeBanner className="mb-4" />}
-                  {!isAuthenticated && <GuestModeBanner className="mb-4" />}
-                  {isAuthenticated && conversationTitle && (
-                    <ConversationBanner 
-                      title={conversationTitle} 
-                      onNewConversation={handleNewConversation}
-                      className="mb-4"
-                    />
+                  {va.isAuthenticated && <UpgradeBanner className="mb-4" />}
+                  {!va.isAuthenticated && <GuestModeBanner className="mb-4" />}
+                  {va.isAuthenticated && va.conversationTitle && (
+                    <ConversationBanner title={va.conversationTitle} onNewConversation={handleNewConversation} className="mb-4" />
                   )}
                   
-                  {isAuthenticated && (
-                    <div className="mb-4">
-                      <SidebarTrigger className="min-h-[44px]" />
-                    </div>
+                  {va.isAuthenticated && (
+                    <div className="mb-4"><SidebarTrigger className="min-h-[44px]" /></div>
                   )}
 
-                  {isAuthenticated && (
-                    <SavedAgentsList
-                      agents={agents}
-                      isLoading={agentsLoading}
-                      activeAgentId={activeAgentId}
-                      onLoadAgent={handleLoadAgent}
-                      onEditAgent={handleEditAgent}
-                      onDuplicateAgent={duplicateAgent}
-                      onDeleteAgent={handleDeleteAgent}
-                    />
-                  )}
+                  {agentsList}
 
-                  <VoiceErrorBoundary>
-                    <VoiceInterfaceCard {...voiceInterfaceProps} />
-                  </VoiceErrorBoundary>
+                  <VoiceErrorBoundary><VoiceInterfaceCard {...voiceInterfaceProps} /></VoiceErrorBoundary>
 
-                  {(isConnected || liveTranscripts.length > 0 || inputMode === 'text') && (
-                    <div className="mt-6">
-                      <LiveTranscripts 
-                        transcripts={liveTranscripts}
-                        isConnected={isConnected || inputMode === 'text'}
-                        isSpeaking={isSpeaking}
-                      />
-                    </div>
-                  )}
+                  {transcripts && <div className="mt-6">{transcripts}</div>}
+                  {receipt}
 
-                  {/* Conversation Receipt */}
-                  {isAuthenticated && lastSessionStats && !isConnected && (
-                    <ConversationReceipt 
-                      stats={lastSessionStats} 
-                      onDismiss={() => {}} 
-                    />
-                  )}
-
-                  <div className="mt-6">
-                    <MessageHistory conversationId={conversationId} />
-                  </div>
+                  <div className="mt-6"><MessageHistory conversationId={va.conversationId} /></div>
                 </div>
               </main>
             </SidebarInset>
 
             {/* Right Settings Panel */}
             <div className={`flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out ${settingsOpen ? 'w-80' : 'w-0'}`}>
-              <div
-                className={`w-80 h-full border-l border-border bg-card transition-transform duration-300 ease-in-out ${
-                  settingsOpen ? 'translate-x-0' : 'translate-x-full'
-                }`}
-              >
+              <div className={`w-80 h-full border-l border-border bg-card transition-transform duration-300 ease-in-out ${settingsOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="w-80 h-full flex flex-col">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
-                  <h2 className="text-sm font-semibold">Settings</h2>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSettingsOpen(false)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                <ScrollArea className="flex-1">
-                  <div className="p-4">
-                    <VoiceSettingsPanel
-                      voiceProvider={voiceProvider}
-                      onVoiceProviderChange={setVoiceProvider}
-                      openaiVoice={openaiVoice}
-                      onOpenAIVoiceChange={setOpenAIVoice}
-                      openaiSettings={openaiSettings}
-                      onOpenAISettingsChange={setOpenAISettings}
-                      elevenlabsSettings={elevenlabsSettings}
-                      onElevenLabsSettingsChange={setElevenLabsSettings}
-                      geminiLiveSettings={geminiLiveSettings}
-                      onGeminiLiveSettingsChange={setGeminiLiveSettings}
-                      systemPrompt={systemPrompt}
-                      onSystemPromptChange={setSystemPrompt}
-                      inputMode={inputMode}
-                      onInputModeChange={setInputMode}
-                      isConnected={isConnected}
-                      providerLoading={providerLoading}
-                      isAuthenticated={isAuthenticated}
-                      onSaveAgent={() => { setEditingAgent(null); setSaveDialogOpen(true); }}
-                    />
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+                    <h2 className="text-sm font-semibold">Settings</h2>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSettingsOpen(false)}>
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                </ScrollArea>
-              </div>
+                  <ScrollArea className="flex-1">
+                    <div className="p-4">
+                      <VoiceSettingsPanel
+                        voiceProvider={va.voiceProvider}
+                        onVoiceProviderChange={va.setVoiceProvider}
+                        openaiVoice={va.openaiVoice}
+                        onOpenAIVoiceChange={va.setOpenAIVoice}
+                        openaiSettings={va.openaiSettings}
+                        onOpenAISettingsChange={va.setOpenAISettings}
+                        elevenlabsSettings={va.elevenlabsSettings}
+                        onElevenLabsSettingsChange={va.setElevenLabsSettings}
+                        geminiLiveSettings={va.geminiLiveSettings}
+                        onGeminiLiveSettingsChange={va.setGeminiLiveSettings}
+                        systemPrompt={va.systemPrompt}
+                        onSystemPromptChange={va.setSystemPrompt}
+                        inputMode={va.inputMode}
+                        onInputModeChange={va.setInputMode}
+                        isConnected={va.isConnected}
+                        providerLoading={va.providerLoading}
+                        isAuthenticated={va.isAuthenticated}
+                        onSaveAgent={agentManager.openSaveDialog}
+                      />
+                    </div>
+                  </ScrollArea>
+                </div>
               </div>
             </div>
           </div>

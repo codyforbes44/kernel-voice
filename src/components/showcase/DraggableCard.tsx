@@ -10,11 +10,7 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
-const sizeClasses: Record<CardSize, string> = {
-  sm: '',
-  md: '',
-  lg: 'sm:col-span-2',
-};
+// Size classes are applied by DraggableSection wrapper, not here
 
 const SIZE_OPTIONS: { value: CardSize; label: string }[] = [
   { value: 'sm', label: 'S' },
@@ -51,7 +47,7 @@ export function DraggableCard({ id, editMode, size, onSizeChange }: DraggableCar
       ref={setNodeRef}
       style={style}
       variants={fadeUp}
-      className={`relative transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle ${sizeClasses[size]}`}
+      className="relative transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"
     >
       {editMode && (
         <div className="absolute top-2 right-2 z-10 flex items-center gap-1">

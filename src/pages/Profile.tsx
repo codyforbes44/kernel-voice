@@ -7,9 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Header } from '@/components/layout/Header';
+import { PageWrapper } from '@/components/layout/PageWrapper';
 import { InputModeSelector, type InputMode } from '@/components/voice/InputModeSelector';
-import SEO from '@/components/SEO';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -103,81 +102,80 @@ const Profile = () => {
   }
 
   return (
-    <>
-      <SEO title="Profile Settings" description="Manage your profile settings, avatar, and preferences" />
-      <div className="min-h-[100dvh] bg-background">
-        <Header />
-        <main id="main-content" className="container max-w-2xl mx-auto py-6 md:py-8 px-4">
-          <Button variant="ghost" onClick={() => navigate('/assistant')} className="mb-4 min-h-[44px]">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Assistant
-          </Button>
+    <PageWrapper
+      title="Profile Settings"
+      description="Manage your profile settings, avatar, and preferences"
+      showFooter
+    >
+      <main id="main-content" className="flex-1 container max-w-2xl mx-auto py-6 md:py-8 px-4">
+        <Button variant="ghost" onClick={() => navigate('/assistant')} className="mb-4 min-h-[44px]">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Assistant
+        </Button>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Settings</CardTitle>
-              <CardDescription>Manage your profile information and preferences</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-8">
-              {/* Avatar Section - mobile-friendly */}
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                  <Avatar className="h-24 w-24 border-2 border-border">
-                    <AvatarImage src={avatarUrl || undefined} alt="Profile avatar" />
-                    <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                      {getInitials(displayName, user?.email || null)}
-                    </AvatarFallback>
-                  </Avatar>
-                  {/* Always-visible overlay on mobile, hover on desktop */}
-                  <button
-                    onClick={handleAvatarClick}
-                    disabled={uploading}
-                    className="absolute inset-0 flex items-center justify-center bg-background/60 md:bg-background/80 opacity-60 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 transition-opacity rounded-full cursor-pointer"
-                    aria-label="Change avatar"
-                  >
-                    {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Camera className="h-6 w-6" />}
-                  </button>
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                </div>
-                <Button variant="outline" size="sm" onClick={handleAvatarClick} disabled={uploading} className="min-h-[44px] md:hidden">
-                  {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
-                  Change Photo
-                </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile Settings</CardTitle>
+            <CardDescription>Manage your profile information and preferences</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            {/* Avatar Section */}
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <Avatar className="h-24 w-24 border-2 border-border">
+                  <AvatarImage src={avatarUrl || undefined} alt="Profile avatar" />
+                  <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                    {getInitials(displayName, user?.email || null)}
+                  </AvatarFallback>
+                </Avatar>
+                <button
+                  onClick={handleAvatarClick}
+                  disabled={uploading}
+                  className="absolute inset-0 flex items-center justify-center bg-background/60 md:bg-background/80 opacity-60 md:opacity-0 md:group-hover:opacity-100 hover:opacity-100 transition-opacity rounded-full cursor-pointer"
+                  aria-label="Change avatar"
+                >
+                  {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Camera className="h-6 w-6" />}
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
               </div>
-
-              {/* Display Name */}
-              <div className="space-y-2">
-                <Label htmlFor="displayName">Display Name</Label>
-                <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Enter your display name" maxLength={50} className="min-h-[44px]" />
-                <p className="text-xs text-muted-foreground flex justify-between">
-                  <span>This name will be shown instead of your email</span>
-                  <span className="tabular-nums">{displayName.length}/50</span>
-                </p>
-              </div>
-
-              {/* Email (Read-only) */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" value={user?.email || ''} disabled className="bg-muted min-h-[44px]" />
-                <p className="text-xs text-muted-foreground">Email cannot be changed</p>
-              </div>
-
-              {/* Input Mode Preference */}
-              <div className="space-y-3">
-                <Label>Preferred Input Mode</Label>
-                <p className="text-sm text-muted-foreground">Choose how you prefer to interact with the assistant</p>
-                <InputModeSelector value={inputMode} onChange={setInputMode} className="w-full justify-center" />
-              </div>
-
-              {/* Save Button */}
-              <Button onClick={handleSave} disabled={saving} className="w-full min-h-[48px]">
-                {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</> : <><Save className="h-4 w-4 mr-2" />Save Changes</>}
+              <Button variant="outline" size="sm" onClick={handleAvatarClick} disabled={uploading} className="min-h-[44px] md:hidden">
+                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
+                Change Photo
               </Button>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    </>
+            </div>
+
+            {/* Display Name */}
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Display Name</Label>
+              <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Enter your display name" maxLength={50} className="min-h-[44px]" />
+              <p className="text-xs text-muted-foreground flex justify-between">
+                <span>This name will be shown instead of your email</span>
+                <span className="tabular-nums">{displayName.length}/50</span>
+              </p>
+            </div>
+
+            {/* Email (Read-only) */}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" value={user?.email || ''} disabled className="bg-muted min-h-[44px]" />
+              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+            </div>
+
+            {/* Input Mode Preference */}
+            <div className="space-y-3">
+              <Label>Preferred Input Mode</Label>
+              <p className="text-sm text-muted-foreground">Choose how you prefer to interact with the assistant</p>
+              <InputModeSelector value={inputMode} onChange={setInputMode} className="w-full justify-center" />
+            </div>
+
+            {/* Save Button */}
+            <Button onClick={handleSave} disabled={saving} className="w-full min-h-[48px]">
+              {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</> : <><Save className="h-4 w-4 mr-2" />Save Changes</>}
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    </PageWrapper>
   );
 };
 
