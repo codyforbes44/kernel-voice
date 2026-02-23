@@ -4,6 +4,7 @@ import { OpenAIRealtimeCard } from '@/components/showcase/OpenAIRealtimeCard';
 import { VoiceChatCard } from '@/components/showcase/VoiceChatCard';
 import { ChatConversationCard } from '@/components/showcase/ChatConversationCard';
 import { WebSearchCard } from '@/components/showcase/WebSearchCard';
+import { ClaudeReasoningCard } from '@/components/showcase/ClaudeReasoningCard';
 import { WidgetChatCard } from '@/components/showcase/WidgetChatCard';
 import { VoiceFillCard } from '@/components/showcase/VoiceFillCard';
 import { CharacterSelectCard } from '@/components/showcase/CharacterSelectCard';
@@ -67,6 +68,7 @@ export default function Showcase() {
           <SectionLabel>Text Conversations</SectionLabel>
           <motion.div variants={fadeUp}><ChatConversationCard /></motion.div>
           <motion.div variants={fadeUp}><WebSearchCard /></motion.div>
+          <motion.div variants={fadeUp}><ClaudeReasoningCard /></motion.div>
           <motion.div variants={fadeUp}><WidgetChatCard /></motion.div>
 
           {/* Voice Input + Processing */}
