@@ -10,7 +10,7 @@ import { VoiceFillCard } from '@/components/showcase/VoiceFillCard';
 import { CharacterSelectCard } from '@/components/showcase/CharacterSelectCard';
 import { ShowcaseWaveform } from '@/components/showcase/ShowcaseWaveform';
 import { MusicPlayerCard } from '@/components/showcase/MusicPlayerCard';
-import { YouTubePlayerCard } from '@/components/showcase/YouTubePlayerCard';
+
 import { LiveStatusCard } from '@/components/showcase/LiveStatusCard';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import logo from '@/assets/logo.png';
@@ -80,10 +80,6 @@ export default function Showcase() {
           <SectionLabel>Visualizations</SectionLabel>
           <motion.div variants={fadeUp}><ShowcaseWaveform /></motion.div>
           <motion.div variants={fadeUp}><MusicPlayerCard /></motion.div>
-
-          {/* Media */}
-          <SectionLabel>Media</SectionLabel>
-          <motion.div variants={fadeUp} className="sm:col-span-2 lg:col-span-2"><YouTubePlayerCard /></motion.div>
           <motion.div variants={fadeUp}><LiveStatusCard /></motion.div>
         </motion.div>
       </div>

@@ -23,7 +23,7 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
 const Showcase = lazy(() => import("./pages/Showcase"));
-const YouTubePlayer = lazy(() => import("./pages/YouTubePlayer"));
+
 
 // Admin pages (heavier chunk)
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
@@ -77,7 +77,7 @@ const App = () => (
                     <Route path="/admin/widgets" element={<ProtectedRoute><AdminWidgets /></ProtectedRoute>} />
                     <Route path="/showcase" element={<Showcase />} />
                     <Route path="/playground" element={<Showcase />} />
-                    <Route path="/youtube-player" element={<YouTubePlayer />} />
+                    
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
