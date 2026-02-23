@@ -140,19 +140,19 @@ export const providerInfo: Record<VoiceProvider, {
     name: 'ElevenLabs',
     description: 'Premium voices, auto-language',
     features: ['29+ Languages', 'Auto-detect', 'Knowledge Base'],
-    isPremium: true,
+    isPremium: false,
   },
   vapi: {
     name: 'VAPI',
     description: 'Voice agents, phone calling',
     features: ['Phone Integration', '20+ Languages', 'Tool calling'],
-    isPremium: true,
+    isPremium: false,
   },
   gemini: {
     name: 'Gemini Live',
     description: 'Native audio, 30 HD voices',
     features: ['WebSocket', '24 Languages', 'Native Audio'],
-    isPremium: true,
+    isPremium: false,
   },
 };
 

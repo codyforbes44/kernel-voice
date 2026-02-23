@@ -1,11 +1,8 @@
-import { useState, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Cloud, Loader2, Sparkles, Crown, Check } from 'lucide-react';
+import { Cloud, Loader2, Check } from 'lucide-react';
 import { OpenAISettingsPanel } from './OpenAISettingsPanel';
 import { ElevenLabsSettingsPanel } from './ElevenLabsSettingsPanel';
 import { VAPISettingsPanel } from './VAPISettingsPanel';
@@ -23,7 +20,6 @@ import {
   DEFAULT_GEMINI_LIVE_SETTINGS,
   providerInfo,
 } from './voiceTypes';
-import { useUserFeatures } from '@/hooks/useUserFeatures';
 import { cn } from '@/lib/utils';
 
 // Re-export types for backwards compatibility
@@ -90,24 +86,8 @@ export function VoiceProviderSelector({
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const { hasFeature, loading: featuresLoading, isSubscribed } = useUserFeatures();
-  const navigate = useNavigate();
-
-  // Determine available providers based on user features
-  const availableProviders = useMemo(() => {
-    const providers: VoiceProvider[] = ['openai'];
-    
-    if (hasFeature('elevenlabs_voice')) {
-      providers.push('elevenlabs');
-      providers.push('vapi');
-      providers.push('gemini');
-    }
-    
-    return providers;
-  }, [hasFeature]);
 
   const allProviders: VoiceProvider[] = ['openai', 'elevenlabs', 'vapi', 'gemini'];
-  const hasPremiumAccess = hasFeature('elevenlabs_voice');
 
   const withSync = async (fn: () => Promise<void>) => {
     if (!isAuthenticated) {
@@ -133,8 +113,7 @@ export function VoiceProviderSelector({
   };
 
   const handleProviderChange = async (newProvider: VoiceProvider) => {
-    if (disabled || saving || featuresLoading) return;
-    if (!availableProviders.includes(newProvider)) return;
+    if (disabled || saving) return;
     
     onChange(newProvider);
     
@@ -252,33 +231,23 @@ export function VoiceProviderSelector({
         {allProviders.map((key) => {
           const info = providerInfo[key];
           const isActive = value === key;
-          const isLocked = !availableProviders.includes(key);
 
           return (
             <button
               key={key}
-              onClick={() => !isLocked && handleProviderChange(key)}
-              disabled={disabled || saving || featuresLoading}
+              onClick={() => handleProviderChange(key)}
+              disabled={disabled || saving}
               className={cn(
                 'relative flex flex-col items-start gap-0.5 rounded-lg border p-2.5 text-left transition-all',
                 isActive
                   ? 'border-primary/50 bg-primary/8 ring-1 ring-primary/20'
-                  : isLocked
-                    ? 'border-border/50 opacity-50 cursor-not-allowed'
-                    : 'border-border hover:border-primary/30 hover:bg-muted/50 cursor-pointer',
+                  : 'border-border hover:border-primary/30 hover:bg-muted/50 cursor-pointer',
                 (disabled || saving) && 'opacity-50 cursor-not-allowed'
               )}
             >
-              {/* Active check */}
               {isActive && (
                 <div className="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
                   <Check className="h-2.5 w-2.5 text-primary-foreground" />
-                </div>
-              )}
-              {/* Premium lock */}
-              {isLocked && (
-                <div className="absolute top-1.5 right-1.5">
-                  <Crown className="h-3 w-3 text-muted-foreground" />
                 </div>
               )}
               <span className="text-xs font-semibold leading-tight">{info.name}</span>
@@ -287,25 +256,6 @@ export function VoiceProviderSelector({
           );
         })}
       </div>
-
-      {/* Upgrade prompt */}
-      {!hasPremiumAccess && isAuthenticated && (
-        <div className="flex items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5">
-          <Crown className="h-3 w-3 text-primary shrink-0" />
-          <p className="text-[10px] text-muted-foreground flex-1">
-            Premium voices with Pro
-          </p>
-          <Button 
-            variant="link" 
-            size="sm" 
-            className="h-auto p-0 text-[10px]"
-            onClick={() => navigate('/pricing')}
-          >
-            <Sparkles className="h-3 w-3 mr-0.5" />
-            Upgrade
-          </Button>
-        </div>
-      )}
 
       {/* Feature tags */}
       <div className="flex flex-wrap gap-1">
