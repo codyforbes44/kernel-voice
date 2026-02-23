@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { Users, MessageSquare, FileText, TrendingUp, BookOpen, Database, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminGuard } from '@/components/admin/AdminGuard';
@@ -11,7 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import SEO from '@/components/SEO';
-import { format, subDays } from 'date-fns';
+import { format } from 'date-fns';
+import { useAdminChartData } from '@/hooks/useAdminChartData';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -69,32 +70,12 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Generate sample chart data based on stats
-  const chartData = useMemo(() => {
-    const today = new Date();
-    const userGrowth = Array.from({ length: 7 }, (_, i) => ({
-      date: format(subDays(today, 6 - i), 'MMM d'),
-      users: Math.floor(stats.totalUsers / 7 * (i + 1) + Math.random() * 3),
-    }));
+  const { data: chartData, refetch: refetchCharts } = useAdminChartData();
 
-    const conversationVolume = Array.from({ length: 7 }, (_, i) => ({
-      date: format(subDays(today, 6 - i), 'MMM d'),
-      conversations: Math.floor(stats.totalConversations / 7 * (i + 1) + Math.random() * 5),
-    }));
-
-    const voiceProviderUsage = [
-      { name: 'ElevenLabs', value: 65 },
-      { name: '3ʙɪ', value: 35 },
-    ];
-
-    const weeklyActivity = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
-      day,
-      active: Math.floor(Math.random() * 20) + 5,
-      new: Math.floor(Math.random() * 5) + 1,
-    }));
-
-    return { userGrowth, conversationVolume, voiceProviderUsage, weeklyActivity };
-  }, [stats]);
+  const handleRefresh = () => {
+    fetchStats();
+    refetchCharts();
+  };
 
   return (
     <AdminGuard>
@@ -112,7 +93,7 @@ export default function AdminDashboard() {
                 Manage your application and monitor key metrics
               </p>
             </div>
-            <Button variant="outline" onClick={fetchStats} disabled={loading}>
+            <Button variant="outline" onClick={handleRefresh} disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
