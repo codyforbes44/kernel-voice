@@ -54,7 +54,7 @@ export function LiveStatusCard() {
           <span className={`text-xs font-medium ${mic.isActive || isCall ? 'text-destructive' : 'text-muted-foreground'}`}>
             {isCall ? 'Call' : mic.isActive ? 'Live' : 'Off'}
           </span>
-          <span className="text-xs text-muted-foreground/60">128 kbps</span>
+          {isCall && <span className="text-xs text-muted-foreground/60">WebSocket</span>}
         </div>
       </div>
 
