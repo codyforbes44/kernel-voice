@@ -285,6 +285,19 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
       
+      // WebRTC state logging
+      pc.onconnectionstatechange = () => {
+        console.log('[OpenAI] Connection state:', pc.connectionState);
+        if (pc.connectionState === 'failed') {
+          console.error('[OpenAI] WebRTC connection failed');
+          setConnectionError('WebRTC connection failed');
+          setConnectionPhase('error');
+        }
+      };
+      pc.oniceconnectionstatechange = () => {
+        console.log('[OpenAI] ICE connection state:', pc.iceConnectionState);
+      };
+      
       // Handle remote audio
       pc.ontrack = (e) => {
         console.log('[OpenAI] Received remote audio track, streams:', e.streams.length);
@@ -396,7 +409,7 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
       // Connect to OpenAI's Realtime API
       console.log('[OpenAI] Sending offer to OpenAI...');
       const baseUrl = 'https://api.openai.com/v1/realtime';
-      const model = 'gpt-4o-realtime-preview-2024-12-17';
+      const model = 'gpt-4o-realtime-preview-2025-06-03';
       
       const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
         method: 'POST',
