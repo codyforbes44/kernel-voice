@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { User, Send, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Msg {
   role: 'user' | 'agent';
@@ -31,19 +30,68 @@ export function ChatConversationCard() {
     try {
       const apiMessages = [...messages, userMsg].map((m) => ({
         role: m.role === 'agent' ? 'assistant' : 'user',
-        text: m.text,
+        content: m.text,
       }));
 
-      const { data, error } = await supabase.functions.invoke('gemini-chat', {
-        body: {
-          messages: apiMessages,
-          systemPrompt: 'You are a helpful customer support assistant. Keep responses concise (2-3 sentences max).',
+      // Streaming fetch to Lovable AI Gateway
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
+        body: JSON.stringify({ messages: apiMessages, stream: true }),
       });
 
-      if (error || !data?.message) throw new Error('No response');
-      setMessages((prev) => [...prev, { role: 'agent', text: data.message }]);
-    } catch (err) {
+      if (res.status === 429) {
+        setMessages((prev) => [...prev, { role: 'agent', text: 'Rate limit reached. Try again shortly.' }]);
+        return;
+      }
+      if (res.status === 402) {
+        setMessages((prev) => [...prev, { role: 'agent', text: 'AI credits exhausted.' }]);
+        return;
+      }
+      if (!res.ok || !res.body) throw new Error('No response');
+
+      // Add empty agent message and stream into it
+      setMessages((prev) => [...prev, { role: 'agent', text: '' }]);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse SSE lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6);
+          if (payload === '[DONE]') continue;
+          try {
+            const json = JSON.parse(payload);
+            const delta = json.choices?.[0]?.delta?.content;
+            if (delta) {
+              setMessages((prev) => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last.role === 'agent') {
+                  updated[updated.length - 1] = { ...last, text: last.text + delta };
+                }
+                return updated;
+              });
+            }
+          } catch {
+            // skip malformed JSON
+          }
+        }
+      }
+    } catch {
       setMessages((prev) => [...prev, { role: 'agent', text: 'Sorry, something went wrong. Please try again.' }]);
     } finally {
       setLoading(false);
@@ -52,7 +100,7 @@ export function ChatConversationCard() {
 
   return (
     <div className="rounded-2xl bg-card border border-border glow-border p-4 flex flex-col gap-3 h-full">
-      <h3 className="text-sm font-semibold text-foreground px-2 font-display">Conversation</h3>
+      <h3 className="text-sm font-semibold text-foreground px-2 font-display">AI Chat <span className="text-[10px] font-normal text-muted-foreground ml-1">streaming</span></h3>
       <div ref={scrollRef} className="flex-1 min-h-0 flex flex-col gap-2.5 overflow-y-auto max-h-28 px-1 scrollbar-hide">
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : ''}`}>
@@ -66,11 +114,11 @@ export function ChatConversationCard() {
                 ? 'bg-primary/20 text-primary/80 border border-primary/20'
                 : 'bg-muted text-foreground border border-border'
             }`}>
-              {m.text}
+              {m.text || (loading && i === messages.length - 1 ? '…' : '')}
             </div>
           </div>
         ))}
-        {loading && (
+        {loading && messages[messages.length - 1]?.role !== 'agent' && (
           <div className="flex gap-2">
             <div className="h-6 w-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
               <User className="h-3 w-3 text-primary-foreground" />

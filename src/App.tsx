@@ -76,6 +76,7 @@ const App = () => (
                     <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
                     <Route path="/admin/widgets" element={<ProtectedRoute><AdminWidgets /></ProtectedRoute>} />
                     <Route path="/showcase" element={<Showcase />} />
+                    <Route path="/playground" element={<Showcase />} />
                     <Route path="/youtube-player" element={<YouTubePlayer />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />

@@ -1,16 +1,16 @@
 import { motion } from 'framer-motion';
-import { WaveformCard } from '@/components/showcase/WaveformCard';
-import { VoiceFillCard } from '@/components/showcase/VoiceFillCard';
 import { AgentOrbsCard } from '@/components/showcase/AgentOrbsCard';
+import { OpenAIRealtimeCard } from '@/components/showcase/OpenAIRealtimeCard';
+import { VoiceChatCard } from '@/components/showcase/VoiceChatCard';
+import { ChatConversationCard } from '@/components/showcase/ChatConversationCard';
+import { WebSearchCard } from '@/components/showcase/WebSearchCard';
+import { WidgetChatCard } from '@/components/showcase/WidgetChatCard';
+import { VoiceFillCard } from '@/components/showcase/VoiceFillCard';
 import { CharacterSelectCard } from '@/components/showcase/CharacterSelectCard';
 import { ShowcaseWaveform } from '@/components/showcase/ShowcaseWaveform';
 import { MusicPlayerCard } from '@/components/showcase/MusicPlayerCard';
-import { VoiceChatCard } from '@/components/showcase/VoiceChatCard';
-import { ChatConversationCard } from '@/components/showcase/ChatConversationCard';
-import { TrackListCard } from '@/components/showcase/TrackListCard';
-import { AudioPlayerCard } from '@/components/showcase/AudioPlayerCard';
+import { YouTubePlayerCard } from '@/components/showcase/YouTubePlayerCard';
 import { LiveStatusCard } from '@/components/showcase/LiveStatusCard';
-import { WidgetChatCard } from '@/components/showcase/WidgetChatCard';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import logo from '@/assets/logo.png';
 
@@ -57,28 +57,31 @@ export default function Showcase() {
           animate="show"
           className="mx-auto max-w-7xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5"
         >
-          {/* Voice Input */}
-          <SectionLabel>Voice Input</SectionLabel>
+          {/* Voice Agents */}
+          <SectionLabel>Voice Agents</SectionLabel>
           <motion.div variants={fadeUp} className="sm:col-span-2 lg:col-span-1"><AgentOrbsCard /></motion.div>
+          <motion.div variants={fadeUp}><OpenAIRealtimeCard /></motion.div>
           <motion.div variants={fadeUp}><VoiceChatCard /></motion.div>
-          <motion.div variants={fadeUp}><WaveformCard /></motion.div>
 
-          {/* Conversations */}
-          <SectionLabel>Conversations</SectionLabel>
-          <motion.div variants={fadeUp} className="sm:col-span-2 lg:col-span-1"><ChatConversationCard /></motion.div>
-          <motion.div variants={fadeUp}><VoiceFillCard /></motion.div>
+          {/* Text Conversations */}
+          <SectionLabel>Text Conversations</SectionLabel>
+          <motion.div variants={fadeUp}><ChatConversationCard /></motion.div>
+          <motion.div variants={fadeUp}><WebSearchCard /></motion.div>
           <motion.div variants={fadeUp}><WidgetChatCard /></motion.div>
+
+          {/* Voice Input + Processing */}
+          <SectionLabel>Voice Input</SectionLabel>
+          <motion.div variants={fadeUp}><VoiceFillCard /></motion.div>
+          <motion.div variants={fadeUp}><CharacterSelectCard /></motion.div>
 
           {/* Visualizations */}
           <SectionLabel>Visualizations</SectionLabel>
           <motion.div variants={fadeUp}><ShowcaseWaveform /></motion.div>
-          <motion.div variants={fadeUp}><CharacterSelectCard /></motion.div>
-
-          {/* Audio Playback */}
-          <SectionLabel>Audio Playback</SectionLabel>
           <motion.div variants={fadeUp}><MusicPlayerCard /></motion.div>
-          <motion.div variants={fadeUp}><AudioPlayerCard /></motion.div>
-          <motion.div variants={fadeUp}><TrackListCard /></motion.div>
+
+          {/* Media */}
+          <SectionLabel>Media</SectionLabel>
+          <motion.div variants={fadeUp} className="sm:col-span-2 lg:col-span-2"><YouTubePlayerCard /></motion.div>
           <motion.div variants={fadeUp}><LiveStatusCard /></motion.div>
         </motion.div>
       </div>
