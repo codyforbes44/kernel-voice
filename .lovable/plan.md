@@ -1,88 +1,73 @@
 
 
-# Customer-First Platform Enhancements
+# Fix OpenAI Voice Integration -- Complete Audio Resolution
 
-## Overview
-Four improvements inspired by best-in-class customer-first principles: smarter registration prompts, richer analytics, transparent data receipts, and automatic data lifecycle management.
+## Root Cause Analysis
 
----
+Two critical issues are preventing the OpenAI voice integration from working:
 
-## 1. Value-Based Registration Prompt
+### Bug 1: Model Mismatch (Primary Issue)
+The edge function (`openai-realtime-token`) creates an ephemeral session token using model `gpt-4o-realtime-preview-2025-06-03`, but the frontend WebRTC handshake (`useOpenAIConversation.ts`) connects with model `gpt-4o-realtime-preview-2024-12-17`. The ephemeral token is bound to the model it was created with -- the token simply won't work with a different model. This causes the WebRTC SDP exchange to fail or produce a non-functional session with no audio output.
 
-**Current behavior:** The registration modal shows when a guest ends a conversation (any number of messages).
+### Bug 2: Missing Edge Function Config
+The `openai-realtime-token` function has no entry in `supabase/config.toml`. Without an explicit `verify_jwt = false` entry, JWT verification behavior may be inconsistent.
 
-**New behavior:** Show the prompt after the guest has received 3 meaningful AI responses (not on conversation end), creating a "value-first" moment where the user has experienced enough to want to save their session.
-
-### Changes
-- **`src/hooks/useVoiceAssistant.ts`**: Track `guestAssistantResponseCount`. Increment when an assistant transcript or text response is added. When count reaches 3, set `showRegistrationPrompt = true` automatically (mid-conversation, not at the end). Remove the end-of-conversation trigger.
-- **`src/components/voice/RegistrationPromptModal.tsx`**: Update copy from "You had X messages" to "You've had a great conversation so far" -- value-oriented framing. Add a "Don't show again" option that persists to sessionStorage so the modal doesn't re-appear if dismissed.
+### Bug 3: Incomplete CORS Headers
+The edge function uses a minimal `Access-Control-Allow-Headers` list, missing several headers the client sends (e.g., `x-client-info`, `x-supabase-client-platform`). This can cause preflight failures in some browsers.
 
 ---
 
-## 2. Enhanced Widget Analytics Dashboard
+## Fix Plan
 
-**Current state:** Tracks sessions, messages, opens, errors.
+### 1. Align the model in `useOpenAIConversation.ts` (line 399)
 
-**New metrics to add (computed from existing data, no schema changes):**
+Change:
+```
+const model = 'gpt-4o-realtime-preview-2024-12-17';
+```
+To:
+```
+const model = 'gpt-4o-realtime-preview-2025-06-03';
+```
 
-### Changes
-- **`src/components/admin/widgets/WidgetAnalytics.tsx`**:
-  - Add **Completion Rate** stat card: % of sessions that had at least 2 messages (open + message events with matching session_id)
-  - Add **Avg Messages/Session**: total messages / unique sessions
-  - Add **Avg Session Duration**: difference between first and last event timestamp per session
-  - Add **Engagement Rate**: sessions with 3+ messages / total sessions
-  - Reorganize stats grid from 4 to 6 cards (3x2 on desktop)
+This ensures the frontend WebRTC handshake uses the same model the session token was created for.
 
----
+### 2. Fix CORS headers in `supabase/functions/openai-realtime-token/index.ts`
 
-## 3. Conversation Data Receipt
+Update the CORS headers to include all required client headers:
+```
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
+```
 
-A new component shown at the end of voice sessions for authenticated users, summarizing what was captured.
+### 3. Add edge function config to `supabase/config.toml`
 
-### Changes
-- **New file: `src/components/voice/ConversationReceipt.tsx`**:
-  - A dismissible card shown after `endConversation` completes
-  - Shows: number of messages saved, conversation title, timestamp, duration estimate
-  - Includes a "Delete This Conversation" button that removes the conversation from the database
-  - Includes a "Download Transcript" button that exports messages as a .txt file
-- **`src/pages/VoiceAssistant.tsx`**: Add state `showReceipt` and render `ConversationReceipt` after conversation ends for authenticated users
-- **`src/hooks/useVoiceAssistant.ts`**: Expose `lastSessionStats` (message count, duration, conversation ID) computed during `endConversation`
+Add:
+```toml
+[functions.openai-realtime-token]
+verify_jwt = false
+```
 
----
+### 4. Add enhanced diagnostic logging in `useOpenAIConversation.ts`
 
-## 4. Automatic Data Anonymization (90-Day Cleanup)
-
-A scheduled database function and edge function to anonymize old widget analytics and clean up stale guest data.
-
-### Changes
-- **Database migration**: Create a SQL function `anonymize_old_analytics()` that:
-  - Updates `widget_analytics` rows older than 90 days: nullifies `session_id` and `referrer_domain`, keeps aggregate event type/count
-  - Deletes conversations with no user_id (orphaned guest data) older than 30 days
-- **New edge function: `supabase/functions/data-lifecycle/index.ts`**:
-  - Invokes the `anonymize_old_analytics()` database function via RPC
-  - Designed to be called via a cron job or manually from admin settings
-  - Returns summary of rows affected
-- **`src/pages/admin/Settings.tsx`**: Add a "Run Data Cleanup" button in admin settings that invokes the edge function on demand, with a last-run timestamp display
+Add logging around the SDP exchange to surface connection state changes and ICE failures:
+- Log `pc.connectionState` changes via `onconnectionstatechange`
+- Log `pc.iceConnectionState` changes via `oniceconnectionstatechange`
+- Log when audio element `canplay` event fires to confirm the stream is playable
+- Surface a user-visible toast if the SDP exchange returns an error (currently silent in some cases)
 
 ---
 
-## Technical Details
+## Files Changed
 
-### File Summary
-
-| File | Action |
+| File | Change |
 |------|--------|
-| `src/hooks/useVoiceAssistant.ts` | Modify - value-based prompt trigger, expose lastSessionStats |
-| `src/components/voice/RegistrationPromptModal.tsx` | Modify - value-oriented copy, "don't show again" |
-| `src/components/admin/widgets/WidgetAnalytics.tsx` | Modify - add 4 new computed metrics |
-| `src/components/voice/ConversationReceipt.tsx` | Create - post-session data receipt |
-| `src/pages/VoiceAssistant.tsx` | Modify - render ConversationReceipt |
-| `supabase/functions/data-lifecycle/index.ts` | Create - anonymization edge function |
-| Database migration | Create `anonymize_old_analytics()` function |
-| `src/pages/admin/Settings.tsx` | Modify - add cleanup trigger button |
+| `src/hooks/useOpenAIConversation.ts` | Fix model string to `gpt-4o-realtime-preview-2025-06-03`, add WebRTC state logging |
+| `supabase/functions/openai-realtime-token/index.ts` | Fix CORS headers |
+| `supabase/config.toml` | Add `openai-realtime-token` function entry |
 
-### Sequencing
-1. Database migration (anonymization function)
-2. Edge function (data-lifecycle)
-3. Frontend changes (all can be done in parallel)
+## Expected Outcome
+After these fixes, the ephemeral token model and WebRTC model will match, CORS will pass correctly, and the WebRTC connection will establish a functional audio stream. The assistant's voice will be audible.
 
