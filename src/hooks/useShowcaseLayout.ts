@@ -80,9 +80,32 @@ function loadSizes(): CardSizes {
 }
 
 export function useShowcaseLayout() {
-  const [sections, setSections] = useState<ShowcaseSection[]>(loadLayout);
+  // Check URL params on init for shared layout
+  const [sections, setSections] = useState<ShowcaseSection[]>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const layoutParam = params.get('layout');
+    if (layoutParam) {
+      try {
+        const decoded = JSON.parse(atob(layoutParam)) as { s: ShowcaseSection[]; z?: CardSizes };
+        if (Array.isArray(decoded.s) && decoded.s.length > 0) {
+          return mergeNewCards(decoded.s);
+        }
+      } catch { /* fall through */ }
+    }
+    return loadLayout();
+  });
   const [editMode, setEditMode] = useState(false);
-  const [cardSizes, setCardSizes] = useState<CardSizes>(loadSizes);
+  const [cardSizes, setCardSizes] = useState<CardSizes>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const layoutParam = params.get('layout');
+    if (layoutParam) {
+      try {
+        const decoded = JSON.parse(atob(layoutParam)) as { s: ShowcaseSection[]; z?: CardSizes };
+        if (decoded.z) return decoded.z;
+      } catch { /* fall through */ }
+    }
+    return loadSizes();
+  });
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sections));
@@ -168,6 +191,20 @@ export function useShowcaseLayout() {
     localStorage.removeItem(SIZES_KEY);
   }, []);
 
+  const exportLayoutUrl = useCallback(() => {
+    // Strip titles to keep URL compact — titles are restored from defaults on import
+    const compact = sections.map((s) => ({ id: s.id, title: s.title, cards: s.cards }));
+    const nonDefaultSizes = Object.fromEntries(
+      Object.entries(cardSizes).filter(([, v]) => v !== 'md'),
+    );
+    const payload = { s: compact, ...(Object.keys(nonDefaultSizes).length > 0 ? { z: nonDefaultSizes } : {}) };
+    const encoded = btoa(JSON.stringify(payload));
+    const url = new URL(window.location.href);
+    url.searchParams.set('layout', encoded);
+    // Remove any hash or other noise
+    return url.toString();
+  }, [sections, cardSizes]);
+
   const toggleEditMode = useCallback(() => setEditMode((v) => !v), []);
 
   return {
@@ -180,5 +217,6 @@ export function useShowcaseLayout() {
     findCardLocation,
     getCardSize,
     setCardSize,
+    exportLayoutUrl,
   };
 }
