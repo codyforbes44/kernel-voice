@@ -27,7 +27,7 @@ const stagger = {
 };
 
 export default function Showcase() {
-  const { sections, editMode, toggleEditMode, moveCard, moveSection, resetLayout, getCardSize, setCardSize, exportLayoutUrl } =
+  const { sections, editMode, toggleEditMode, moveCard, moveSection, resetLayout, getCardSize, setCardSize, exportLayoutUrl, toggleSectionCollapsed, isSectionCollapsed } =
     useShowcaseLayout();
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -160,6 +160,8 @@ export default function Showcase() {
                   isSectionSortable
                   getCardSize={getCardSize}
                   onCardSizeChange={setCardSize}
+                  collapsed={isSectionCollapsed(section.id)}
+                  onToggleCollapse={() => toggleSectionCollapsed(section.id)}
                 />
               ))}
             </motion.div>
