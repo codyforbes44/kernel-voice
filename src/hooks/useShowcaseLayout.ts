@@ -35,6 +35,7 @@ const DEFAULT_LAYOUT: ShowcaseSection[] = [
 
 const STORAGE_KEY = 'showcase-layout';
 const SIZES_KEY = 'showcase-card-sizes';
+const COLLAPSED_KEY = 'showcase-collapsed-sections';
 
 function getAllDefaultCardIds(): string[] {
   return DEFAULT_LAYOUT.flatMap((s) => s.cards);
@@ -95,6 +96,16 @@ export function useShowcaseLayout() {
     return loadLayout();
   });
   const [editMode, setEditMode] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(COLLAPSED_KEY);
+      if (!raw) return new Set<string>();
+      const arr = JSON.parse(raw) as string[];
+      return new Set(arr);
+    } catch {
+      return new Set<string>();
+    }
+  });
   const [cardSizes, setCardSizes] = useState<CardSizes>(() => {
     const params = new URLSearchParams(window.location.search);
     const layoutParam = params.get('layout');
@@ -114,6 +125,10 @@ export function useShowcaseLayout() {
   useEffect(() => {
     localStorage.setItem(SIZES_KEY, JSON.stringify(cardSizes));
   }, [cardSizes]);
+
+  useEffect(() => {
+    localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsedSections]));
+  }, [collapsedSections]);
 
   const getCardSize = useCallback(
     (cardId: string): CardSize => cardSizes[cardId] || 'md',
@@ -207,6 +222,20 @@ export function useShowcaseLayout() {
 
   const toggleEditMode = useCallback(() => setEditMode((v) => !v), []);
 
+  const toggleSectionCollapsed = useCallback((sectionId: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  }, []);
+
+  const isSectionCollapsed = useCallback(
+    (sectionId: string) => collapsedSections.has(sectionId),
+    [collapsedSections],
+  );
+
   return {
     sections,
     editMode,
@@ -218,5 +247,7 @@ export function useShowcaseLayout() {
     getCardSize,
     setCardSize,
     exportLayoutUrl,
+    toggleSectionCollapsed,
+    isSectionCollapsed,
   };
 }
