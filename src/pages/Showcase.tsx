@@ -10,6 +10,7 @@ import { VoiceFillCard } from '@/components/showcase/VoiceFillCard';
 import { CharacterSelectCard } from '@/components/showcase/CharacterSelectCard';
 import { ShowcaseWaveform } from '@/components/showcase/ShowcaseWaveform';
 import { MusicPlayerCard } from '@/components/showcase/MusicPlayerCard';
+import { ParticleFieldCard } from '@/components/showcase/ParticleFieldCard';
 
 import { LiveStatusCard } from '@/components/showcase/LiveStatusCard';
 import { PageWrapper } from '@/components/layout/PageWrapper';
@@ -80,6 +81,7 @@ export default function Showcase() {
           <SectionLabel>Visualizations</SectionLabel>
           <motion.div variants={fadeUp}><ShowcaseWaveform /></motion.div>
           <motion.div variants={fadeUp}><MusicPlayerCard /></motion.div>
+          <motion.div variants={fadeUp}><ParticleFieldCard /></motion.div>
           <motion.div variants={fadeUp}><LiveStatusCard /></motion.div>
         </motion.div>
       </div>
