@@ -28,9 +28,13 @@ const fadeUp = {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="col-span-full text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60 pt-2">
-      {children}
-    </p>
+    <div className="col-span-full flex items-center gap-3 pt-6 first:pt-0">
+      <div className="h-px flex-1 bg-gradient-to-r from-primary/30 via-primary/10 to-transparent" />
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-primary/60 shrink-0">
+        {children}
+      </p>
+      <div className="h-px flex-1 bg-gradient-to-l from-primary/30 via-primary/10 to-transparent" />
+    </div>
   );
 }
 
@@ -61,28 +65,28 @@ export default function Showcase() {
         >
           {/* Voice Agents */}
           <SectionLabel>Voice Agents</SectionLabel>
-          <motion.div variants={fadeUp} className="sm:col-span-2 lg:col-span-1"><AgentOrbsCard /></motion.div>
-          <motion.div variants={fadeUp}><OpenAIRealtimeCard /></motion.div>
-          <motion.div variants={fadeUp}><VoiceChatCard /></motion.div>
+          <motion.div variants={fadeUp} className="sm:col-span-2 lg:col-span-1 transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><AgentOrbsCard /></motion.div>
+          <motion.div variants={fadeUp} className="transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><OpenAIRealtimeCard /></motion.div>
+          <motion.div variants={fadeUp} className="transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><VoiceChatCard /></motion.div>
 
           {/* Text Conversations */}
           <SectionLabel>Text Conversations</SectionLabel>
-          <motion.div variants={fadeUp}><ChatConversationCard /></motion.div>
-          <motion.div variants={fadeUp}><WebSearchCard /></motion.div>
-          <motion.div variants={fadeUp}><ClaudeReasoningCard /></motion.div>
-          <motion.div variants={fadeUp}><WidgetChatCard /></motion.div>
+          <motion.div variants={fadeUp} className="transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><ChatConversationCard /></motion.div>
+          <motion.div variants={fadeUp} className="transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><WebSearchCard /></motion.div>
+          <motion.div variants={fadeUp} className="transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><ClaudeReasoningCard /></motion.div>
+          <motion.div variants={fadeUp} className="transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><WidgetChatCard /></motion.div>
 
           {/* Voice Input + Processing */}
           <SectionLabel>Voice Input</SectionLabel>
-          <motion.div variants={fadeUp}><VoiceFillCard /></motion.div>
-          <motion.div variants={fadeUp}><CharacterSelectCard /></motion.div>
+          <motion.div variants={fadeUp} className="transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><VoiceFillCard /></motion.div>
+          <motion.div variants={fadeUp} className="transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><CharacterSelectCard /></motion.div>
 
           {/* Visualizations */}
           <SectionLabel>Visualizations</SectionLabel>
-          <motion.div variants={fadeUp}><ShowcaseWaveform /></motion.div>
-          <motion.div variants={fadeUp}><MusicPlayerCard /></motion.div>
-          <motion.div variants={fadeUp}><ParticleFieldCard /></motion.div>
-          <motion.div variants={fadeUp}><LiveStatusCard /></motion.div>
+          <motion.div variants={fadeUp} className="transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><ShowcaseWaveform /></motion.div>
+          <motion.div variants={fadeUp} className="transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><MusicPlayerCard /></motion.div>
+          <motion.div variants={fadeUp} className="transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><ParticleFieldCard /></motion.div>
+          <motion.div variants={fadeUp} className="transition-transform duration-300 hover:scale-[1.02] hover:shadow-glow-subtle"><LiveStatusCard /></motion.div>
         </motion.div>
       </div>
     </PageWrapper>
