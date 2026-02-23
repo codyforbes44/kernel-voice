@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Magnet, Shield } from 'lucide-react';
 
 const PARTICLE_COUNT = 120;
 const CONNECTION_DIST = 80;
@@ -19,6 +19,8 @@ export function ParticleFieldCard() {
   const mouse = useRef({ x: -1000, y: -1000 });
   const raf = useRef<number>(0);
   const [interacting, setInteracting] = useState(false);
+  const [mode, setMode] = useState<'repel' | 'attract'>('repel');
+  const modeRef = useRef<'repel' | 'attract'>('repel');
 
   const initParticles = useCallback((w: number, h: number) => {
     particles.current = Array.from({ length: PARTICLE_COUNT }, () => ({
@@ -59,14 +61,15 @@ export function ParticleFieldCard() {
       const pts = particles.current;
 
       for (const p of pts) {
-        // Mouse repulsion
+        // Mouse interaction
         const dx = p.x - mx;
         const dy = p.y - my;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < MOUSE_RADIUS && dist > 0) {
           const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS * 0.8;
-          p.vx += (dx / dist) * force;
-          p.vy += (dy / dist) * force;
+          const dir = modeRef.current === 'repel' ? 1 : -1;
+          p.vx += (dx / dist) * force * dir;
+          p.vy += (dy / dist) * force * dir;
         }
 
         // Damping
@@ -146,9 +149,26 @@ export function ParticleFieldCard() {
             <p className="text-[10px] text-muted-foreground">Interactive node network</p>
           </div>
         </div>
-        <span className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${interacting ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/50 text-muted-foreground border-border'}`}>
-          {interacting ? 'Active' : 'Hover to interact'}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => {
+              const next = mode === 'repel' ? 'attract' : 'repel';
+              setMode(next);
+              modeRef.current = next;
+            }}
+            className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border transition-colors min-h-[28px] ${
+              mode === 'attract'
+                ? 'bg-secondary/20 text-secondary border-secondary/40'
+                : 'bg-muted/50 text-muted-foreground border-border hover:border-primary/50'
+            }`}
+          >
+            {mode === 'attract' ? <Magnet className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
+            {mode === 'attract' ? 'Attract' : 'Repel'}
+          </button>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${interacting ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/50 text-muted-foreground border-border'}`}>
+            {interacting ? 'Active' : 'Hover'}
+          </span>
+        </div>
       </div>
 
       {/* Canvas */}
