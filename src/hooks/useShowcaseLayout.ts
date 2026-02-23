@@ -139,16 +139,6 @@ export function useShowcaseLayout() {
     setCardSizes((prev) => ({ ...prev, [cardId]: size }));
   }, []);
 
-  const findCardLocation = useCallback(
-    (cardId: string) => {
-      for (const section of sections) {
-        const idx = section.cards.indexOf(cardId);
-        if (idx !== -1) return { sectionId: section.id, index: idx };
-      }
-      return null;
-    },
-    [sections],
-  );
 
   const moveCard = useCallback(
     (activeId: string, overId: string) => {
@@ -243,7 +233,6 @@ export function useShowcaseLayout() {
     moveCard,
     moveSection,
     resetLayout,
-    findCardLocation,
     getCardSize,
     setCardSize,
     exportLayoutUrl,

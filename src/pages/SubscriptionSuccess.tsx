@@ -5,7 +5,6 @@ import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSubscription } from '@/hooks/useSubscription';
-import SEO from '@/components/SEO';
 
 export default function SubscriptionSuccess() {
   const navigate = useNavigate();
@@ -13,20 +12,17 @@ export default function SubscriptionSuccess() {
   const { refetch } = useSubscription();
 
   useEffect(() => {
-    // Refresh subscription status when landing on success page
     refetch();
   }, [refetch]);
 
   const sessionId = searchParams.get('session_id');
 
   return (
-    <PageWrapper>
-      <SEO 
-        title="Welcome to ƷBI Voice Pro!" 
-        description="Your subscription is now active. Enjoy premium voice features."
-      />
-      
-      <div className="container max-w-2xl mx-auto px-4 py-16">
+    <PageWrapper
+      title="Welcome to ƷBI Voice Pro!"
+      description="Your subscription is now active. Enjoy premium voice features."
+    >
+      <main id="main-content" className="container max-w-2xl mx-auto px-4 py-16">
         <Card className="text-center">
           <CardHeader className="pb-4">
             <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
@@ -68,7 +64,7 @@ export default function SubscriptionSuccess() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </main>
     </PageWrapper>
   );
 }

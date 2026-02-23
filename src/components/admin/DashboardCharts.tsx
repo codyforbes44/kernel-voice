@@ -34,6 +34,9 @@ const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3
 export const DashboardCharts = ({ data }: DashboardChartsProps) => {
   return (
     <div className="grid gap-6 md:grid-cols-2">
+      <p className="col-span-full text-xs text-muted-foreground italic text-center">
+        ⚠ Charts display sample data — real analytics coming soon
+      </p>
       {/* User Growth Chart */}
       <Card>
         <CardHeader>

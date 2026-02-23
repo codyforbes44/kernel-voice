@@ -8,8 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
 import { PRICING_INFO } from '@/lib/stripe';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import SEO from '@/components/SEO';
+import { useAuth } from '@/contexts/AuthContext';
 
 const STARTER_FEATURES = [
   '3BI Voice Assistant',
@@ -39,22 +38,10 @@ const PRO_FEATURES = [
 
 export default function Pricing() {
   const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated } = useAuth();
   const { isSubscribed, productId, createCheckout, isLoading } = useSubscription();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsAuthenticated(!!user);
-    };
-    checkAuth();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setIsAuthenticated(!!session?.user);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   useEffect(() => {
     if (searchParams.get('canceled') === 'true') {
@@ -85,13 +72,12 @@ export default function Pricing() {
   };
 
   return (
-    <PageWrapper>
-      <SEO
-        title="Pricing - Kernel Voice"
-        description="Choose the plan that fits your needs. Starter, Plus, or Pro — unlock premium voice features and more."
-      />
-
-      <div className="container max-w-6xl mx-auto px-4 py-16">
+    <PageWrapper
+      title="Pricing - Kernel Voice"
+      description="Choose the plan that fits your needs. Starter, Plus, or Pro — unlock premium voice features and more."
+      showFooter
+    >
+      <main id="main-content" className="flex-1 container max-w-6xl mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-12">
           <Badge variant="secondary" className="mb-4">
@@ -173,7 +159,7 @@ export default function Pricing() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </PageWrapper>
   );
 }

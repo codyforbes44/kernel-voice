@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Header } from './Header';
+import { Footer } from './Footer';
 import SEO from '@/components/SEO';
 
 interface PageWrapperProps {
@@ -8,7 +9,9 @@ interface PageWrapperProps {
   description?: string;
   image?: string;
   keywords?: string[];
+  noIndex?: boolean;
   showHeader?: boolean;
+  showFooter?: boolean;
   className?: string;
 }
 
@@ -18,7 +21,9 @@ export const PageWrapper = ({
   description,
   image,
   keywords,
+  noIndex,
   showHeader = true,
+  showFooter = false,
   className = '',
 }: PageWrapperProps) => {
   return (
@@ -29,11 +34,13 @@ export const PageWrapper = ({
           description={description}
           image={image}
           keywords={keywords}
+          noIndex={noIndex}
         />
       )}
-      <div className={`min-h-screen bg-background ${className}`}>
+      <div className={`min-h-screen bg-background ${showFooter ? 'flex flex-col' : ''} ${className}`}>
         {showHeader && <Header />}
         {children}
+        {showFooter && <Footer />}
       </div>
     </>
   );
