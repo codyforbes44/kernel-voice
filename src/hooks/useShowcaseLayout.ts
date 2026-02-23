@@ -1,10 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
 
+export type CardSize = 'sm' | 'md' | 'lg';
+
 export interface ShowcaseSection {
   id: string;
   title: string;
   cards: string[];
 }
+
+export type CardSizes = Record<string, CardSize>;
 
 const DEFAULT_LAYOUT: ShowcaseSection[] = [
   {
@@ -30,6 +34,7 @@ const DEFAULT_LAYOUT: ShowcaseSection[] = [
 ];
 
 const STORAGE_KEY = 'showcase-layout';
+const SIZES_KEY = 'showcase-card-sizes';
 
 function getAllDefaultCardIds(): string[] {
   return DEFAULT_LAYOUT.flatMap((s) => s.cards);
@@ -64,13 +69,37 @@ function loadLayout(): ShowcaseSection[] {
   }
 }
 
+function loadSizes(): CardSizes {
+  try {
+    const raw = localStorage.getItem(SIZES_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as CardSizes;
+  } catch {
+    return {};
+  }
+}
+
 export function useShowcaseLayout() {
   const [sections, setSections] = useState<ShowcaseSection[]>(loadLayout);
   const [editMode, setEditMode] = useState(false);
+  const [cardSizes, setCardSizes] = useState<CardSizes>(loadSizes);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sections));
   }, [sections]);
+
+  useEffect(() => {
+    localStorage.setItem(SIZES_KEY, JSON.stringify(cardSizes));
+  }, [cardSizes]);
+
+  const getCardSize = useCallback(
+    (cardId: string): CardSize => cardSizes[cardId] || 'md',
+    [cardSizes],
+  );
+
+  const setCardSize = useCallback((cardId: string, size: CardSize) => {
+    setCardSizes((prev) => ({ ...prev, [cardId]: size }));
+  }, []);
 
   const findCardLocation = useCallback(
     (cardId: string) => {
@@ -96,7 +125,6 @@ export function useShowcaseLayout() {
         })();
         if (!activeLoc) return prev;
 
-        // Check if overId is a section id (dropping onto empty section)
         const overSection = next.find((s) => s.id === overId);
         if (overSection) {
           activeLoc.section.cards.splice(activeLoc.index, 1);
@@ -135,7 +163,9 @@ export function useShowcaseLayout() {
 
   const resetLayout = useCallback(() => {
     setSections(DEFAULT_LAYOUT);
+    setCardSizes({});
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SIZES_KEY);
   }, []);
 
   const toggleEditMode = useCallback(() => setEditMode((v) => !v), []);
@@ -148,5 +178,7 @@ export function useShowcaseLayout() {
     moveSection,
     resetLayout,
     findCardLocation,
+    getCardSize,
+    setCardSize,
   };
 }

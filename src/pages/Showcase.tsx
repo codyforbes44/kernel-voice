@@ -26,7 +26,7 @@ const stagger = {
 };
 
 export default function Showcase() {
-  const { sections, editMode, toggleEditMode, moveCard, moveSection, resetLayout } =
+  const { sections, editMode, toggleEditMode, moveCard, moveSection, resetLayout, getCardSize, setCardSize } =
     useShowcaseLayout();
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -138,6 +138,8 @@ export default function Showcase() {
                   section={section}
                   editMode={editMode}
                   isSectionSortable
+                  getCardSize={getCardSize}
+                  onCardSizeChange={setCardSize}
                 />
               ))}
             </motion.div>

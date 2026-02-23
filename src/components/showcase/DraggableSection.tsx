@@ -3,12 +3,14 @@ import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sort
 import { CSS } from '@dnd-kit/utilities';
 import { GripHorizontal } from 'lucide-react';
 import { DraggableCard } from './DraggableCard';
-import type { ShowcaseSection } from '@/hooks/useShowcaseLayout';
+import type { ShowcaseSection, CardSize } from '@/hooks/useShowcaseLayout';
 
 interface DraggableSectionProps {
   section: ShowcaseSection;
   editMode: boolean;
   isSectionSortable?: boolean;
+  getCardSize: (id: string) => CardSize;
+  onCardSizeChange: (id: string, size: CardSize) => void;
 }
 
 function SectionLabel({ title, editMode, dragProps }: { title: string; editMode: boolean; dragProps?: any }) {
@@ -34,7 +36,7 @@ function SectionLabel({ title, editMode, dragProps }: { title: string; editMode:
   );
 }
 
-export function DraggableSection({ section, editMode, isSectionSortable }: DraggableSectionProps) {
+export function DraggableSection({ section, editMode, isSectionSortable, getCardSize, onCardSizeChange }: DraggableSectionProps) {
   const sortable = useSortable({
     id: section.id,
     disabled: !editMode || !isSectionSortable,
@@ -70,7 +72,8 @@ export function DraggableSection({ section, editMode, isSectionSortable }: Dragg
             key={cardId}
             id={cardId}
             editMode={editMode}
-            className={cardId === 'agent-orbs' ? 'sm:col-span-2 lg:col-span-1' : ''}
+            size={getCardSize(cardId)}
+            onSizeChange={onCardSizeChange}
           />
         ))}
       </SortableContext>
