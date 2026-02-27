@@ -28,9 +28,10 @@ export const BrandLogo = ({ size = 'md', animate = true, className }: BrandLogoP
       <div className="absolute inset-[1px] rounded-[10px] bg-background" />
       {/* Inner shimmer glow */}
       <div
-        className={cn('absolute inset-[2px] rounded-[9px] opacity-60', animate && 'animate-glow-pulse')}
+        className={cn('absolute inset-[2px] rounded-[9px] opacity-60', animate && 'animate-shimmer-drift')}
         style={{
-          background: 'radial-gradient(circle at 40% 40%, hsl(var(--primary) / 0.15), transparent 70%)',
+          background: 'radial-gradient(circle at 50% 50%, hsl(var(--primary) / 0.2), transparent 60%)',
+          backgroundSize: '200% 200%',
         }}
       />
     </div>
