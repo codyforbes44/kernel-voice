@@ -7,13 +7,6 @@ const sizeMap = {
   xl: 'h-20 w-20',
 } as const;
 
-const imgPadding = {
-  sm: 'p-[3px]',
-  md: 'p-1',
-  lg: 'p-2',
-  xl: 'p-2.5',
-} as const;
-
 interface BrandLogoProps {
   size?: keyof typeof sizeMap;
   animate?: boolean;
@@ -33,13 +26,6 @@ export const BrandLogo = ({ size = 'md', animate = true, className }: BrandLogoP
       />
       {/* Inner background inset (creates border effect) */}
       <div className="absolute inset-[1px] rounded-[10px] bg-background" />
-      {/* Logo image */}
-      <img
-        src="/logo.png"
-        alt="ƷBI Voice"
-        className={cn('relative z-10 w-full h-full object-contain', imgPadding[size])}
-        loading="lazy"
-      />
     </div>
   );
 };
