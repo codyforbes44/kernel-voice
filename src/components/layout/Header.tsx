@@ -1,4 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { BrandLogo } from '@/components/BrandLogo';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserMenu } from './UserMenu';
@@ -41,7 +42,7 @@ export const Header = () => {
         <div className="flex h-12 sm:h-14 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group" onClick={handleLogoClick}>
-            <img src="/logo.png" alt="ƷBI Voice" className="h-6 w-6 sm:h-7 sm:w-7" loading="lazy" />
+            <BrandLogo size="sm" />
             <span className="font-bold text-base sm:text-lg hidden sm:inline-block">ƷBI Voice</span>
           </Link>
 

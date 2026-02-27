@@ -19,7 +19,7 @@ import { PageWrapper } from '@/components/layout/PageWrapper';
 import { DraggableSection } from '@/components/showcase/DraggableSection';
 import { renderCard } from '@/components/showcase/ShowcaseCardRegistry';
 import { useShowcaseLayout } from '@/hooks/useShowcaseLayout';
-import logo from '@/assets/logo.png';
+import { BrandLogo } from '@/components/BrandLogo';
 
 const stagger = {
   hidden: {},
@@ -84,7 +84,7 @@ export default function Showcase() {
         {/* Hero strip */}
         <div className="mx-auto max-w-7xl flex items-center justify-between gap-3 mb-6 sm:mb-8">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="ƷBI Voice" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg" />
+            <BrandLogo size="md" />
             <div>
               <h1 className="text-lg sm:text-xl font-display font-bold text-gradient">
                 ƷBI Voice Playground

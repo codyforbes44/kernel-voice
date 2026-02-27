@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Mic, Download, Shield, FileText, Sparkles, CreditCard } from 'lucide-react';
+import { BrandLogo } from '@/components/BrandLogo';
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
   const navLinks = [{
@@ -34,7 +35,7 @@ export const Footer = () => {
           {/* Brand */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center space-x-2">
-              <img src="/logo.png" alt="ƷBI Voice" className="h-8 w-8" />
+              <BrandLogo size="md" animate={false} />
               <span className="font-bold text-lg">ƷBI Voice</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs">
