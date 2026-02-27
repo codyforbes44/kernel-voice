@@ -26,6 +26,13 @@ export const BrandLogo = ({ size = 'md', animate = true, className }: BrandLogoP
       />
       {/* Inner background inset (creates border effect) */}
       <div className="absolute inset-[1px] rounded-[10px] bg-background" />
+      {/* Inner shimmer glow */}
+      <div
+        className={cn('absolute inset-[2px] rounded-[9px] opacity-60', animate && 'animate-glow-pulse')}
+        style={{
+          background: 'radial-gradient(circle at 40% 40%, hsl(var(--primary) / 0.15), transparent 70%)',
+        }}
+      />
     </div>
   );
 };
