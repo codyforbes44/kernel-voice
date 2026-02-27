@@ -115,6 +115,13 @@ export default {
           "0%": { transform: "rotate(0deg)" },
           "100%": { transform: "rotate(360deg)" },
         },
+        "shimmer-drift": {
+          "0%": { backgroundPosition: "30% 30%" },
+          "25%": { backgroundPosition: "70% 30%" },
+          "50%": { backgroundPosition: "70% 70%" },
+          "75%": { backgroundPosition: "30% 70%" },
+          "100%": { backgroundPosition: "30% 30%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -122,6 +129,7 @@ export default {
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
         "float": "float 3s ease-in-out infinite",
         "logo-spin": "logo-spin 4s linear infinite",
+        "shimmer-drift": "shimmer-drift 6s ease-in-out infinite",
       },
     },
   },
