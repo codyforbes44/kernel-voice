@@ -34,7 +34,7 @@ export function PricingCard({
   return (
     <Card className={cn(
       "relative flex flex-col",
-      isPopular && "border-primary shadow-lg scale-105",
+      isPopular && "border-primary shadow-lg sm:scale-105",
       isCurrentPlan && "border-green-500 bg-green-500/5"
     )}>
       {isPopular && (
@@ -51,13 +51,13 @@ export function PricingCard({
       )}
       
       <CardHeader className="text-center pb-2">
-        <CardTitle className="text-xl">{name}</CardTitle>
+        <CardTitle className="text-lg sm:text-xl">{name}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       
       <CardContent className="flex-1">
-        <div className="text-center mb-6">
-          <span className="text-4xl font-bold">${price}</span>
+        <div className="text-center mb-4 sm:mb-6">
+          <span className="text-3xl sm:text-4xl font-bold">${price}</span>
           <span className="text-muted-foreground">/{interval}</span>
           {savings && (
             <p className="text-sm text-green-600 mt-1">
@@ -66,7 +66,7 @@ export function PricingCard({
           )}
         </div>
         
-        <ul className="space-y-3">
+        <ul className="space-y-2 sm:space-y-3">
           {features.map((feature, index) => (
             <li key={index} className="flex items-start gap-2">
               <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
@@ -78,7 +78,7 @@ export function PricingCard({
       
       <CardFooter>
         <Button 
-          className="w-full" 
+          className="w-full min-h-[44px]" 
           onClick={onSelect}
           disabled={disabled || isLoading || isCurrentPlan}
           variant={isCurrentPlan ? "outline" : isPopular ? "default" : "secondary"}

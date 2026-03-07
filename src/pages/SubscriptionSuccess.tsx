@@ -22,20 +22,20 @@ export default function SubscriptionSuccess() {
       title="Welcome to ƷBI Voice Pro!"
       description="Your subscription is now active. Enjoy premium voice features."
     >
-      <main id="main-content" className="container max-w-2xl mx-auto px-4 py-16">
+      <main id="main-content" className="container max-w-2xl mx-auto px-4 py-8 sm:py-16">
         <Card className="text-center">
           <CardHeader className="pb-4">
-            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <CheckCircle className="h-10 w-10 text-green-600" />
+            <div className="mx-auto mb-4 h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 sm:h-10 sm:w-10 text-green-600" />
             </div>
-            <CardTitle className="text-2xl">Welcome to ƷBI Voice Pro!</CardTitle>
-            <CardDescription className="text-lg">
+            <CardTitle className="text-xl sm:text-2xl">Welcome to ƷBI Voice Pro!</CardTitle>
+            <CardDescription className="text-base sm:text-lg">
               Your subscription is now active
             </CardDescription>
           </CardHeader>
           
           <CardContent className="space-y-6">
-            <div className="bg-muted/50 rounded-lg p-6">
+            <div className="bg-muted/50 rounded-lg p-4 sm:p-6">
               <h3 className="font-semibold mb-4 flex items-center justify-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
                 What's Unlocked
@@ -50,11 +50,11 @@ export default function SubscriptionSuccess() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => navigate('/assistant')} className="gap-2">
+              <Button onClick={() => navigate('/assistant')} className="gap-2 min-h-[44px]">
                 Try Premium Voices
                 <ArrowRight className="h-4 w-4" />
               </Button>
-              <Button variant="outline" onClick={() => navigate('/profile')}>
+              <Button variant="outline" onClick={() => navigate('/profile')} className="min-h-[44px]">
                 View Your Profile
               </Button>
             </div>

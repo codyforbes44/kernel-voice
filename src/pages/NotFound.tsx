@@ -25,22 +25,22 @@ const NotFound = () => {
       noIndex
       showFooter
     >
-      <main id="main-content" className="flex-1 flex items-center justify-center py-16 px-4">
-        <div className="text-center space-y-8 max-w-md">
+      <main id="main-content" className="flex-1 flex items-center justify-center py-8 sm:py-16 px-4">
+        <div className="text-center space-y-6 sm:space-y-8 max-w-md">
           <div className="space-y-3">
-            <h1 className="text-8xl font-bold text-gradient">404</h1>
-            <h2 className="text-2xl font-semibold">Page Not Found</h2>
-            <p className="text-muted-foreground">
+            <h1 className="text-6xl sm:text-8xl font-bold text-gradient">404</h1>
+            <h2 className="text-xl sm:text-2xl font-semibold">Page Not Found</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">
               The page you're looking for doesn't exist or has been moved.
             </p>
           </div>
           
-          <div className="flex gap-3 justify-center">
-            <Button onClick={() => navigate(-1)} variant="outline" className="min-h-[44px]">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button onClick={() => navigate(-1)} variant="outline" className="min-h-[44px] w-full sm:w-auto">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Go Back
             </Button>
-            <Button onClick={() => navigate('/')} className="min-h-[44px]">
+            <Button onClick={() => navigate('/')} className="min-h-[44px] w-full sm:w-auto">
               <Home className="mr-2 h-4 w-4" />
               Go Home
             </Button>

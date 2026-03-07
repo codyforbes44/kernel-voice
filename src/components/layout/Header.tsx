@@ -7,18 +7,15 @@ import { ThemePreview } from '@/components/ThemePreview';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Mic, Download, LayoutDashboard, Menu, Gamepad2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useState } from 'react';
 
 export const Header = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, loading: roleLoading } = useUserRole();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -33,6 +30,11 @@ export const Header = () => {
       e.preventDefault();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleNavClick = (path: string) => {
+    navigate(path);
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -84,36 +86,53 @@ export const Header = () => {
 
           {/* Right Section */}
           <div className="flex items-center space-x-2">
-            {/* Mobile Navigation Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" aria-label="Open menu">
+            {/* Mobile Navigation - Sheet Drawer */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" aria-label="Open navigation menu">
                   <Menu className="h-5 w-5" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                {navLinks.map(({ path, label, icon: Icon, beta }) => (
-                  <DropdownMenuItem
-                    key={path}
-                    onClick={() => navigate(path)}
-                    className="gap-2 min-h-[44px]"
-                  >
-                    <Icon className="h-4 w-4" />
-                    {label}
-                    {beta && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium ml-auto">Beta</Badge>}
-                  </DropdownMenuItem>
-                ))}
-                {user && !roleLoading && isAdmin && (
-                  <DropdownMenuItem
-                    onClick={() => navigate('/admin')}
-                    className="gap-2 min-h-[44px]"
-                  >
-                    <LayoutDashboard className="h-4 w-4" />
-                    Admin
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-72 p-0">
+                <SheetHeader className="px-4 pt-4 pb-2 border-b border-border">
+                  <SheetTitle className="flex items-center gap-2">
+                    <BrandLogo size="sm" animate={false} />
+                    <span className="font-bold">ƷBI Voice</span>
+                  </SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col p-2" aria-label="Mobile navigation">
+                  {navLinks.map(({ path, label, icon: Icon, beta }) => (
+                    <button
+                      key={path}
+                      onClick={() => handleNavClick(path)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors min-h-[48px] ${
+                        isActive(path) 
+                          ? 'bg-primary/10 text-primary' 
+                          : 'text-foreground hover:bg-muted'
+                      }`}
+                      aria-current={isActive(path) ? 'page' : undefined}
+                    >
+                      <Icon className="h-5 w-5" />
+                      {label}
+                      {beta && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium ml-auto">Beta</Badge>}
+                    </button>
+                  ))}
+                  {user && !roleLoading && isAdmin && (
+                    <button
+                      onClick={() => handleNavClick('/admin')}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors min-h-[48px] ${
+                        location.pathname.startsWith('/admin')
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <LayoutDashboard className="h-5 w-5" />
+                      Admin
+                    </button>
+                  )}
+                </nav>
+              </SheetContent>
+            </Sheet>
 
             <ThemePreview />
             
