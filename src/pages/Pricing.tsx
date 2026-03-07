@@ -77,28 +77,28 @@ export default function Pricing() {
       description="Choose the plan that fits your needs. Starter, Plus, or Pro — unlock premium voice features and more."
       showFooter
     >
-      <main id="main-content" className="flex-1 container max-w-6xl mx-auto px-4 py-16">
+      <main id="main-content" className="flex-1 container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 sm:mb-12">
           <Badge variant="secondary" className="mb-4">
             <Crown className="h-3 w-3 mr-1" />
             Kernel Voice
           </Badge>
-          <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Choose Your Plan</h1>
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto px-2">
             Unlock premium voices, advanced providers, and priority support.
           </p>
         </div>
 
         {/* Subscription Management */}
         {isSubscribed && (
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-6 sm:mb-8">
             <ManageSubscriptionButton />
           </div>
         )}
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 max-w-5xl mx-auto">
           <PricingCard
             name="Starter"
             description="Get started with AI voice"
@@ -136,9 +136,9 @@ export default function Pricing() {
         </div>
 
         {/* FAQ */}
-        <div className="mt-16 text-center">
-          <h2 className="text-2xl font-semibold mb-4">Frequently Asked Questions</h2>
-          <div className="max-w-2xl mx-auto space-y-6 text-left">
+        <div className="mt-12 sm:mt-16 text-center">
+          <h2 className="text-xl sm:text-2xl font-semibold mb-4">Frequently Asked Questions</h2>
+          <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6 text-left px-2">
             <div>
               <h3 className="font-medium mb-2">Can I cancel anytime?</h3>
               <p className="text-muted-foreground text-sm">

@@ -7,8 +7,8 @@ const Terms = () => {
       description="Read ƷBI Voice's terms of service and usage guidelines."
       showFooter
     >
-      <main id="main-content" className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="max-w-3xl mx-auto prose dark:prose-invert">
+      <main id="main-content" className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="max-w-prose mx-auto prose dark:prose-invert prose-sm sm:prose-base">
           <h1>Terms of Service</h1>
           <p className="lead text-muted-foreground">
             Last updated: February 23, 2026
