@@ -1,4 +1,10 @@
 import { PageWrapper } from '@/components/layout/PageWrapper';
+import { motion } from 'framer-motion';
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0 },
+};
 
 const Privacy = () => {
   return (
@@ -7,8 +13,14 @@ const Privacy = () => {
       description="Learn how ƷBI Voice protects your privacy and handles your data."
       showFooter
     >
-      <main id="main-content" className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="max-w-prose mx-auto prose dark:prose-invert prose-sm sm:prose-base">
+      <main id="main-content" className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
+        <motion.div
+          className="max-w-prose mx-auto prose dark:prose-invert prose-sm sm:prose-base prose-headings:font-display prose-headings:tracking-tight prose-p:leading-relaxed prose-li:leading-relaxed"
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+          transition={{ duration: 0.5 }}
+        >
           <h1>Privacy Policy</h1>
           <p className="lead text-muted-foreground">
             Last updated: February 23, 2026
@@ -73,7 +85,7 @@ const Privacy = () => {
             If you have any questions about this Privacy Policy, please contact us through 
             the application.
           </p>
-        </div>
+        </motion.div>
       </main>
     </PageWrapper>
   );
