@@ -34,9 +34,9 @@ export const HeroSection = () => {
   ];
 
   return (
-    <section ref={sectionRef} className="relative overflow-hidden">
+    <section ref={sectionRef} className="relative overflow-hidden" aria-labelledby="hero-heading">
       {/* Parallax background layer */}
-      <motion.div className="absolute inset-0" style={{ y: bgY }}>
+      <motion.div className="absolute inset-0" style={{ y: bgY }} aria-hidden="true">
         <AnimatedHeroBackground />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.15),transparent_50%)]" />
       </motion.div>
@@ -51,7 +51,7 @@ export const HeroSection = () => {
           transition={{ staggerChildren: 0.12 }}
         >
           {/* Mini Orb */}
-          <motion.div className="flex justify-center mb-6 sm:mb-8" variants={fadeUp} transition={{ duration: 0.6 }}>
+          <motion.div className="flex justify-center mb-6 sm:mb-8" variants={fadeUp} transition={{ duration: 0.6 }} aria-hidden="true">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl scale-[2] animate-pulse" />
               <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-primary to-secondary animate-glow-pulse flex items-center justify-center">
@@ -61,12 +61,12 @@ export const HeroSection = () => {
           </motion.div>
 
           {/* Headline */}
-          <motion.h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-display font-bold mb-4 sm:mb-6" variants={fadeUp} transition={{ duration: 0.6 }}>
+          <motion.h1 id="hero-heading" className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-display font-bold tracking-tight mb-4 sm:mb-6" variants={fadeUp} transition={{ duration: 0.6 }}>
             <span className="text-gradient">Your AI, Your Voice</span>
           </motion.h1>
 
           {/* Tagline */}
-          <motion.p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto px-2" variants={fadeUp} transition={{ duration: 0.6 }}>
+          <motion.p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto px-2 leading-relaxed" variants={fadeUp} transition={{ duration: 0.6 }}>
             Multi-provider real-time voice & text conversations. 
             Build custom agents, embed widgets, power your platform.
           </motion.p>
@@ -78,9 +78,9 @@ export const HeroSection = () => {
               className="w-full sm:w-auto px-8 py-6 text-lg glow-primary group min-h-[48px]"
               onClick={() => navigate('/assistant')}
             >
-              <Mic className="mr-2 h-5 w-5" />
+              <Mic className="mr-2 h-5 w-5" aria-hidden="true" />
               Try It Now
-              <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Button>
             <Button 
               size="lg" 
@@ -97,7 +97,7 @@ export const HeroSection = () => {
             {differentiators.map(({ icon: Icon, label }) => (
               <div key={label} className="flex items-center gap-2 text-muted-foreground">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Icon className="w-5 h-5 text-primary" />
+                  <Icon className="w-5 h-5 text-primary" aria-hidden="true" />
                 </div>
                 <span className="text-sm font-medium">{label}</span>
               </div>
