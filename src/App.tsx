@@ -10,6 +10,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AppErrorBoundary } from "@/components/layout/ErrorBoundary";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { LoadingScreen } from "@/components/layout/LoadingScreen";
+import { ScrollToTop } from "@/components/shared/ScrollToTop";
 
 // Lazy-loaded pages
 const LandingPage = lazy(() => import("./pages/LandingPage"));
@@ -56,6 +57,7 @@ const App = () => (
             <Sonner />
             <AppErrorBoundary>
               <BrowserRouter>
+                <ScrollToTop />
                 <Suspense fallback={<LoadingScreen message="Loading..." />}>
                   <Routes>
                     <Route path="/" element={<LandingPage />} />
