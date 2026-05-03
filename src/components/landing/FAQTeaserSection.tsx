@@ -12,7 +12,7 @@ const faqs = [
   },
   {
     q: 'Which voice providers can I choose from?',
-    a: 'ƷBI ships with ElevenLabs, Gemini Live, OpenAI Realtime and VAPI — all available on every paid tier.',
+    a: 'ƷBI ships with four production-grade voice engines, available on every paid tier — pick the one that sounds right for you and switch any time.',
   },
   {
     q: "What's the difference between Personal and Builder?",
