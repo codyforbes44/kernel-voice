@@ -37,8 +37,8 @@ const Install = () => {
 
   return (
     <PageWrapper
-      title="Install App - ƷBI Voice"
-      description="Install ƷBI Voice as a native app on your device. Works offline with faster performance, native notifications, and seamless experience across all platforms."
+      title="Install App - ƷBI"
+      description="Install ƷBI as a native app on your device. Works offline with faster performance, native notifications, and seamless experience across all platforms."
       image="/og-install.png"
       keywords={["install PWA", "voice assistant app", "offline AI", "progressive web app", "native app experience"]}
       showFooter
@@ -51,7 +51,7 @@ const Install = () => {
             </div>
             <div>
               <CardTitle className="text-3xl font-display mb-2">
-                Install ƷBI Voice
+                Install ƷBI
               </CardTitle>
               <CardDescription className="text-base">
                 Get the full app experience with offline support

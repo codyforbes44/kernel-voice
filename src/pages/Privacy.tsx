@@ -9,8 +9,8 @@ const fadeUp = {
 const Privacy = () => {
   return (
     <PageWrapper
-      title="Privacy Policy - ƷBI Voice"
-      description="Learn how ƷBI Voice protects your privacy and handles your data."
+      title="Privacy Policy - ƷBI"
+      description="Learn how ƷBI protects your privacy and handles your data."
       showFooter
     >
       <main id="main-content" className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">

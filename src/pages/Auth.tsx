@@ -166,8 +166,8 @@ const Auth = () => {
 
   return (
     <PageWrapper
-      title="Sign In - ƷBI Voice"
-      description="Sign in or create an account to access ƷBI Voice."
+      title="Sign In - ƷBI"
+      description="Sign in or create an account to access ƷBI."
       image="/og-auth.png"
       noIndex
       showFooter
@@ -175,7 +175,7 @@ const Auth = () => {
       <main id="main-content" className="flex-1 flex items-center justify-center py-6 md:py-16 px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">ƷBI Voice</CardTitle>
+            <CardTitle className="text-3xl font-bold">ƷBI</CardTitle>
             <CardDescription>
               {showUpdatePassword ? 'Enter your new password'
                 : showResetPassword ? 'Enter your email to reset your password'
