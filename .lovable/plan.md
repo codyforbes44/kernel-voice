@@ -1,174 +1,107 @@
-
 ## Goal
 
-Make ƷBI Voice best-in-class on every device. Mobile-first, accessible (WCAG AA), resilient under flaky networks, and polished. No visual regressions, no behavior changes to working voice/auth flows.
+Reposition the homepage as a dual-track product that speaks to two audiences in parallel — **end users** who want a personal AI voice assistant, and **builders** who want to embed agents and widgets — and rebuild pricing to match those two journeys with a real free tier and clearer value ladders.
 
-This builds on prior responsive/design-system passes — it does NOT redo them. It addresses the gaps those passes left: the Voice Assistant page, the authenticated app shell, the admin panel, and global performance/a11y/resilience plumbing.
+## 1. Pricing restructure (Stripe + code)
 
----
+Retire the current Starter / Plus / Pro mix and replace with four tiers that map to the two audiences:
 
-## 1. Foundations (touched once, reused everywhere)
+| Tier      | Audience  | Price (USD/mo) | Stripe action               |
+|-----------|-----------|----------------|-----------------------------|
+| Free      | Both      | $0             | No Stripe product (gated in app) |
+| Personal  | End users | $9             | New product + monthly price |
+| Builder   | Devs      | $29            | New product + monthly price |
+| Team      | Devs      | $99            | New product + monthly price |
 
-**Global CSS / tokens (`src/index.css`, `tailwind.config.ts`)**
-- Add safe-area utilities: `pt-safe`, `pb-safe`, `pl-safe`, `pr-safe` (env(safe-area-inset-*)).
-- Add `min-h-dvh` / `h-dvh` utilities (fall back to `100vh`).
-- Standardize touch target: `.tap-target { @apply min-h-[44px] min-w-[44px]; }`.
-- Add `.focus-ring` class with high-contrast `outline-2 outline-offset-2 outline-ring` for both themes.
-- Verify color contrast: muted-foreground ≥ 4.5:1 on background in both themes; bump if needed.
-- Add `.sr-live` helper and document `aria-live` patterns.
+What each tier unlocks (used in homepage teaser + Pricing page):
 
-**Shared components**
-- `src/components/shared/AsyncBoundary.tsx` — combines `ErrorBoundary` + `Suspense` with branded fallback + retry.
-- `src/components/shared/RouteErrorBoundary.tsx` — per-route boundary; logs to console + shows recover UI.
-- `src/components/shared/OfflineIndicator.tsx` — listens to `online`/`offline`, shows toast + persistent badge in Header when offline.
-- `src/components/shared/EmptyState.tsx` — promote and standardize (currently a UI primitive, ensure consistent usage).
-- `src/components/shared/PageHeader.tsx` — title + subtitle + actions slot, used by Profile, Admin pages, Pricing.
+- **Free** — Voice assistant (3BI / Gemini Live), 7-day history, 1 saved agent, community support.
+- **Personal** — Premium ElevenLabs voices, 30-day history, 5 saved agents, advanced voice customization, email support.
+- **Builder** — Everything in Personal + 1 embeddable widget (10k widget messages/mo), knowledge base (100 docs), VAPI provider, custom agents unlimited, API access.
+- **Team** — Everything in Builder + 5 widgets / 100k widget messages, 1k docs, 5 seats, priority support, SSO-ready, early access.
 
-**App shell (`src/App.tsx`)**
-- Wrap each Route element in `RouteErrorBoundary` so a crash in one page doesn't blank the app.
-- Mount `OfflineIndicator` near Toaster.
-- Tune `QueryClient`: add `networkMode: 'offlineFirst'`, exponential backoff retry, `refetchOnReconnect: true`.
-- Add `<HelmetProvider>` `<Helmet>` defaults at root for fallback OG/Twitter.
+Stripe + code work:
 
----
+1. Create 4 new Stripe products with monthly USD prices via Stripe tools.
+2. Rewrite `src/lib/stripe.ts` so `STRIPE_PRICES` / `STRIPE_PRODUCTS` / `PRICING_INFO` use the new IDs and `TierName = 'free' | 'personal' | 'builder' | 'team'`. Keep the old constant names exported as deprecated aliases mapping to the closest new tier so nothing in the app breaks immediately.
+3. Update `getTierName` and `PLUS_PRODUCT_IDS` (used for ElevenLabs gating) → rename to `PREMIUM_PRODUCT_IDS` = `[personal, builder, team]`. Add `BUILDER_PRODUCT_IDS = [builder, team]` for widget/API gating.
+4. Audit usages of `STARTER` / `PLUS` / `PRO` constants and `useSubscription` consumers (gating in voice provider selector, widget editor, knowledge base) and rewire to the new product IDs.
 
-## 2. Voice Assistant page (highest user value)
+## 2. Pricing page rewrite (`src/pages/Pricing.tsx`)
 
-`src/pages/VoiceAssistant.tsx`
+- Switch grid from 3 cards to 4 cards (Free, Personal, Builder, Team) with `lg:grid-cols-4`, mobile remains stacked.
+- Add a **Monthly / Annual** toggle (UI only for now — annual prices will be added to Stripe in a follow-up). Annual displays a "save 20%" badge and crossed-out monthly equivalent.
+- Free card has CTA `Get started` → `/auth` (no Stripe call).
+- Mark Builder as `isPopular`.
+- Add a comparison table below the cards (sticky first column on mobile via `overflow-x-auto`) with rows grouped by: Voice, Agents, Widgets & API, Support.
+- Keep FAQ; add two new entries: "What's the difference between Personal and Builder?" and "Do I need an account to try it?".
+- Add a small footnote: "Prices in USD. Cancel anytime."
 
-**Mobile**
-- Use `min-h-dvh` + `pb-safe` instead of `h-[100dvh] safe-area-inset` (true viewport on iOS Safari address-bar collapse).
-- Move FAB above home-bar (`bottom-[max(1.5rem,env(safe-area-inset-bottom))]`).
-- Pin transcripts to a scrollable region with `aria-live="polite"` so screen readers announce assistant turns.
-- Add swipe-down-to-dismiss on the bottom Sheet (already supported by `vaul`-based sheet — verify).
-- Keyboard handling: when text input is focused on iOS, pad bottom for visual viewport so the FAB doesn't cover the input. Use `visualViewport.addEventListener('resize')`.
-- Add subtle haptic on connect/end (already in core memory — verify wired through `useVoiceAssistant`).
+## 3. Homepage refactor (`src/pages/LandingPage.tsx` + sections)
 
-**Desktop**
-- Settings panel transition uses CSS `width` which causes layout thrash; switch to `transform: translateX` only and overlay via `position: absolute` for smoother motion.
-- Sidebar: when collapsed, keep a hover-to-expand handle so users don't lose conversation list.
-
-**A11y**
-- All icon buttons get `aria-label` (audit: FAB, settings close, mute, end call).
-- Connection state announced via `aria-live="polite"` region (Connecting → Connected → Disconnected).
-- Voice orb state (`isSpeaking`, `isListening`) mirrored to `aria-label` on the main mic button.
-
-**Resilience**
-- If `useVoiceAssistant` reports `connectionError`, show a retry CTA with backoff timer (don't auto-spam).
-- On `offline`, disable Start button with tooltip "You're offline" and pause wake-word listener (saves battery).
-
----
-
-## 3. Authenticated app shell
-
-**Header (`src/components/layout/Header.tsx`)**
-- On mobile, brand wordmark visible at `xs+` so users always know where they are.
-- Mobile drawer: focus-trap when open (already via Radix Sheet), add Escape handling, return focus to trigger on close.
-- Active nav item: stronger contrast in light mode (current 0.5px underline can disappear).
-
-**Profile page (`src/pages/Profile.tsx`)**
-- Use `PageHeader` for consistency.
-- Replace bespoke loading screen with `AsyncBoundary`.
-- Avatar upload: show progress + cancel button; preview before upload (FileReader).
-- Add unsaved-changes guard (`beforeunload` + in-app dirty check).
-
-**Pricing / SubscriptionSuccess / Install / Privacy / Terms**
-- Wrap in `RouteErrorBoundary`.
-- Confirm `PageHeader` + shared section components (already mostly done in last pass — audit for stragglers).
-
-**Showcase / Playground (`src/pages/Showcase.tsx`)**
-- Drag-and-drop is keyboard-inaccessible; add keyboard sensor from `@dnd-kit/core` + screen-reader announcements via `Announcements` API.
-- On mobile, disable drag by default (long-press already gated 200ms — but cards should be reorderable via a "Reorder" mode toggle button instead, easier for thumbs).
-
----
-
-## 4. Admin dashboard
-
-`src/components/admin/AdminLayout.tsx` + `AdminSidebar.tsx` + `src/pages/admin/*`
-
-**Mobile (current admin is desktop-only-ish)**
-- Convert `AdminSidebar` to use shadcn `Sidebar` primitive with `collapsible="offcanvas"` so it slides on mobile.
-- Add `SidebarTrigger` to admin header bar (always visible).
-- Replace fixed `container max-w-7xl px-6 py-8` with `px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8`.
-
-**Tables → cards on mobile**
-- `src/pages/admin/Users.tsx`, `Conversations.tsx`, `Documents.tsx`, `KnowledgeBase.tsx`, `AuditLogs.tsx`: use `<Table>` only at `md+`, render a card list at `<md`. Bulk actions stay (each card has a checkbox).
-- Sticky table headers (`sticky top-0 bg-card`) on desktop for long lists.
-- Pagination controls become full-width buttons on mobile.
-
-**Polish**
-- Standardize `StatsCard` skeletons (currently inconsistent loading states across admin pages).
-- `BulkActionToolbar` becomes a bottom-fixed bar on mobile when items are selected.
-- Command palette: ensure ⌘K / Ctrl+K and add discoverable button on mobile (lives in admin header).
-
----
-
-## 5. Performance & Core Web Vitals
-
-**Bundle**
-- Audit `lazy()` boundaries; ensure `Showcase`, `Admin*`, `VoiceAssistant`, `WidgetEditor` are split (mostly done).
-- Move heavy showcase cards to `lazy()` inside `ShowcaseCardRegistry` so Playground entry is light.
-- Verify `framer-motion` is tree-shaken; replace one-off `motion.div` with CSS where possible.
-
-**Fonts**
-- `@import` of Google Fonts in `index.css` blocks render. Move to `<link rel="preconnect">` + `<link rel="preload">` in `index.html`, OR use `font-display: swap` query param (`&display=swap` already present — verify all weights actually used).
-- Self-host critical weights for offline-first (optional, defer if scope creeps).
-
-**Images**
-- `loading="lazy"` + `decoding="async"` on all non-hero images.
-- Set explicit `width`/`height` on avatars and stat icons to prevent CLS.
-
-**React Query**
-- Already 5min stale / 10min gc — good. Add `placeholderData: keepPreviousData` to admin pagination queries to avoid flicker.
-
-**Edge function calls**
-- Debounce/throttle high-frequency actions (search, KB inspector).
-- Add request cancellation via `AbortController` on route change.
-
----
-
-## 6. Accessibility audit
-
-- Run a manual pass against each public + authenticated page for:
-  - Heading hierarchy (no skipped levels)
-  - Color contrast (light + dark)
-  - Keyboard reachability (Tab through every interactive element, no traps except dialogs)
-  - Focus rings visible on all interactive controls
-  - Reduced-motion: confirm framer-motion respects it (wrap in `useReducedMotion`)
-- Add a single `prefers-reduced-motion` audit utility hook `useReducedMotionPref` and use across animated components.
-
----
-
-## 7. Out of scope (call out, don't change)
-
-- Voice provider business logic (`useVoiceAssistant`, hooks under `src/hooks/use*Conversation.ts`) — only error/loading UX wrapping.
-- Database schema, RLS, edge function internals.
-- Embeddable widget (`src/embed/*`) — separate effort.
-- Auth flows (already polished last pass).
-
----
-
-## Technical notes
-
-**File touch list (~25 files, no rename/restructure):**
+New section order:
 
 ```text
-src/index.css, tailwind.config.ts
-src/App.tsx, index.html, vite.config.ts
-src/components/shared/{AsyncBoundary,RouteErrorBoundary,OfflineIndicator,PageHeader}.tsx (new)
-src/components/layout/{Header,PageWrapper,ErrorBoundary}.tsx
-src/components/admin/{AdminLayout,AdminSidebar,BulkActionToolbar,StatsCard}.tsx
-src/pages/VoiceAssistant.tsx
-src/pages/Profile.tsx
-src/pages/Showcase.tsx
-src/pages/admin/{Dashboard,Users,Conversations,Documents,KnowledgeBase,AuditLogs,Settings,Widgets}.tsx
-src/hooks/useReducedMotionPref.ts (new)
+Hero (dual-track)
+  ├─ Use ƷBI    → /assistant
+  └─ Build with ƷBI → #build
+SocialProofStrip (logos / stats)
+ProductPreview (existing, polished)
+TwoTracksSection  (NEW — side-by-side: Personal vs Builder)
+PlatformCapabilities (existing, regrouped)
+HowItWorks (existing — duplicated mini-flows per track)
+PricingTeaser (NEW 4-tier version)
+FAQTeaser (3 questions, link to /pricing)
+FinalCTA (NEW — "Start free, upgrade when you outgrow it")
 ```
 
-**Verification after build:**
-- Visual QA at 360px, 414px, 768px, 1024px, 1440px.
-- Keyboard-only navigation pass on Voice Assistant + Admin Users.
-- Lighthouse mobile score target: Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 95.
-- Smoke test: voice connect, send text, navigate admin tables on a 360px viewport.
+Section-level changes:
 
-**Commit cadence:** one logical group per pass (Foundations → Voice → Shell → Admin → Perf), so any regression is bisectable.
+- **`HeroSection.tsx`** — Replace single headline with two-line dual headline (`Talk to ƷBI. Or build with it.`) and two primary CTAs side-by-side: `Try the assistant` and `Build a widget`. Keep parallax orb. Add a small trust strip under the buttons (`No credit card · 4 voice providers · WCAG AA`).
+- **New `SocialProofStrip.tsx`** — One-line stat row (e.g. `Powered by ElevenLabs · Gemini Live · OpenAI Realtime · VAPI`) in muted tokens. No fake logos.
+- **New `TwoTracksSection.tsx`** — Two large cards anchored at `#build` and `#use`. Left card "For people" → personal use cases (daily briefings, voice journaling, hands-free Q&A) → CTA `Open the assistant`. Right card "For builders" → embed widgets, knowledge base, custom agents, API → CTA `Start building`. Each card lists 4 outcome bullets.
+- **`PlatformCapabilitiesSection.tsx`** — Regroup the 6 features into two visually labeled clusters ("Talk" and "Build") so the grid maps to the same dual-track story.
+- **`HowItWorksSection.tsx`** — Add a small tab toggle at the top: `For talking` (Choose voice → Speak → Save agent) / `For building` (Configure widget → Add knowledge → Embed). Same 3-step layout, content swaps via state.
+- **Replace `PricingTeaserSection.tsx`** — 4-card teaser using new `PRICING_INFO` (Free, Personal, Builder featured, Team). Each card has price, 3 highlights, and CTA → `/pricing`. Honors the monthly/annual toggle if present.
+- **New `FinalCTASection.tsx`** — Full-width band with `Start free` (primary → `/auth`) and `View pricing` (outline → `/pricing`).
+
+## 4. Accessibility, performance, SEO
+
+- Every new section uses semantic `<section aria-labelledby>` and the existing `SectionHeading` / `SectionWrapper` primitives.
+- Tab toggle in HowItWorks uses `role="tablist"` with proper `aria-selected` and arrow-key navigation.
+- All Framer Motion `whileInView` blocks respect `useReducedMotionPref` (already in repo) — disable transforms when reduced motion is requested.
+- Lazy-load `TwoTracksSection`, `FinalCTASection`, and the new pricing teaser via dynamic import to keep LCP focused on the hero.
+- Update `<PageWrapper>` description on LandingPage to reflect dual-track positioning. Add JSON-LD `Product` snippets for the 4 plans on `/pricing` for richer SERP results.
+
+## Technical details
+
+- **Stripe creation** uses `stripe--create_stripe_product_and_price` three times (Personal $9, Builder $29, Team $99 — recurring monthly). Free has no Stripe product. Resulting IDs are written into `src/lib/stripe.ts`.
+- **Backwards compatibility**: keep `STARTER_MONTHLY` / `PLUS_MONTHLY` / `PRO_MONTHLY` exports pointing at Personal / Builder / Team respectively so any in-flight subscriptions (and `check-subscription` mapping) keep resolving to a known tier. Existing customers on the old Stripe products will continue to be honored by `getTierName` via a legacy ID map.
+- **Gating updates**: `useSubscription` consumers — `VoiceProviderSelector`, widget editor, knowledge base uploader — switch from `PLUS_PRODUCT_IDS`/`PRO_PRODUCT_IDS` to `PREMIUM_PRODUCT_IDS` and `BUILDER_PRODUCT_IDS`.
+- **Annual toggle**: state lives in the Pricing page only for now; annual prices computed as `monthly * 12 * 0.8` for display. A follow-up task can add real annual Stripe prices and wire them in.
+- **No DB migration required.** Subscription state is still resolved live from Stripe by `check-subscription`.
+
+## Files
+
+Created:
+- `src/components/landing/SocialProofStrip.tsx`
+- `src/components/landing/TwoTracksSection.tsx`
+- `src/components/landing/FinalCTASection.tsx`
+- `src/components/landing/FAQTeaserSection.tsx`
+
+Edited:
+- `src/lib/stripe.ts` (new product/price IDs, new tier names, legacy aliases)
+- `src/pages/LandingPage.tsx` (new section order)
+- `src/pages/Pricing.tsx` (4 cards, annual toggle, comparison table, JSON-LD)
+- `src/components/landing/HeroSection.tsx` (dual-track copy + CTAs)
+- `src/components/landing/PlatformCapabilitiesSection.tsx` (Talk / Build clusters)
+- `src/components/landing/HowItWorksSection.tsx` (tab toggle)
+- `src/components/landing/PricingTeaserSection.tsx` (4-tier rewrite)
+- `src/components/voice/VoiceProviderSelector.tsx` (gating constants)
+- Any other `useSubscription`/`PLUS_PRODUCT_IDS` consumers found during the gating audit.
+
+## Out of scope (call out, don't build)
+
+- Real annual Stripe prices (UI-only for now).
+- Seat management for the Team plan (display only; multi-seat onboarding is a separate workstream).
+- Migrating existing subscribers from old Starter/Plus/Pro products — they keep working via the legacy ID map; a proactive migration is a follow-up.
