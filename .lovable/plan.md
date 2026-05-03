@@ -1,51 +1,61 @@
-## Goal
-Replace the static "ƷBI Assistant" mockup in `ProductPreviewSection` with a true interactive voice-interaction demo that represents the platform: a live state machine cycling through Listening → Thinking → Speaking, animated transcript bubbles, a real waveform driven by a simulated audio level, an orb that scales/glows with that level, clickable state pills, play/pause, and a clear CTA into the real assistant.
+# Plan — Connect homepage voice demo to real assistant API
 
-Why simulated rather than a real mic session: starting an actual voice session on the marketing page would require microphone permission + WebRTC/WebSocket connection on first scroll — bad UX, slow LCP, and surprising. Instead we build a faithful, scripted demo that uses the same visual language (orb, waveform canvas, state names) as the real `/assistant` page, then drive users into the live experience via the existing CTA.
+## Goal
+Drive the homepage `ProductPreviewSection` demo from your real assistant API instead of scripted strings, so the UI states (Listening → Thinking → Speaking) and the agent transcript correspond to genuine model output. Keep the existing visual language: glowing orb, live waveform canvas, state pills, play/pause.
+
+## Why streaming text rather than a live voice session
+Starting an actual voice session on the marketing page would:
+- Force a microphone permission prompt the moment a user scrolls into the section.
+- Open a billable WebRTC/WebSocket session for every visitor (OpenAI Realtime / Gemini Live / VAPI / ElevenLabs).
+- Significantly hurt LCP and PWA cache budget.
+
+The truthful, low-risk implementation: use the existing `chat` edge function (Lovable AI Gateway, Gemini 2.5 Flash, with `stream: true` SSE support — already implemented in `supabase/functions/chat/index.ts`). Real prompts go in, real model responses stream out, and the demo's Listening / Thinking / Speaking phases are tied to the real network lifecycle.
 
 ## What changes
 
-### Single file: `src/components/landing/ProductPreviewSection.tsx`
+### 1. New hook: `src/hooks/useDemoAssistant.ts`
+A self-contained client hook for the homepage demo. It encapsulates the API call and exposes the state machine the UI needs.
 
-Rewrite the component to include:
+State exposed:
+```ts
+type DemoState = 'idle' | 'listening' | 'thinking' | 'speaking';
+{
+  state, userText, agentText, level, paused,
+  setPaused, jumpToState, start, stop
+}
+```
 
-1. **State machine** (`idle | listening | thinking | speaking`)
-   - Drives a 3-turn scripted conversation that loops.
-   - Phase timing: listening 2.6s, thinking 1.1s, speaking 4.2s, 0.7s pause.
-   - Pauses entirely when the section is off-screen (uses `useInView` from framer-motion) — honors the performance memory.
+Lifecycle for one turn:
+1. Pick the next prompt from a 3-item rotating list ("What can you do for my business?", "Can I embed you in my product?", "How fast does it actually feel?").
+2. **Listening** — type the user prompt out (~2.5s). Level signal modulates a "listening" sine.
+3. **Thinking** — once typing finishes, POST to the `chat` edge function with `stream: true`. Stay in `thinking` until the first SSE token arrives. Level signal modulates a low "thinking" sine.
+4. **Speaking** — as SSE chunks arrive, append to `agentText` and switch to `speaking`. Level modulates a higher "speaking" sine until the stream ends.
+5. **Idle** brief pause, then advance turn. Loop.
 
-2. **Animated transcript bubbles**
-   - User bubble (right-aligned, primary tint) types out during `listening`.
-   - Agent bubble (left-aligned, muted) types out during `speaking`.
-   - Blinking caret while typing.
-   - 3 rotating turns covering the platform's value props (real-time, embed, knowledge base).
+Error handling:
+- On fetch failure, 429, or 402, fall back to a short scripted reply for the current turn so the demo never looks broken.
+- Abort the stream if the user pauses or scrolls the section out of view.
 
-3. **Live orb + waveform**
-   - Reuses the existing `LiveWaveformCanvas` component.
-   - A simulated audio-level signal (sine + noise) feeds both the canvas and an orb scale/glow spring.
-   - Orb gradient + ring shadow change per state.
-   - In `thinking`, orb adds a slow rotating dashed inner ring.
+Network details:
+- `fetch("${VITE_SUPABASE_URL}/functions/v1/chat", { headers: { Authorization: Bearer ${ANON}, apikey: ${ANON}, Content-Type: application/json }, body: JSON.stringify({ messages: [{role:'user',content:prompt}], stream: true }) })`.
+- Parse SSE: read `ReadableStream`, split on `\n\n`, look for `data: {...}` lines, extract `choices[0].delta.content`.
+- No auth needed — `chat` only persists when `conversationId` + `userId` are passed (we don't).
 
-4. **Interactive state pills**
-   - Listening / Thinking / Speaking pills below the orb are now buttons.
-   - Active pill gets a primary border + tint and a 1.1× icon scale.
-   - Clicking a pill jumps the demo to that state immediately.
+### 2. Refactor `src/components/landing/ProductPreviewSection.tsx`
+- Remove scripted timing logic and `setTurnIndex` machinery.
+- Consume `useDemoAssistant()`. Bind `state`, `userText`, `agentText`, `level`, `paused`, `setPaused`, `jumpToState` to existing UI.
+- Pause / resume on `useInView`: call `stop()` on exit, `start()` on entry. Honors the perf memory.
+- Keep the existing pills, orb, waveform, and CTA. CTA "Try it for real" still navigates to `/assistant`.
 
-5. **Play/Pause control** in the window chrome (top-right) so visitors can freeze a state to read the transcript.
-
-6. **CTA underneath**
-   - Primary `Try it for real` button → navigates to `/assistant` (matches Hero's primary action).
-   - Small "No sign-up required to start" microcopy.
-
-### No copy that names third-party providers (matches the privacy-first / white-label memory).
-
-### Reuses & dependencies
-- Uses existing `LiveWaveformCanvas`, `Button`, `SectionWrapper`, `cn`, framer-motion (`motion`, `AnimatePresence`, `useInView`), lucide icons. No new dependencies.
+### 3. No backend changes
+- `supabase/functions/chat/index.ts` already supports `stream: true` with `text/event-stream` CORS — no edits needed.
+- No new secrets, no new edge functions.
 
 ## Files touched
-- `src/components/landing/ProductPreviewSection.tsx` — full rewrite of the component body. The section's id (`product-preview`) and surrounding layout are preserved so `LandingPage.tsx` needs no changes.
+- `src/hooks/useDemoAssistant.ts` — new.
+- `src/components/landing/ProductPreviewSection.tsx` — refactor to consume the hook; preserve visual layout.
 
 ## Out of scope
-- No real microphone capture or live voice session on the homepage.
+- No live mic / WebRTC / voice provider session on the homepage.
 - No changes to `/assistant`, hero, or other landing sections.
-- No new shared components — everything lives in this file.
+- No persistence of demo turns to the database.
