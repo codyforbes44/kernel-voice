@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Crown, Check, Minus } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -319,8 +319,8 @@ export default function Pricing() {
               </thead>
               <tbody>
                 {comparison.map((group) => (
-                  <>
-                    <tr key={`g-${group.group}`} className="bg-card/40">
+                  <Fragment key={group.group}>
+                    <tr className="bg-card/40">
                       <td colSpan={5} className="p-3 sm:p-4 text-xs uppercase tracking-wider text-muted-foreground font-semibold sticky left-0 bg-card/40 z-10">
                         {group.group}
                       </td>
@@ -341,7 +341,7 @@ export default function Pricing() {
                         ))}
                       </tr>
                     ))}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
