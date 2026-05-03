@@ -30,6 +30,55 @@ function getPasswordStrength(password: string): { score: number; label: string }
   return { score, label: 'Very Strong' };
 }
 
+interface PasswordInputProps {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  autoComplete?: string;
+  showStrength?: boolean;
+  isLoading: boolean;
+  showPassword: boolean;
+  onToggleShow: () => void;
+  strength?: { score: number; label: string };
+}
+
+const PasswordInput = ({
+  id, value, onChange, placeholder = "••••••••", autoComplete = "current-password",
+  showStrength = false, isLoading, showPassword, onToggleShow, strength,
+}: PasswordInputProps) => (
+  <div className="space-y-2">
+    <div className="relative">
+      <Input
+        id={id}
+        type={showPassword ? 'text' : 'password'}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required disabled={isLoading} minLength={6}
+        autoComplete={autoComplete}
+        className="min-h-[44px] pr-10"
+      />
+      <button
+        type="button"
+        onClick={onToggleShow}
+        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+        aria-label={showPassword ? 'Hide password' : 'Show password'}
+      >
+        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    </div>
+    {showStrength && strength && value.length > 0 && (
+      <div className="space-y-1">
+        <Progress value={strength.score} className="h-1.5" />
+        <p className="text-xs text-muted-foreground">
+          Strength: <span className={strength.score >= 60 ? 'text-green-600 dark:text-green-400' : strength.score >= 40 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive'}>{strength.label}</span>
+        </p>
+      </div>
+    )}
+  </div>
+);
+
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
