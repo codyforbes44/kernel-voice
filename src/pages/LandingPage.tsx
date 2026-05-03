@@ -42,6 +42,10 @@ const LandingPage = () => {
       showFooter
     >
       <main id="main-content">
+        {/* Page-specific skip link: jump straight to the interactive demo. */}
+        <a href="#product-preview" className="skip-to-content">
+          Skip to interactive demo
+        </a>
         <HeroSection />
         <ProductPreviewSection />
         <Suspense fallback={null}>
