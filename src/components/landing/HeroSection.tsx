@@ -57,9 +57,15 @@ export const HeroSection = () => {
             aria-hidden="true"
           >
             <div className="relative">
+              {/* Outer glow halo */}
               <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl scale-[2] animate-pulse" />
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-primary to-secondary animate-glow-pulse flex items-center justify-center">
-                <Mic className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-primary-foreground" />
+              {/* Animated conic-gradient orb — echoes the BrandLogo identity */}
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full animate-glow-pulse overflow-hidden bg-gradient-to-br from-primary via-primary-glow to-secondary">
+                <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,hsl(var(--primary)),hsl(var(--secondary)),hsl(var(--primary-glow)),hsl(var(--primary)))] animate-[spin_10s_linear_infinite] opacity-90" />
+                {/* Inner glass highlight */}
+                <div className="absolute inset-[6%] rounded-full bg-gradient-to-br from-background/30 to-transparent mix-blend-overlay" />
+                {/* Soft inner ring */}
+                <div className="absolute inset-[12%] rounded-full border border-background/20" />
               </div>
             </div>
           </motion.div>

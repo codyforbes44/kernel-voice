@@ -1,33 +1,32 @@
-# Enhance hero background — grid + stars
+# Remove the microphone icon from the hero orb
 
-## What you'll see
+## What changes
 
-- **Perspective grid** that converges toward a horizon (~55% down) instead of the current flat grid. Horizontal lines get denser near the horizon — adds real depth.
-- **Twinkling star field** — 50–160 static stars (density scales with viewport), each with its own sin-phased opacity so the field shimmers naturally. Brightest stars get a soft halo.
-- **Occasional shooting stars** — a streak with motion-blur tail crosses every 6–12 seconds (max 2 alive at once). Subtle, not noisy.
-- **Drifting particles + constellation links** — kept, but retuned with brand colors and softer alpha.
-- **Pointer parallax** — grid vanishing point and stars drift slightly toward the cursor (eased, very small offsets). Disabled when off-screen or reduced motion.
-- **Soft horizon glow** — a thin warm band at the vanishing point ties the layers together.
+Right now the hero shows a gradient orb with a big white **microphone glyph** in the middle. I'll remove that glyph and refactor the orb so it still feels like a confident, branded focal point — not an empty circle.
 
-## Look & feel
+## New orb (replacement)
 
-- Switches from hardcoded cyan to `--primary` (Warm Gold) for stars/particles and `--secondary` for the grid lines, so it now matches the OLED + brand identity. Re-resolves on theme switch via `MutationObserver` on `<html>` (no per-frame DOM reads).
-- Light mode uses lower alphas so the grid stays whisper-quiet on the warm-white surface.
+- Same size, same glow halo, same `animate-glow-pulse`.
+- Keep the warm-gold → secondary gradient base.
+- Add a slowly rotating **conic gradient** layer (Warm Gold → Secondary → Primary Glow → Warm Gold) — this matches the existing animated `BrandLogo` identity.
+- Add a soft inner ring + subtle glass highlight so it reads as a polished sphere, not a flat disc.
+- Stays purely decorative (`aria-hidden="true"`, no semantic change).
 
-## Performance & accessibility
+## Other mic icons on the page
 
-- **DPR-aware** canvas — fixes the soft/blurry look on retina. Capped at 2× to stay cheap.
-- **Pause when off-screen** (existing IntersectionObserver) **and** when tab is hidden (new `visibilitychange` listener).
-- **Honors `prefers-reduced-motion`**: renders a single composed static frame and skips the RAF loop entirely. No twinkling, no shooting stars, no parallax.
-- **Frame-time clamp** (max 48 ms dt) so returning from a paused tab doesn't fast-forward animations.
-- Density auto-scales with viewport area; mobile gets fewer particles/stars.
+I'll keep the two **smaller** mic icons because they're labels for text, not standalone glyphs:
+
+- "**4 voice providers**" trust pill — the icon clarifies the metric.
+- "**Try the assistant**" CTA — the icon reinforces the action.
+
+If you'd rather strip those too, say the word and I'll swap them for `Sparkles` / `Volume2` or remove them outright.
 
 ## Files
 
-- **Rewrite** `src/components/landing/AnimatedHeroBackground.tsx` — single self-contained canvas component, same export, same `<canvas>` placement. No API changes.
-- `HeroSection.tsx` is **unchanged** — it already renders `<AnimatedHeroBackground />` inside the parallax `motion.div` with the radial primary glow on top.
+- **Edit** `src/components/landing/HeroSection.tsx` — replace the orb's inner JSX (lines 59–64). No other file touched.
+- The `Mic` import stays (still used by the trust strip + CTA).
 
-## Out of scope
+## What you won't see change
 
-- No new dependencies, no SVG/image asset, no DOM children added.
-- The mini-orb, headline animations, and scroll parallax in `HeroSection` are untouched.
+- Layout, spacing, parallax scroll, headline, CTAs, trust strip, animated background — all unchanged.
+- No new dependencies.
