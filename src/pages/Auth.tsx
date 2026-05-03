@@ -204,11 +204,11 @@ const Auth = () => {
               <form onSubmit={handleUpdatePassword} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="new-password">New Password</Label>
-                  <PasswordInput id="new-password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
+                  <PasswordInput {...pwProps} id="new-password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirm Password</Label>
-                  <PasswordInput id="confirm-password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
+                  <PasswordInput {...pwProps} id="confirm-password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
                 </div>
                 <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Updating...</> : 'Update Password'}
@@ -241,7 +241,7 @@ const Auth = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signin-password">Password</Label>
-                      <PasswordInput id="signin-password" value={password} onChange={setPassword} />
+                      <PasswordInput {...pwProps} id="signin-password" value={password} onChange={setPassword} />
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
                       <div className="flex items-center space-x-2 min-h-[44px]">
@@ -269,11 +269,11 @@ const Auth = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Password</Label>
-                      <PasswordInput id="signup-password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
+                      <PasswordInput {...pwProps} id="signup-password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-                      <PasswordInput id="signup-confirm-password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
+                      <PasswordInput {...pwProps} id="signup-confirm-password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
                     </div>
                     <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
                       {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating account...</> : 'Create Account'}
