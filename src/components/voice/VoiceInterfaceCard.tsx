@@ -62,7 +62,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
         {/* Title - hidden on mobile (redundant with Header) */}
         {!isMobile && (
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            ƷBI Voice
+            ƷBI
           </h1>
         )}
         <div className="flex-1 flex justify-end">
@@ -209,7 +209,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
               </p>
             ) : (
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : voiceProvider === 'vapi' ? 'VAPI' : '3ʙɪ'}
+                Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : voiceProvider === 'vapi' ? 'VAPI' : 'ƷBI'}
               </p>
             )}
             
