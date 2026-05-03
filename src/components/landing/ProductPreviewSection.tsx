@@ -6,6 +6,9 @@ import { SectionWrapper } from '@/components/shared/SectionWrapper';
 import { Button } from '@/components/ui/button';
 import { LiveWaveformCanvas } from '@/components/voice/LiveWaveformCanvas';
 import { cn } from '@/lib/utils';
+import { track } from '@/lib/analytics';
+
+const DEMO_SOURCE = 'landing_product_preview';
 
 type DemoState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
@@ -76,6 +79,28 @@ export const ProductPreviewSection = () => {
   const meta = stateMeta[state];
 
   const isRunning = inView && !paused;
+
+  // Fire `demo_viewed` once per mount when the demo first enters the viewport.
+  const viewedRef = useRef(false);
+  useEffect(() => {
+    if (inView && !viewedRef.current) {
+      viewedRef.current = true;
+      track('demo_viewed', { source: DEMO_SOURCE });
+    }
+  }, [inView]);
+
+  // Fire `demo_state_changed` on every state transition (auto or manual).
+  const prevStateRef = useRef<DemoState>('idle');
+  useEffect(() => {
+    if (prevStateRef.current === state) return;
+    track('demo_state_changed', {
+      source: DEMO_SOURCE,
+      from: prevStateRef.current,
+      to: state,
+      turn_index: turnIndex,
+    });
+    prevStateRef.current = state;
+  }, [state, turnIndex]);
 
   // State machine + typing
   useEffect(() => {
@@ -157,9 +182,33 @@ export const ProductPreviewSection = () => {
 
   const handleStateClick = useCallback((next: DemoState) => {
     if (next === 'idle') return;
+    track('demo_state_pill_clicked', { source: DEMO_SOURCE, state: next });
     setPaused(false);
     setState(next);
   }, []);
+
+  const handlePauseToggle = useCallback(() => {
+    setPaused((p) => {
+      const next = !p;
+      track('demo_play_toggled', {
+        source: DEMO_SOURCE,
+        action: next ? 'pause' : 'play',
+        state,
+        turn_index: turnIndex,
+      });
+      return next;
+    });
+  }, [state, turnIndex]);
+
+  const handleCtaClick = useCallback(() => {
+    track('demo_cta_clicked', {
+      source: DEMO_SOURCE,
+      cta: 'try_it_for_real',
+      state,
+      turn_index: turnIndex,
+    });
+    navigate('/assistant');
+  }, [navigate, state, turnIndex]);
 
   const orbScale = useMemo(() => (state === 'idle' ? 1 : 1 + level * 0.12), [state, level]);
 
@@ -182,7 +231,7 @@ export const ProductPreviewSection = () => {
             <span className="ml-2 sm:ml-3 text-xs text-muted-foreground font-body truncate flex-1">ƷBI Assistant</span>
             <button
               type="button"
-              onClick={() => setPaused((p) => !p)}
+              onClick={handlePauseToggle}
               className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md"
               aria-label={paused ? 'Play demo' : 'Pause demo'}
             >
@@ -332,7 +381,7 @@ export const ProductPreviewSection = () => {
             <Button
               size="lg"
               className="w-full sm:w-auto px-6 py-5 glow-primary group min-h-[48px]"
-              onClick={() => navigate('/assistant')}
+              onClick={handleCtaClick}
             >
               <Mic className="mr-2 h-4 w-4" aria-hidden="true" />
               Try it for real
