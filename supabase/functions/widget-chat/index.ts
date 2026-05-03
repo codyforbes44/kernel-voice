@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiKey = Deno.env.get('OPENAI_API_KEY');
+    const geminiKey = Deno.env.get('GEMINI_API_KEY');
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -243,35 +243,36 @@ Deno.serve(async (req) => {
     let kbContext = '';
     const shouldUseKB = enableKB || widgetConfig.config.enableKB;
     
-    if (shouldUseKB) {
+    if (shouldUseKB && geminiKey) {
       try {
-        // Generate embedding for the query
-        const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openaiKey}`,
-            'Content-Type': 'application/json',
+        // Generate embedding for the query via Gemini
+        const embeddingResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'models/text-embedding-004',
+              content: { parts: [{ text: message }] },
+            }),
           },
-          body: JSON.stringify({
-            input: message,
-            model: 'text-embedding-3-small',
-          }),
-        });
+        );
 
         if (embeddingResponse.ok) {
           const embeddingData = await embeddingResponse.json();
-          const embedding = embeddingData.data[0].embedding;
+          const embedding = embeddingData.embedding?.values;
 
-          // Search knowledge base
-          const { data: chunks } = await supabase.rpc('match_knowledge_chunks', {
-            query_embedding: embedding,
-            match_threshold: 0.5,
-            match_count: 3,
-          });
+          if (embedding) {
+            const { data: chunks } = await supabase.rpc('match_knowledge_chunks', {
+              query_embedding: embedding,
+              match_threshold: 0.5,
+              match_count: 3,
+            });
 
-          if (chunks && chunks.length > 0) {
-            kbContext = '\n\nRelevant context from knowledge base:\n' + 
-              chunks.map((c: { content: string }) => c.content).join('\n---\n');
+            if (chunks && chunks.length > 0) {
+              kbContext = '\n\nRelevant context from knowledge base:\n' +
+                chunks.map((c: { content: string }) => c.content).join('\n---\n');
+            }
           }
         }
       } catch (e) {
@@ -304,29 +305,31 @@ Deno.serve(async (req) => {
 
       const anthropicData = await anthropicResponse.json();
       response = anthropicData.content[0].text;
-    } else if (openaiKey) {
-      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiKey}`,
-          'Content-Type': 'application/json',
+    } else if (geminiKey) {
+      const geminiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: finalSystemPrompt + kbContext }] },
+            contents: [{ role: 'user', parts: [{ text: message }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+          }),
         },
-        body: JSON.stringify({
-          model: 'gpt-4.1-mini',
-          messages: [
-            { role: 'system', content: finalSystemPrompt + kbContext },
-            { role: 'user', content: message },
-          ],
-          max_tokens: 1024,
-        }),
-      });
+      );
 
-      if (!openaiResponse.ok) {
-        throw new Error(`OpenAI API error: ${openaiResponse.status}`);
+      if (!geminiResponse.ok) {
+        const errText = await geminiResponse.text();
+        console.error('Gemini API error:', geminiResponse.status, errText);
+        throw new Error(`Gemini API error: ${geminiResponse.status}`);
       }
 
-      const openaiData = await openaiResponse.json();
-      response = openaiData.choices[0].message.content;
+      const geminiData = await geminiResponse.json();
+      response =
+        geminiData?.candidates?.[0]?.content?.parts
+          ?.map((p: { text?: string }) => p.text || '')
+          .join('') || '';
     } else {
       return new Response(
         JSON.stringify({ error: 'No AI API key configured' }),
