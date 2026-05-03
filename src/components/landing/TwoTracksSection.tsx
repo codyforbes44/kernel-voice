@@ -34,7 +34,7 @@ const tracks = [
       'API access and analytics dashboard',
     ],
     cta: 'Start building',
-    href: '/widgets',
+    href: '/admin/widgets',
   },
 ];
 

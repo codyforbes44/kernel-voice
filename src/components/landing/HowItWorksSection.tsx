@@ -26,7 +26,7 @@ const flows: Record<Mode, { steps: { icon: typeof Settings2; title: string; desc
       { icon: Code2, title: 'Embed and ship', description: 'One script tag and your widget is live on any site.' },
     ],
     ctaLabel: 'Start building',
-    ctaHref: '/widgets',
+    ctaHref: '/admin/widgets',
   },
 };
 
