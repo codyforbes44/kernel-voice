@@ -325,6 +325,7 @@ export default function AdminConversations() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
 
           {/* Pagination */}

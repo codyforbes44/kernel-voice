@@ -323,6 +323,7 @@ export default function AdminDocuments() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
 
           {/* Pagination */}
