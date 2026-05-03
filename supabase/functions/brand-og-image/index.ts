@@ -1,45 +1,43 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+const IMAGE_MODEL = 'gemini-2.5-flash-image';
+
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not configured');
     }
 
     const { imageUrl } = await req.json();
-    
-    if (!imageUrl) {
-      throw new Error('imageUrl is required');
-    }
+    if (!imageUrl) throw new Error('imageUrl is required');
 
     console.log('Processing image for branding:', imageUrl);
 
-    // Use the Gemini image editing model to add branding
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `Add professional branding text to this image for an Open Graph social share card (1200x630).
+    // Fetch the source image and convert to base64 inlineData
+    let inlineData: { mimeType: string; data: string };
+    if (imageUrl.startsWith('data:')) {
+      const [meta, data] = imageUrl.split(',');
+      const mimeType = meta.match(/data:([^;]+)/)?.[1] || 'image/png';
+      inlineData = { mimeType, data };
+    } else {
+      const imgRes = await fetch(imageUrl);
+      if (!imgRes.ok) throw new Error(`Failed to fetch source image: ${imgRes.status}`);
+      const mimeType = imgRes.headers.get('content-type') || 'image/png';
+      const buf = new Uint8Array(await imgRes.arrayBuffer());
+      let binary = '';
+      for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]);
+      inlineData = { mimeType, data: btoa(binary) };
+    }
+
+    const prompt = `Add professional branding text to this image for an Open Graph social share card (1200x630).
 
 At the top center, add the brand name in large, bold, modern sans-serif font. The brand name is three characters: the first character looks like a reversed/mirrored numeral "3" (this is the Latin letter Ezh, Ʒ), followed by the uppercase letters "B", "I". So the full text reads: ƷBI
 
@@ -49,69 +47,69 @@ Add a subtle cyan glow or text shadow behind the letters for a neon effect.
 Below the title, add "Your AI Voice Assistant" in smaller white text with slight transparency.
 
 IMPORTANT: Keep all existing imagery (phone mockup, particles, dark background) completely intact. Only overlay the text on top.
-The result must be exactly 1200x630 pixels.`
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: imageUrl
-                }
-              }
-            ]
-          }
-        ],
-        modalities: ["image", "text"]
-      }),
-    });
+The result must be exactly 1200x630 pixels.`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: prompt }, { inlineData }],
+            },
+          ],
+          generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
+        }),
+      },
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      
+      console.error('Gemini image error:', response.status, errorText);
+
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded, please try again later.' }), {
           status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required, please add funds." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      
-      throw new Error(`AI gateway error: ${response.status}`);
+      throw new Error(`Gemini image error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('AI response received');
 
-    // Extract the generated image
-    const generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    const textResponse = data.choices?.[0]?.message?.content;
+    // Find image part in candidates
+    const parts = data?.candidates?.[0]?.content?.parts ?? [];
+    let brandedImageUrl: string | null = null;
+    let textResponse = '';
+    for (const part of parts) {
+      if (part?.inlineData?.data) {
+        const mt = part.inlineData.mimeType || 'image/png';
+        brandedImageUrl = `data:${mt};base64,${part.inlineData.data}`;
+      } else if (part?.text) {
+        textResponse += part.text;
+      }
+    }
 
-    if (!generatedImage) {
+    if (!brandedImageUrl) {
       console.log('No image generated, text response:', textResponse);
       throw new Error('No image was generated by the AI');
     }
 
     console.log('Branded image generated successfully');
 
-    return new Response(JSON.stringify({ 
-      brandedImageUrl: generatedImage,
-      message: textResponse || 'Image branded successfully'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
+    return new Response(
+      JSON.stringify({ brandedImageUrl, message: textResponse || 'Image branded successfully' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
   } catch (error) {
     console.error('Error branding image:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
   }
 });

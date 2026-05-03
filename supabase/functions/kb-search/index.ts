@@ -30,32 +30,30 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+
     // Check if we have embeddings available
     const { count: embeddingCount } = await supabase
       .from('knowledge_base_chunks')
       .select('*', { count: 'exact', head: true })
       .not('embedding', 'is', null);
 
-    const hasEmbeddings = (embeddingCount ?? 0) > 0 && OPENAI_API_KEY;
+    const hasEmbeddings = (embeddingCount ?? 0) > 0 && GEMINI_API_KEY;
 
     if (hasEmbeddings) {
-      // Generate embedding for the query
-      console.log('[kb-search] Using semantic search with embeddings');
-      
-      const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
+      console.log('[kb-search] Using semantic search with Gemini embeddings');
+
+      const embeddingResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'models/text-embedding-004',
+            content: { parts: [{ text: query }] },
+          }),
         },
-        body: JSON.stringify({
-          model: 'text-embedding-3-small',
-          input: query,
-          dimensions: EMBEDDING_DIM,
-        }),
-      });
+      );
 
       if (!embeddingResponse.ok) {
         console.error('[kb-search] Failed to generate query embedding, falling back to keyword search');
@@ -63,7 +61,11 @@ serve(async (req) => {
       }
 
       const embeddingData = await embeddingResponse.json();
-      const queryEmbedding = embeddingData.data[0].embedding;
+      const queryEmbedding = embeddingData.embedding?.values;
+      if (!queryEmbedding) {
+        console.error('[kb-search] No embedding values returned, falling back to keyword search');
+        return performKeywordSearch(supabase, query, limit);
+      }
 
       // Use the vector similarity function
       const { data: matches, error: matchError } = await supabase.rpc('match_knowledge_chunks', {
