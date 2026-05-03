@@ -27,6 +27,7 @@ import {
   Search,
   Sun,
   Moon,
+  HelpCircle,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -119,6 +120,10 @@ export const GlobalCommandPalette = ({ triggerVariant = 'pill' }: Props) => {
             <CommandItem onSelect={() => go('/pricing')}>
               <CreditCard className="mr-2 h-4 w-4" />
               <span>Pricing</span>
+            </CommandItem>
+            <CommandItem onSelect={() => go('/faq')}>
+              <HelpCircle className="mr-2 h-4 w-4" />
+              <span>FAQ</span>
             </CommandItem>
             {user && (
               <CommandItem onSelect={() => go('/profile')}>

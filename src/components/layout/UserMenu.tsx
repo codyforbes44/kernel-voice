@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
-import { LogOut, Settings, Shield, UserCircle } from 'lucide-react';
+import { LogOut, Mic, Shield, UserCircle, Home, CreditCard, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -83,18 +83,32 @@ export const UserMenu = ({ user }: UserMenuProps) => {
           <UserCircle className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate('/assistant')} className="cursor-pointer">
+          <Mic className="mr-2 h-4 w-4" />
+          <span>Assistant</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate('/')} className="cursor-pointer">
+          <Home className="mr-2 h-4 w-4" />
+          <span>Home</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate('/pricing')} className="cursor-pointer">
+          <CreditCard className="mr-2 h-4 w-4" />
+          <span>Pricing</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate('/faq')} className="cursor-pointer">
+          <HelpCircle className="mr-2 h-4 w-4" />
+          <span>FAQ</span>
+        </DropdownMenuItem>
         {isAdmin && (
           <>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">
               <Shield className="mr-2 h-4 w-4" />
               <span>Admin Dashboard</span>
             </DropdownMenuItem>
           </>
         )}
-        <DropdownMenuItem onClick={() => navigate('/assistant')} className="cursor-pointer">
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Assistant</span>
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
           <LogOut className="mr-2 h-4 w-4" />
