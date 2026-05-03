@@ -239,7 +239,7 @@ const VoiceAssistant = () => {
         image="/og-assistant.png"
         keywords={["voice conversation", "AI chat", "voice control", "hands-free AI"]}
       />
-      <div className="h-screen bg-background flex flex-col">
+      <div className="h-dvh bg-background flex flex-col">
         <Header />
         <SidebarProvider defaultOpen={va.isAuthenticated}>
           <div className="flex flex-1 w-full overflow-hidden">
