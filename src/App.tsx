@@ -90,6 +90,7 @@ const App = () => (
                     <Route path="/privacy" element={route("Privacy", <Privacy />)} />
                     <Route path="/terms" element={route("Terms", <Terms />)} />
                     <Route path="/pricing" element={route("Pricing", <Pricing />)} />
+                    <Route path="/faq" element={route("FAQ", <FAQ />)} />
                     <Route path="/subscription-success" element={route("Subscription", <SubscriptionSuccess />)} />
                     <Route path="/admin" element={<ProtectedRoute>{route("Admin Dashboard", <AdminDashboard />)}</ProtectedRoute>} />
                     <Route path="/admin/users" element={<ProtectedRoute>{route("Admin Users", <AdminUsers />)}</ProtectedRoute>} />
