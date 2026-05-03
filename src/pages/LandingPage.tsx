@@ -9,7 +9,7 @@ import { PricingTeaserSection } from '@/components/landing/PricingTeaserSection'
 const LandingPage = () => {
   return (
     <PageWrapper
-      title="ƷBI Voice - Your AI, Your Voice"
+      title="ƷBI - Your AI, Your Voice"
       description="Multi-provider real-time voice & text AI conversations. Build custom agents, embed widgets, and power your platform with ElevenLabs, Gemini, OpenAI, and VAPI."
       image="/og-home.png"
       keywords={["AI voice assistant", "voice AI", "real-time conversation", "embeddable widget", "custom AI agent", "ElevenLabs", "knowledge base"]}
