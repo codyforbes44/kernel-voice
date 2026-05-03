@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Mic, Download, Shield, FileText, CreditCard } from 'lucide-react';
+import { Mic, Shield, FileText, CreditCard } from 'lucide-react';
 import { BrandLogo } from '@/components/BrandLogo';
 
 export const Footer = () => {
@@ -7,7 +7,6 @@ export const Footer = () => {
   const navLinks = [
     { path: '/assistant', label: 'Assistant', icon: Mic },
     { path: '/pricing', label: 'Pricing', icon: CreditCard },
-    { path: '/install', label: 'Install', icon: Download },
   ];
   const legalLinks = [
     { path: '/privacy', label: 'Privacy Policy', icon: Shield },
