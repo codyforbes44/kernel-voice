@@ -24,6 +24,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Pricing = lazy(() => import("./pages/Pricing"));
+const FAQ = lazy(() => import("./pages/FAQ"));
 const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
 
 
