@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { UserMenu } from './UserMenu';
 import { ThemePreview } from '@/components/ThemePreview';
 import { useUserRole } from '@/hooks/useUserRole';
-import { Mic, Download, LayoutDashboard, Menu } from 'lucide-react';
+import { Mic, LayoutDashboard, Menu } from 'lucide-react';
 
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useState } from 'react';
@@ -21,7 +21,6 @@ export const Header = () => {
 
   const navLinks = [
     { path: '/assistant', label: 'Assistant', icon: Mic },
-    { path: '/install', label: 'Install', icon: Download },
   ];
 
   const handleLogoClick = (e: React.MouseEvent) => {

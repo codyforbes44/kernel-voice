@@ -18,7 +18,7 @@ import { OfflineIndicator } from "@/components/shared/OfflineIndicator";
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const VoiceAssistant = lazy(() => import("./pages/VoiceAssistant"));
 const Auth = lazy(() => import("./pages/Auth"));
-const Install = lazy(() => import("./pages/Install"));
+
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -83,7 +83,7 @@ const App = () => (
                     <Route path="/" element={route("Home", <LandingPage />)} />
                     <Route path="/assistant" element={route("Voice Assistant", <VoiceAssistant />)} />
                     <Route path="/auth" element={route("Sign In", <Auth />)} />
-                    <Route path="/install" element={route("Install", <Install />)} />
+                    
                     <Route path="/profile" element={<ProtectedRoute>{route("Profile", <Profile />)}</ProtectedRoute>} />
                     <Route path="/privacy" element={route("Privacy", <Privacy />)} />
                     <Route path="/terms" element={route("Terms", <Terms />)} />
