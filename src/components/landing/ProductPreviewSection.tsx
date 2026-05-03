@@ -186,12 +186,43 @@ export const ProductPreviewSection = () => {
     return () => cancelAnimationFrame(raf);
   }, [isRunning, state]);
 
-  const handleStateClick = useCallback((next: DemoState) => {
-    if (next === 'idle') return;
+  const handleStateClick = useCallback((next: Exclude<DemoState, 'idle'>) => {
     track('demo_state_pill_clicked', { source: DEMO_SOURCE, state: next });
     setPaused(false);
     setState(next);
+    const idx = STATE_PILLS.indexOf(next);
+    if (idx >= 0) setPillFocusIndex(idx);
   }, []);
+
+  // Roving-tabindex arrow-key navigation for the state-pill toolbar.
+  const handlePillKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLButtonElement>, idx: number) => {
+      const last = STATE_PILLS.length - 1;
+      let next = idx;
+      switch (e.key) {
+        case 'ArrowRight':
+        case 'ArrowDown':
+          next = idx === last ? 0 : idx + 1;
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          next = idx === 0 ? last : idx - 1;
+          break;
+        case 'Home':
+          next = 0;
+          break;
+        case 'End':
+          next = last;
+          break;
+        default:
+          return;
+      }
+      e.preventDefault();
+      setPillFocusIndex(next);
+      pillRefs.current[next]?.focus();
+    },
+    [],
+  );
 
   const handlePauseToggle = useCallback(() => {
     setPaused((p) => {
