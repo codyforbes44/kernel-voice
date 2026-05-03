@@ -1,68 +1,140 @@
-// Stripe Price IDs for Kernel subscriptions
+// Stripe Price IDs for ƷBI subscriptions (new dual-track pricing)
 export const STRIPE_PRICES = {
-  STARTER_MONTHLY: 'price_1SzjX72MfT7OzvjxyqWpTfXN',
-  PLUS_MONTHLY: 'price_1SzjX72MfT7OzvjxYrQnQ8xP',
-  PRO_MONTHLY: 'price_1SzjX82MfT7Ozvjx9Oc4THYA',
+  PERSONAL_MONTHLY: 'price_1TSrmF2MfT7OzvjxoujydZFp',
+  BUILDER_MONTHLY: 'price_1TSrmf2MfT7Ozvjx9ips4m4f',
+  TEAM_MONTHLY: 'price_1TSrmw2MfT7OzvjxoOB6YFeX',
+
+  // Legacy aliases — preserve old import paths during transition.
+  STARTER_MONTHLY: 'price_1TSrmF2MfT7OzvjxoujydZFp', // -> Personal
+  PLUS_MONTHLY: 'price_1TSrmf2MfT7Ozvjx9ips4m4f',    // -> Builder
+  PRO_MONTHLY: 'price_1TSrmw2MfT7OzvjxoOB6YFeX',     // -> Team
 } as const;
 
 // Stripe Product IDs
 export const STRIPE_PRODUCTS = {
-  KERNEL_STARTER: 'prod_Txeqgboqm2OQh6',
-  KERNEL_PLUS: 'prod_TxeqNEggefCFi8',
-  KERNEL_PRO: 'prod_TxeqCb8U1jeGEN',
+  ZBI_PERSONAL: 'prod_URlIFkFpwZfnGn',
+  ZBI_BUILDER: 'prod_URlJPqfUA52R5A',
+  ZBI_TEAM: 'prod_URlJGBlQWMjWmR',
+
+  // Legacy aliases
+  KERNEL_STARTER: 'prod_URlIFkFpwZfnGn',
+  KERNEL_PLUS: 'prod_URlJPqfUA52R5A',
+  KERNEL_PRO: 'prod_URlJGBlQWMjWmR',
+} as const;
+
+// Legacy product IDs from previous pricing structure — kept so existing
+// subscribers continue resolving to a known tier via `getTierName`.
+const LEGACY_PRODUCT_IDS = {
+  STARTER: 'prod_Txeqgboqm2OQh6',
+  PLUS: 'prod_TxeqNEggefCFi8',
+  PRO: 'prod_TxeqCb8U1jeGEN',
 } as const;
 
 // All paid product IDs for subscription checking
 export const PAID_PRODUCT_IDS = [
-  STRIPE_PRODUCTS.KERNEL_STARTER,
-  STRIPE_PRODUCTS.KERNEL_PLUS,
-  STRIPE_PRODUCTS.KERNEL_PRO,
+  STRIPE_PRODUCTS.ZBI_PERSONAL,
+  STRIPE_PRODUCTS.ZBI_BUILDER,
+  STRIPE_PRODUCTS.ZBI_TEAM,
+  LEGACY_PRODUCT_IDS.STARTER,
+  LEGACY_PRODUCT_IDS.PLUS,
+  LEGACY_PRODUCT_IDS.PRO,
 ] as const;
 
-// Keep backward compat alias
+// Backward compat alias
 export const PRO_PRODUCT_IDS = PAID_PRODUCT_IDS;
 
-// Plus-or-above product IDs (for ElevenLabs gating)
-export const PLUS_PRODUCT_IDS = [
-  STRIPE_PRODUCTS.KERNEL_PLUS,
-  STRIPE_PRODUCTS.KERNEL_PRO,
+// Premium = anything paid (unlocks ElevenLabs voices, advanced customization)
+export const PREMIUM_PRODUCT_IDS = [
+  STRIPE_PRODUCTS.ZBI_PERSONAL,
+  STRIPE_PRODUCTS.ZBI_BUILDER,
+  STRIPE_PRODUCTS.ZBI_TEAM,
+  LEGACY_PRODUCT_IDS.PLUS,
+  LEGACY_PRODUCT_IDS.PRO,
 ] as const;
+
+// Builder-or-above = unlocks widgets, knowledge base, API
+export const BUILDER_PRODUCT_IDS = [
+  STRIPE_PRODUCTS.ZBI_BUILDER,
+  STRIPE_PRODUCTS.ZBI_TEAM,
+  LEGACY_PRODUCT_IDS.PRO,
+] as const;
+
+// Legacy alias for ElevenLabs gating call sites
+export const PLUS_PRODUCT_IDS = PREMIUM_PRODUCT_IDS;
 
 export type StripePriceId = typeof STRIPE_PRICES[keyof typeof STRIPE_PRICES];
 export type StripeProductId = typeof STRIPE_PRODUCTS[keyof typeof STRIPE_PRODUCTS];
 
-export type TierName = 'starter' | 'plus' | 'pro';
+export type TierName = 'free' | 'personal' | 'builder' | 'team';
 
 export function getTierName(productId: string | null): TierName | null {
+  if (!productId) return null;
   switch (productId) {
-    case STRIPE_PRODUCTS.KERNEL_STARTER: return 'starter';
-    case STRIPE_PRODUCTS.KERNEL_PLUS: return 'plus';
-    case STRIPE_PRODUCTS.KERNEL_PRO: return 'pro';
-    default: return null;
+    case STRIPE_PRODUCTS.ZBI_PERSONAL:
+    case LEGACY_PRODUCT_IDS.STARTER:
+      return 'personal';
+    case STRIPE_PRODUCTS.ZBI_BUILDER:
+    case LEGACY_PRODUCT_IDS.PLUS:
+      return 'builder';
+    case STRIPE_PRODUCTS.ZBI_TEAM:
+    case LEGACY_PRODUCT_IDS.PRO:
+      return 'team';
+    default:
+      return null;
   }
 }
 
 // Pricing information for display
 export const PRICING_INFO = {
-  starter: {
-    priceId: STRIPE_PRICES.STARTER_MONTHLY,
-    productId: STRIPE_PRODUCTS.KERNEL_STARTER,
-    amount: 4.95,
+  free: {
+    priceId: null,
+    productId: null,
+    amount: 0,
     interval: 'month' as const,
-    label: 'Starter',
+    label: 'Free',
+  },
+  personal: {
+    priceId: STRIPE_PRICES.PERSONAL_MONTHLY,
+    productId: STRIPE_PRODUCTS.ZBI_PERSONAL,
+    amount: 9,
+    interval: 'month' as const,
+    label: 'Personal',
+  },
+  builder: {
+    priceId: STRIPE_PRICES.BUILDER_MONTHLY,
+    productId: STRIPE_PRODUCTS.ZBI_BUILDER,
+    amount: 29,
+    interval: 'month' as const,
+    label: 'Builder',
+  },
+  team: {
+    priceId: STRIPE_PRICES.TEAM_MONTHLY,
+    productId: STRIPE_PRODUCTS.ZBI_TEAM,
+    amount: 99,
+    interval: 'month' as const,
+    label: 'Team',
+  },
+
+  // Legacy keys preserved so older imports don't break.
+  starter: {
+    priceId: STRIPE_PRICES.PERSONAL_MONTHLY,
+    productId: STRIPE_PRODUCTS.ZBI_PERSONAL,
+    amount: 9,
+    interval: 'month' as const,
+    label: 'Personal',
   },
   plus: {
-    priceId: STRIPE_PRICES.PLUS_MONTHLY,
-    productId: STRIPE_PRODUCTS.KERNEL_PLUS,
-    amount: 14.95,
+    priceId: STRIPE_PRICES.BUILDER_MONTHLY,
+    productId: STRIPE_PRODUCTS.ZBI_BUILDER,
+    amount: 29,
     interval: 'month' as const,
-    label: 'Plus',
+    label: 'Builder',
   },
   pro: {
-    priceId: STRIPE_PRICES.PRO_MONTHLY,
-    productId: STRIPE_PRODUCTS.KERNEL_PRO,
-    amount: 29.95,
+    priceId: STRIPE_PRICES.TEAM_MONTHLY,
+    productId: STRIPE_PRODUCTS.ZBI_TEAM,
+    amount: 99,
     interval: 'month' as const,
-    label: 'Pro',
+    label: 'Team',
   },
 } as const;
