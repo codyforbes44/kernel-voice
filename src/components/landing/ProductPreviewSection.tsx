@@ -80,6 +80,28 @@ export const ProductPreviewSection = () => {
 
   const isRunning = inView && !paused;
 
+  // Fire `demo_viewed` once per mount when the demo first enters the viewport.
+  const viewedRef = useRef(false);
+  useEffect(() => {
+    if (inView && !viewedRef.current) {
+      viewedRef.current = true;
+      track('demo_viewed', { source: DEMO_SOURCE });
+    }
+  }, [inView]);
+
+  // Fire `demo_state_changed` on every state transition (auto or manual).
+  const prevStateRef = useRef<DemoState>('idle');
+  useEffect(() => {
+    if (prevStateRef.current === state) return;
+    track('demo_state_changed', {
+      source: DEMO_SOURCE,
+      from: prevStateRef.current,
+      to: state,
+      turn_index: turnIndex,
+    });
+    prevStateRef.current = state;
+  }, [state, turnIndex]);
+
   // State machine + typing
   useEffect(() => {
     if (!isRunning) return;
