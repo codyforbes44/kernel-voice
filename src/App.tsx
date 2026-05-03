@@ -25,7 +25,7 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
-const Showcase = lazy(() => import("./pages/Showcase"));
+
 
 // Admin pages (heavier chunk)
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
@@ -97,8 +97,7 @@ const App = () => (
                     <Route path="/admin/audit-logs" element={<ProtectedRoute>{route("Audit Logs", <AdminAuditLogs />)}</ProtectedRoute>} />
                     <Route path="/admin/settings" element={<ProtectedRoute>{route("Admin Settings", <AdminSettings />)}</ProtectedRoute>} />
                     <Route path="/admin/widgets" element={<ProtectedRoute>{route("Widgets", <AdminWidgets />)}</ProtectedRoute>} />
-                    <Route path="/showcase" element={route("Playground", <Showcase />)} />
-                    <Route path="/playground" element={route("Playground", <Showcase />)} />
+
 
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />

@@ -5,8 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { UserMenu } from './UserMenu';
 import { ThemePreview } from '@/components/ThemePreview';
 import { useUserRole } from '@/hooks/useUserRole';
-import { Mic, Download, LayoutDashboard, Menu, Gamepad2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Mic, Download, LayoutDashboard, Menu } from 'lucide-react';
+
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useState } from 'react';
 
@@ -22,7 +22,6 @@ export const Header = () => {
   const navLinks = [
     { path: '/assistant', label: 'Assistant', icon: Mic },
     { path: '/install', label: 'Install', icon: Download },
-    { path: '/showcase', label: 'Playground', icon: Gamepad2, beta: true },
   ];
 
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -50,7 +49,7 @@ export const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1" aria-label="Main navigation">
-            {navLinks.map(({ path, label, icon: Icon, beta }) => (
+            {navLinks.map(({ path, label, icon: Icon }) => (
               <Button
                 key={path}
                 variant="ghost"
@@ -61,7 +60,6 @@ export const Header = () => {
               >
                 <Icon className="h-4 w-4" />
                 {label}
-                {beta && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium">Beta</Badge>}
                 {isActive(path) && (
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full" />
                 )}
@@ -101,7 +99,7 @@ export const Header = () => {
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col p-2" aria-label="Mobile navigation">
-                  {navLinks.map(({ path, label, icon: Icon, beta }) => (
+                  {navLinks.map(({ path, label, icon: Icon }) => (
                     <button
                       key={path}
                       onClick={() => handleNavClick(path)}
@@ -114,7 +112,6 @@ export const Header = () => {
                     >
                       <Icon className="h-5 w-5" />
                       {label}
-                      {beta && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium ml-auto">Beta</Badge>}
                     </button>
                   ))}
                   {user && !roleLoading && isAdmin && (
