@@ -31,7 +31,7 @@ export const ProductPreviewSection = () => {
             <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-destructive/60" />
             <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-muted-foreground/30" />
             <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-muted-foreground/30" />
-            <span className="ml-2 sm:ml-3 text-xs text-muted-foreground font-body truncate">ƷBI Voice — Assistant</span>
+            <span className="ml-2 sm:ml-3 text-xs text-muted-foreground font-body truncate">ƷBI Assistant</span>
           </div>
 
           {/* Central orb mockup */}
