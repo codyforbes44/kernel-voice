@@ -7,7 +7,7 @@ import { PricingCard } from '@/components/subscription/PricingCard';
 import { ManageSubscriptionButton } from '@/components/subscription/ManageSubscriptionButton';
 import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
-import { PRICING_INFO } from '@/lib/stripe';
+import { PRICING_INFO, getPriceId } from '@/lib/stripe';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
