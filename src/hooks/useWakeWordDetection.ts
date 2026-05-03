@@ -58,7 +58,7 @@ export function useWakeWordDetection({
   const [isSupported, setIsSupported] = useState(false);
   const [lastHeard, setLastHeard] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const restartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isStartingRef = useRef(false);
   const enabledRef = useRef(enabled);
 

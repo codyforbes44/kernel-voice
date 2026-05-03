@@ -35,7 +35,7 @@ export function useVAPIConversation(options: VAPIConversationOptions = {}) {
   const [activeToolCall, setActiveToolCall] = useState<ToolExecution | null>(null);
   
   const vapiRef = useRef<Vapi | null>(null);
-  const volumeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const volumeIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cleanup = useCallback(() => {
     console.log('[VAPI] Cleaning up resources...');

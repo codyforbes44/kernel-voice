@@ -85,7 +85,7 @@ export function VoiceProviderSelector({
 }: VoiceProviderSelectorProps) {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const allProviders: VoiceProvider[] = ['openai', 'elevenlabs', 'vapi', 'gemini'];
 

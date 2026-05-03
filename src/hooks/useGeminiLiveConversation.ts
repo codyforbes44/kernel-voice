@@ -31,7 +31,7 @@ export function useGeminiLiveConversation(options: GeminiLiveConversationOptions
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const levelIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const levelIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playbackContextRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
 
