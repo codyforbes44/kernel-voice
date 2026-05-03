@@ -143,3 +143,31 @@ export const PRICING_INFO = {
     label: 'Team',
   },
 } as const;
+
+export type BillingInterval = 'month' | 'year';
+
+/**
+ * Resolve the Stripe price ID for a paid tier at the given billing interval.
+ * Returns null for the free tier or unknown tiers.
+ */
+export function getPriceId(
+  tier: TierName | null,
+  interval: BillingInterval,
+): string | null {
+  if (!tier || tier === 'free') return null;
+  const map: Record<Exclude<TierName, 'free'>, Record<BillingInterval, string>> = {
+    personal: {
+      month: STRIPE_PRICES.PERSONAL_MONTHLY,
+      year: STRIPE_PRICES.PERSONAL_ANNUAL,
+    },
+    builder: {
+      month: STRIPE_PRICES.BUILDER_MONTHLY,
+      year: STRIPE_PRICES.BUILDER_ANNUAL,
+    },
+    team: {
+      month: STRIPE_PRICES.TEAM_MONTHLY,
+      year: STRIPE_PRICES.TEAM_ANNUAL,
+    },
+  };
+  return map[tier][interval];
+}
