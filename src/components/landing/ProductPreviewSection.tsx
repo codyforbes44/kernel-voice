@@ -6,6 +6,9 @@ import { SectionWrapper } from '@/components/shared/SectionWrapper';
 import { Button } from '@/components/ui/button';
 import { LiveWaveformCanvas } from '@/components/voice/LiveWaveformCanvas';
 import { cn } from '@/lib/utils';
+import { track } from '@/lib/analytics';
+
+const DEMO_SOURCE = 'landing_product_preview';
 
 type DemoState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
