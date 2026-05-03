@@ -25,7 +25,7 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
-const Showcase = lazy(() => import("./pages/Showcase"));
+
 
 // Admin pages (heavier chunk)
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));

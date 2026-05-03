@@ -3,7 +3,6 @@ import { HeroSection } from '@/components/landing/HeroSection';
 import { ProductPreviewSection } from '@/components/landing/ProductPreviewSection';
 import { PlatformCapabilitiesSection } from '@/components/landing/PlatformCapabilitiesSection';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
-import { ShowcaseTeaserSection } from '@/components/landing/ShowcaseTeaserSection';
 import { PricingTeaserSection } from '@/components/landing/PricingTeaserSection';
 
 const LandingPage = () => {
@@ -20,7 +19,6 @@ const LandingPage = () => {
         <ProductPreviewSection />
         <PlatformCapabilitiesSection />
         <HowItWorksSection />
-        <ShowcaseTeaserSection />
         <PricingTeaserSection />
       </main>
     </PageWrapper>
