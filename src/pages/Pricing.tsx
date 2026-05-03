@@ -7,7 +7,7 @@ import { PricingCard } from '@/components/subscription/PricingCard';
 import { ManageSubscriptionButton } from '@/components/subscription/ManageSubscriptionButton';
 import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
-import { PRICING_INFO } from '@/lib/stripe';
+import { PRICING_INFO, getPriceId } from '@/lib/stripe';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -249,9 +249,9 @@ export default function Pricing() {
               interval={showAnnual ? 'year' : 'month'}
               features={PERSONAL_FEATURES}
               isCurrentPlan={productId === PRICING_INFO.personal.productId}
-              onSelect={() => handleSelectPlan(PRICING_INFO.personal.priceId)}
-              isLoading={loadingPriceId === PRICING_INFO.personal.priceId}
-              disabled={isLoading || showAnnual}
+              onSelect={() => handleSelectPlan(getPriceId('personal', showAnnual ? 'year' : 'month'))}
+              isLoading={loadingPriceId === getPriceId('personal', showAnnual ? 'year' : 'month')}
+              disabled={isLoading}
               savings={showAnnual ? PRICING_INFO.personal.amount * 12 - annualPrice(PRICING_INFO.personal.amount) : undefined}
             />
           </motion.div>
@@ -265,9 +265,9 @@ export default function Pricing() {
               features={BUILDER_FEATURES}
               isPopular={!isSubscribed}
               isCurrentPlan={productId === PRICING_INFO.builder.productId}
-              onSelect={() => handleSelectPlan(PRICING_INFO.builder.priceId)}
-              isLoading={loadingPriceId === PRICING_INFO.builder.priceId}
-              disabled={isLoading || showAnnual}
+              onSelect={() => handleSelectPlan(getPriceId('builder', showAnnual ? 'year' : 'month'))}
+              isLoading={loadingPriceId === getPriceId('builder', showAnnual ? 'year' : 'month')}
+              disabled={isLoading}
               savings={showAnnual ? PRICING_INFO.builder.amount * 12 - annualPrice(PRICING_INFO.builder.amount) : undefined}
             />
           </motion.div>
@@ -280,16 +280,16 @@ export default function Pricing() {
               interval={showAnnual ? 'year' : 'month'}
               features={TEAM_FEATURES}
               isCurrentPlan={productId === PRICING_INFO.team.productId}
-              onSelect={() => handleSelectPlan(PRICING_INFO.team.priceId)}
-              isLoading={loadingPriceId === PRICING_INFO.team.priceId}
-              disabled={isLoading || showAnnual}
+              onSelect={() => handleSelectPlan(getPriceId('team', showAnnual ? 'year' : 'month'))}
+              isLoading={loadingPriceId === getPriceId('team', showAnnual ? 'year' : 'month')}
+              disabled={isLoading}
               savings={showAnnual ? PRICING_INFO.team.amount * 12 - annualPrice(PRICING_INFO.team.amount) : undefined}
             />
           </motion.div>
         </motion.div>
 
         <p className="text-center text-xs text-muted-foreground mt-4">
-          Prices in USD. Cancel anytime. {showAnnual && 'Annual billing coming soon — contact us for early access.'}
+          Prices in USD. Cancel anytime. {showAnnual && 'Annual plans billed yearly — save 20% vs monthly.'}
         </p>
 
         {/* Comparison table */}

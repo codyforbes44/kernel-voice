@@ -4,6 +4,11 @@ export const STRIPE_PRICES = {
   BUILDER_MONTHLY: 'price_1TSrmf2MfT7Ozvjx9ips4m4f',
   TEAM_MONTHLY: 'price_1TSrmw2MfT7OzvjxoOB6YFeX',
 
+  // Annual prices (20% off vs monthly), attached to the same products as monthly
+  PERSONAL_ANNUAL: 'price_1TSs0Q2MfT7Ozvjx9f5VgwZC',
+  BUILDER_ANNUAL: 'price_1TSs0p2MfT7OzvjxX5Sl7kyN',
+  TEAM_ANNUAL: 'price_1TSs142MfT7OzvjxWjx6du7J',
+
   // Legacy aliases — preserve old import paths during transition.
   STARTER_MONTHLY: 'price_1TSrmF2MfT7OzvjxoujydZFp', // -> Personal
   PLUS_MONTHLY: 'price_1TSrmf2MfT7Ozvjx9ips4m4f',    // -> Builder
@@ -138,3 +143,31 @@ export const PRICING_INFO = {
     label: 'Team',
   },
 } as const;
+
+export type BillingInterval = 'month' | 'year';
+
+/**
+ * Resolve the Stripe price ID for a paid tier at the given billing interval.
+ * Returns null for the free tier or unknown tiers.
+ */
+export function getPriceId(
+  tier: TierName | null,
+  interval: BillingInterval,
+): string | null {
+  if (!tier || tier === 'free') return null;
+  const map: Record<Exclude<TierName, 'free'>, Record<BillingInterval, string>> = {
+    personal: {
+      month: STRIPE_PRICES.PERSONAL_MONTHLY,
+      year: STRIPE_PRICES.PERSONAL_ANNUAL,
+    },
+    builder: {
+      month: STRIPE_PRICES.BUILDER_MONTHLY,
+      year: STRIPE_PRICES.BUILDER_ANNUAL,
+    },
+    team: {
+      month: STRIPE_PRICES.TEAM_MONTHLY,
+      year: STRIPE_PRICES.TEAM_ANNUAL,
+    },
+  };
+  return map[tier][interval];
+}
