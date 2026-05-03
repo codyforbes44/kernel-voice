@@ -18,7 +18,7 @@ export default function SubscriptionSuccess() {
 
   return (
     <PageWrapper
-      title="Welcome to ƷBI Voice Pro!"
+      title="Welcome to ƷBI Pro!"
       description="Your subscription is now active. Enjoy premium voice features."
     >
       <main id="main-content" className="flex-1 flex items-center justify-center container max-w-2xl mx-auto px-4 py-8 sm:py-16">
@@ -33,7 +33,7 @@ export default function SubscriptionSuccess() {
               <div className="mx-auto mb-4 h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                 <CheckCircle className="h-8 w-8 sm:h-10 sm:w-10 text-green-600" aria-hidden="true" />
               </div>
-              <CardTitle className="text-xl sm:text-2xl font-display tracking-tight">Welcome to ƷBI Voice Pro!</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl font-display tracking-tight">Welcome to ƷBI Pro!</CardTitle>
               <CardDescription className="text-base sm:text-lg leading-relaxed">
                 Your subscription is now active
               </CardDescription>

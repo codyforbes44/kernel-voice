@@ -77,7 +77,7 @@ export default function Showcase() {
 
   return (
     <PageWrapper
-      title="ƷBI Voice Playground"
+      title="ƷBI Playground"
       description="Interactive playground of voice AI components powered by Gemini and ElevenLabs"
       showHeader={false}
       className="dark"
@@ -89,7 +89,7 @@ export default function Showcase() {
             <BrandLogo size="md" />
             <div>
               <h1 className="text-lg sm:text-xl font-display font-bold text-gradient">
-                ƷBI Voice Playground
+                ƷBI Playground
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 Interactive voice AI components
