@@ -17,7 +17,7 @@ export function MusicPlayerCard() {
   const [duration, setDuration] = useState(0);
   const [trackIdx, setTrackIdx] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bars = useMemo(() => Array.from({ length: 80 }, () => 0.1 + Math.random() * 0.9), []);
 
   const track = SAMPLES[trackIdx];

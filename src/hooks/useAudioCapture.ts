@@ -28,7 +28,7 @@ export function useAudioCapture(options: AudioCaptureOptions = {}): UseAudioCapt
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<AudioWorkletNode | ScriptProcessorNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const levelIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const levelIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Keep callbacks in refs to avoid dependency issues
   const onAudioDataRef = useRef(onAudioData);

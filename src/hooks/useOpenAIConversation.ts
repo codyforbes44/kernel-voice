@@ -46,7 +46,7 @@ export function useOpenAIConversation(options: OpenAIConversationOptions = {}) {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const levelIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const levelIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Track accumulated function call arguments
   const functionCallArgsRef = useRef<Map<string, { name: string; call_id: string; args: string }>>(new Map());

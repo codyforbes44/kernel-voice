@@ -48,7 +48,7 @@ export function useConnectionState(options: UseConnectionStateOptions = {}): Use
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   
-  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRetryingRef = useRef(false);
 
   const clearError = useCallback(() => {
