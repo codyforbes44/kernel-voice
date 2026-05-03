@@ -1,46 +1,48 @@
-# Hero background — best-in-class voice AI canvas
+## Audit summary
 
-## Vision
+Standard authenticated (non-admin) user routes that exist in `App.tsx`:
+`/`, `/assistant`, `/profile`, `/pricing`, `/faq`, `/privacy`, `/terms`, `/subscription-success` (post-checkout only).
 
-Today's background is a generic "tech grid + stars + shooting stars" scene. For a real-time voice AI hero, the background should *be* what the product *does*: **make sound visible**. I'll refactor `AnimatedHeroBackground.tsx` into a layered canvas that reads as a living acoustic field — propagation rings, a subtle frequency ribbon, drifting voice particles, a depth grid that recedes to a glowing horizon. Calm, premium, alive. Stripe / Linear / ElevenLabs hero quality.
+Three nav surfaces a signed-in user touches:
 
-## What it looks like
+1. **Header avatar dropdown** — `src/components/layout/UserMenu.tsx`
+2. **Global command palette (⌘K)** — `src/components/layout/GlobalCommandPalette.tsx`
+3. **Voice Assistant left sidebar** — `src/pages/VoiceAssistant.tsx` (Conversation History + Document Upload)
 
-Back-to-front layers, all rendered on a single DPR-aware canvas:
+### Findings
 
-1. **Vignette wash** — radial darkening at the edges so type pops; horizon glow at ~55% (cyan→transparent).
-2. **Star field** — same density rules as today, but with two-tone colour (mostly `--primary`, occasional `--secondary`), gentler twinkle, halo only on the brightest stars.
-3. **Perspective grid** — kept, but lines now subtly **pulse in waves** that travel from horizon → viewer (sin function over depth × time). Reads as "sound moving through space."
-4. **Concentric propagation rings** — three faint cyan rings emit from a single off-centre source point on a slow cadence (~every 4–7s), expand, fade, disappear. The visual signature of a voice broadcast.
-5. **Frequency ribbon** — a single thin sinuous line crosses the lower third, modulated by layered sines (think a calm spectrogram trace). Sub-pixel anti-aliased, very low alpha. This is the strongest "voice" signal in the scene.
-6. **Drifting voice particles + constellation links** — kept, retuned: fewer, smaller, slower; links only between near neighbours, lower alpha. Less "particles.js," more "dust in a sunbeam."
-7. **One occasional shooting star** every 12–20s (rarer than today). Optional — feels less generic if dialed back.
+**UserMenu (avatar dropdown)** — partially inaccurate for standard users:
+- Shows: Profile, Admin (admin-only), Assistant, Sign Out.
+- Label "Assistant" uses a `Settings` (gear) icon — misleading; it goes to `/assistant` (voice assistant), not settings.
+- Missing common destinations a signed-in user expects: Home, Pricing, FAQ.
+- No theme toggle entry (handy for parity with the palette).
 
-The radial primary glow at the top of the section stays, sitting on top of the canvas.
+**Global Command Palette (⌘K)** — mostly correct:
+- Has Home, Assistant, Pricing, Profile, Admin (admin-only), Privacy, Terms, theme toggle, Sign in/out.
+- Missing: **FAQ**.
 
-## Sound-DNA details (the soul of it)
+**Voice Assistant sidebar** — accurate for its purpose (per-page tool panel: Conversations + Documents). It is gated behind `va.isAuthenticated`, which is correct. No change needed.
 
-- **Cadence over chaos**: every animated layer uses a shared global `time` — propagation rings, grid pulse, ribbon, twinkle all subtly sync. The scene breathes at ~6 BPM (one pulse every ~10s) like a calm conversation.
-- **Brand-correct palette**: cyan (`--primary` 180°) as dominant, teal-cyan (`--secondary` 195°) as accent for ~12% of stars and the ribbon highlight. No gold (the previous code mistakenly assumed gold; the actual tokens are cyan).
-- **Depth haze**: a low-alpha fog band at the horizon line softens where grid + stars meet — gives real atmospheric depth.
-- **Motion budget**: total moving pixels capped low; grid lines redrawn each frame but only the math is animated, not geometry.
+**Footer** — only Privacy/Terms. Acceptable as a legal footer; not in scope.
 
-## Performance & accessibility
+## Refactor
 
-- DPR-aware canvas (cap 2×) — kept.
-- Pause via `IntersectionObserver` + `visibilitychange` — kept.
-- `prefers-reduced-motion`: render a single static composed frame, no RAF, no rings, no ribbon motion.
-- Theme-reactive via `MutationObserver` on `<html>` — kept.
-- Density auto-scales with viewport; mobile gets fewer stars/particles and a thinner ribbon.
-- No new dependencies. No DOM children. No layout shift.
+### 1. `src/components/layout/UserMenu.tsx`
+Reorganize into clear groups for any authenticated user, using accurate icons:
 
-## Files
+- Account group: **Profile** (UserCircle), **Assistant** (Mic, not Settings)
+- Browse group: **Home** (Home), **Pricing** (CreditCard), **FAQ** (HelpCircle)
+- Admin group (only if `isAdmin`): **Admin Dashboard** (Shield)
+- Sign out (destructive)
 
-- **Rewrite** `src/components/landing/AnimatedHeroBackground.tsx` — single self-contained canvas component, same export, same `<canvas>` placement. No prop API.
-- `HeroSection.tsx` — **untouched**.
+Use `DropdownMenuSeparator` between groups. Keep current avatar trigger and profile loading logic unchanged.
 
-## Out of scope
+### 2. `src/components/layout/GlobalCommandPalette.tsx`
+Add a single `CommandItem` for **FAQ** (HelpCircle icon) in the "Navigate" group, after Pricing. No other changes.
 
-- No SVG / image assets, no WebGL.
-- No mic-driven reactive audio (keeping homepage zero-permission).
-- The mini-orb is already removed; not re-introducing visual focal furniture.
+### 3. No changes
+- `VoiceAssistant.tsx` sidebar — content matches its purpose.
+- `Header.tsx`, `Footer.tsx`, `AdminSidebar.tsx` — out of scope (admin-only or correct).
+
+## Acceptance check
+After the change, a standard authenticated user can reach every public/account route they're entitled to from either the avatar menu or ⌘K, with consistent icons and labels, and no admin-only links leak.
