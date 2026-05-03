@@ -318,6 +318,7 @@ export default function AdminUsers() {
 
           {/* Users Table */}
           <div className="border rounded-lg">
+            <div className="w-full overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
