@@ -41,7 +41,7 @@ serve(async (req) => {
                 type: "text",
                 text: `Add professional branding text to this image for an Open Graph social share card (1200x630).
 
-At the top center, add the brand name in large, bold, modern sans-serif font. The brand name is four characters: the first character looks like a reversed/mirrored numeral "3" (this is the Latin letter Ezh, Ʒ), followed by the uppercase letters "B", "I", then a space, then "Voice". So the full text reads: ƷBI Voice
+At the top center, add the brand name in large, bold, modern sans-serif font. The brand name is three characters: the first character looks like a reversed/mirrored numeral "3" (this is the Latin letter Ezh, Ʒ), followed by the uppercase letters "B", "I". So the full text reads: ƷBI
 
 Use bright cyan/teal color (#22d3ee) for the text to match the glowing cyan particles in the image.
 Add a subtle cyan glow or text shadow behind the letters for a neon effect.
