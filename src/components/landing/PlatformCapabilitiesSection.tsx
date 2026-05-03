@@ -9,7 +9,7 @@ const features: { icon: typeof Mic; title: string; description: string; cluster:
   {
     icon: Mic,
     title: 'Multi-Provider Voice',
-    description: 'Choose from ElevenLabs, Gemini Live, OpenAI Realtime or VAPI for the perfect voice.',
+    description: 'Pick the voice engine that best matches your brand and budget — switch any time.',
     cluster: 'talk',
   },
   {

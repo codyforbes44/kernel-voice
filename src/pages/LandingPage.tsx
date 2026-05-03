@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { HeroSection } from '@/components/landing/HeroSection';
-import { SocialProofStrip } from '@/components/landing/SocialProofStrip';
 import { ProductPreviewSection } from '@/components/landing/ProductPreviewSection';
 
 const TwoTracksSection = lazy(() =>
@@ -29,23 +28,21 @@ const LandingPage = () => {
   return (
     <PageWrapper
       title="ƷBI — Talk to AI. Or build with it."
-      description="A real-time AI voice assistant you can use today and embed in your product tomorrow. Choose from ElevenLabs, Gemini Live, OpenAI Realtime and VAPI."
+      description="A real-time AI voice assistant you can use today and embed in your product tomorrow. Multi-engine voice, custom agents, knowledge base, and embeddable widgets."
       image="/og-home.png"
       keywords={[
         'AI voice assistant',
+        'real-time voice AI',
         'voice AI platform',
         'embeddable AI widget',
         'custom AI agents',
-        'ElevenLabs',
-        'Gemini Live',
-        'OpenAI Realtime',
-        'VAPI',
+        'multi-engine voice',
+        'conversational AI',
       ]}
       showFooter
     >
       <main id="main-content">
         <HeroSection />
-        <SocialProofStrip />
         <ProductPreviewSection />
         <Suspense fallback={null}>
           <TwoTracksSection />
