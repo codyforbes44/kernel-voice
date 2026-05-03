@@ -37,8 +37,12 @@ export const SectionWrapper = ({
   return (
     <section
       id={id}
+      // When an id is set the section is a hash target. tabIndex={-1} lets
+      // skip-links move screen-reader/keyboard focus to it (browsers otherwise
+      // only scroll, leaving focus behind in the header).
+      tabIndex={id ? -1 : undefined}
       className={cn(
-        'relative overflow-hidden',
+        'relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         paddingMap[size],
         muted && 'bg-muted/30',
         className,
