@@ -1,51 +1,51 @@
 ## Goal
-Remove the "POWERED BY ElevenLabs · Gemini Live · OpenAI Realtime · VAPI" strip from the homepage, scrub the same technology attribution from the rest of the landing page (it duplicates the strip and conflicts with the project's white-label / privacy-first stance), and tighten the homepage flow into a best-in-class structure for the use case (a real-time voice assistant you can use today and embed tomorrow).
+Replace the static "ƷBI Assistant" mockup in `ProductPreviewSection` with a true interactive voice-interaction demo that represents the platform: a live state machine cycling through Listening → Thinking → Speaking, animated transcript bubbles, a real waveform driven by a simulated audio level, an orb that scales/glows with that level, clickable state pills, play/pause, and a clear CTA into the real assistant.
+
+Why simulated rather than a real mic session: starting an actual voice session on the marketing page would require microphone permission + WebRTC/WebSocket connection on first scroll — bad UX, slow LCP, and surprising. Instead we build a faithful, scripted demo that uses the same visual language (orb, waveform canvas, state names) as the real `/assistant` page, then drive users into the live experience via the existing CTA.
 
 ## What changes
 
-### 1. Remove the Powered By strip
-- Delete `src/components/landing/SocialProofStrip.tsx`.
-- Remove its import and usage from `src/pages/LandingPage.tsx`.
+### Single file: `src/components/landing/ProductPreviewSection.tsx`
 
-### 2. Scrub provider names from the rest of the homepage
-Per the white-label / privacy-first memory, public marketing copy should not name third-party voice tech.
+Rewrite the component to include:
 
-- `src/pages/LandingPage.tsx` — rewrite `description` and `keywords` so they no longer list ElevenLabs / Gemini Live / OpenAI Realtime / VAPI. Replace with capability-focused copy ("multi-engine voice", "real-time voice AI", "embeddable assistant").
-- `src/components/landing/PlatformCapabilitiesSection.tsx` — change the Multi-Provider Voice card description from naming the four providers to something like "Pick the voice engine that best matches your brand and budget — switch any time."
-- `src/components/landing/FAQTeaserSection.tsx` — rewrite the answer about voice providers to "ƷBI ships with four production-grade voice engines, available on every paid tier" (no vendor names).
+1. **State machine** (`idle | listening | thinking | speaking`)
+   - Drives a 3-turn scripted conversation that loops.
+   - Phase timing: listening 2.6s, thinking 1.1s, speaking 4.2s, 0.7s pause.
+   - Pauses entirely when the section is off-screen (uses `useInView` from framer-motion) — honors the performance memory.
 
-### 3. Refactor the homepage into a tighter, best-in-class flow
-Current order: Hero → SocialProofStrip → ProductPreview → TwoTracks → PlatformCapabilities → HowItWorks → PricingTeaser → FAQTeaser → FinalCTA.
+2. **Animated transcript bubbles**
+   - User bubble (right-aligned, primary tint) types out during `listening`.
+   - Agent bubble (left-aligned, muted) types out during `speaking`.
+   - Blinking caret while typing.
+   - 3 rotating turns covering the platform's value props (real-time, embed, knowledge base).
 
-New order in `src/pages/LandingPage.tsx`:
+3. **Live orb + waveform**
+   - Reuses the existing `LiveWaveformCanvas` component.
+   - A simulated audio-level signal (sine + noise) feeds both the canvas and an orb scale/glow spring.
+   - Orb gradient + ring shadow change per state.
+   - In `thinking`, orb adds a slow rotating dashed inner ring.
 
-```text
-Hero (try it / build with it)
-ProductPreviewSection      ← show the product immediately after the hero
-TwoTracksSection           ← Talk vs Build positioning
-PlatformCapabilitiesSection
-HowItWorksSection
-PricingTeaserSection
-FAQTeaserSection
-FinalCTASection
-```
+4. **Interactive state pills**
+   - Listening / Thinking / Speaking pills below the orb are now buttons.
+   - Active pill gets a primary border + tint and a 1.1× icon scale.
+   - Clicking a pill jumps the demo to that state immediately.
 
-Rationale:
-- Removing the social-proof strip eliminates a low-signal row that is now also off-brand.
-- Moving `ProductPreviewSection` directly under the hero means visitors see the actual assistant before any feature copy — strongest possible "use today" signal for this use case.
-- `TwoTracks` then frames the two audiences (end users vs builders) before diving into capabilities.
-- The rest of the funnel (capabilities → how → pricing → FAQ → CTA) is preserved.
+5. **Play/Pause control** in the window chrome (top-right) so visitors can freeze a state to read the transcript.
 
-### 4. Hero trust strip
-Keep the hero's existing trust strip ("No credit card · 4 voice providers · Embed anywhere"). It already conveys multi-provider value without naming vendors, so it stays.
+6. **CTA underneath**
+   - Primary `Try it for real` button → navigates to `/assistant` (matches Hero's primary action).
+   - Small "No sign-up required to start" microcopy.
+
+### No copy that names third-party providers (matches the privacy-first / white-label memory).
+
+### Reuses & dependencies
+- Uses existing `LiveWaveformCanvas`, `Button`, `SectionWrapper`, `cn`, framer-motion (`motion`, `AnimatePresence`, `useInView`), lucide icons. No new dependencies.
 
 ## Files touched
-- `src/pages/LandingPage.tsx` — remove SocialProofStrip, reorder sections, rewrite SEO copy.
-- `src/components/landing/SocialProofStrip.tsx` — delete.
-- `src/components/landing/PlatformCapabilitiesSection.tsx` — rewrite one card description.
-- `src/components/landing/FAQTeaserSection.tsx` — rewrite one FAQ answer.
+- `src/components/landing/ProductPreviewSection.tsx` — full rewrite of the component body. The section's id (`product-preview`) and surrounding layout are preserved so `LandingPage.tsx` needs no changes.
 
 ## Out of scope
-- No changes to Hero, ProductPreview, TwoTracks, HowItWorks, PricingTeaser, FinalCTA visual design.
-- No changes to provider selection UI inside `/assistant` (that's product surface, not marketing).
-- No new sections — refactor focuses on removing noise and resequencing.
+- No real microphone capture or live voice session on the homepage.
+- No changes to `/assistant`, hero, or other landing sections.
+- No new shared components — everything lives in this file.
