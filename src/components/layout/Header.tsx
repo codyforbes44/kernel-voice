@@ -6,7 +6,7 @@ import { UserMenu } from './UserMenu';
 import { ThemePreview } from '@/components/ThemePreview';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Mic, Download, LayoutDashboard, Menu } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useState } from 'react';
 
