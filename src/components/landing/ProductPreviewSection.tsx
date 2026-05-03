@@ -231,7 +231,7 @@ export const ProductPreviewSection = () => {
             <span className="ml-2 sm:ml-3 text-xs text-muted-foreground font-body truncate flex-1">ƷBI Assistant</span>
             <button
               type="button"
-              onClick={() => setPaused((p) => !p)}
+              onClick={handlePauseToggle}
               className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md"
               aria-label={paused ? 'Play demo' : 'Pause demo'}
             >
@@ -381,7 +381,7 @@ export const ProductPreviewSection = () => {
             <Button
               size="lg"
               className="w-full sm:w-auto px-6 py-5 glow-primary group min-h-[48px]"
-              onClick={() => navigate('/assistant')}
+              onClick={handleCtaClick}
             >
               <Mic className="mr-2 h-4 w-4" aria-hidden="true" />
               Try it for real
