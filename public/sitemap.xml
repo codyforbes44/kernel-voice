@@ -21,14 +21,4 @@
       <image:title>ƷBI Assistant</image:title>
     </image:image>
   </url>
-  <url>
-    <loc>https://yourdomain.com/install</loc>
-    <lastmod>2025-12-02</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-    <image:image>
-      <image:loc>https://yourdomain.com/og-install.png</image:loc>
-      <image:title>Install App</image:title>
-    </image:image>
-  </url>
 </urlset>
