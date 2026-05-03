@@ -36,6 +36,7 @@ const AdminKnowledgeBase = lazy(() => import("./pages/admin/KnowledgeBase"));
 const AdminAuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const AdminSettings = lazy(() => import("./pages/admin/Settings"));
 const AdminWidgets = lazy(() => import("./pages/admin/Widgets"));
+const WidgetsRedirect = lazy(() => import("./pages/WidgetsRedirect"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -97,6 +98,7 @@ const App = () => (
                     <Route path="/admin/audit-logs" element={<ProtectedRoute>{route("Audit Logs", <AdminAuditLogs />)}</ProtectedRoute>} />
                     <Route path="/admin/settings" element={<ProtectedRoute>{route("Admin Settings", <AdminSettings />)}</ProtectedRoute>} />
                     <Route path="/admin/widgets" element={<ProtectedRoute>{route("Widgets", <AdminWidgets />)}</ProtectedRoute>} />
+                    <Route path="/widgets" element={<WidgetsRedirect />} />
 
 
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

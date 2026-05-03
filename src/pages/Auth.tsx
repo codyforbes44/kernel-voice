@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,8 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
 
@@ -50,7 +52,7 @@ const Auth = () => {
     if (rememberedEmail) { setEmail(rememberedEmail); setRememberMe(true); }
     
     // Redirect if already authenticated
-    if (isAuthenticated && !showUpdatePassword) navigate('/');
+    if (isAuthenticated && !showUpdatePassword) navigate(redirectTo);
     
     // Listen for PASSWORD_RECOVERY event only
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -59,7 +61,7 @@ const Auth = () => {
     // Auto-focus email
     setTimeout(() => emailRef.current?.focus(), 100);
     return () => subscription.unsubscribe();
-  }, [navigate, showUpdatePassword, isAuthenticated]);
+  }, [navigate, showUpdatePassword, isAuthenticated, redirectTo]);
 
   const handleRememberMe = (checked: boolean) => {
     setRememberMe(checked);
