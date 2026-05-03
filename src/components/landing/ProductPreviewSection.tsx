@@ -63,6 +63,8 @@ const PHASE = {
   pause: 700,
 } as const;
 
+const STATE_PILLS: ReadonlyArray<Exclude<DemoState, 'idle'>> = ['listening', 'thinking', 'speaking'];
+
 export const ProductPreviewSection = () => {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -74,6 +76,10 @@ export const ProductPreviewSection = () => {
   const [userTyped, setUserTyped] = useState('');
   const [agentTyped, setAgentTyped] = useState('');
   const [level, setLevel] = useState(0);
+
+  // Roving-tabindex focus index for the state-pill toolbar.
+  const [pillFocusIndex, setPillFocusIndex] = useState(0);
+  const pillRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const turn = SCRIPT[turnIndex];
   const meta = stateMeta[state];
