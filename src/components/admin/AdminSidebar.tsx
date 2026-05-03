@@ -39,9 +39,11 @@ interface AdminSidebarProps {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
   onOpenCommandPalette?: () => void;
+  /** Called when a nav item is clicked (used to close mobile drawer). */
+  onNavigate?: () => void;
 }
 
-export const AdminSidebar = ({ collapsed, onCollapsedChange, onOpenCommandPalette }: AdminSidebarProps) => {
+export const AdminSidebar = ({ collapsed, onCollapsedChange, onOpenCommandPalette, onNavigate }: AdminSidebarProps) => {
   const location = useLocation();
 
   const isActive = (path: string) => {
