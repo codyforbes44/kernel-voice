@@ -61,7 +61,7 @@ const Auth = () => {
     // Auto-focus email
     setTimeout(() => emailRef.current?.focus(), 100);
     return () => subscription.unsubscribe();
-  }, [navigate, showUpdatePassword, isAuthenticated]);
+  }, [navigate, showUpdatePassword, isAuthenticated, redirectTo]);
 
   const handleRememberMe = (checked: boolean) => {
     setRememberMe(checked);
