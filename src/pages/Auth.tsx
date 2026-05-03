@@ -30,6 +30,55 @@ function getPasswordStrength(password: string): { score: number; label: string }
   return { score, label: 'Very Strong' };
 }
 
+interface PasswordInputProps {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  autoComplete?: string;
+  showStrength?: boolean;
+  isLoading: boolean;
+  showPassword: boolean;
+  onToggleShow: () => void;
+  strength?: { score: number; label: string };
+}
+
+const PasswordInput = ({
+  id, value, onChange, placeholder = "••••••••", autoComplete = "current-password",
+  showStrength = false, isLoading, showPassword, onToggleShow, strength,
+}: PasswordInputProps) => (
+  <div className="space-y-2">
+    <div className="relative">
+      <Input
+        id={id}
+        type={showPassword ? 'text' : 'password'}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required disabled={isLoading} minLength={6}
+        autoComplete={autoComplete}
+        className="min-h-[44px] pr-10"
+      />
+      <button
+        type="button"
+        onClick={onToggleShow}
+        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+        aria-label={showPassword ? 'Hide password' : 'Show password'}
+      >
+        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    </div>
+    {showStrength && strength && value.length > 0 && (
+      <div className="space-y-1">
+        <Progress value={strength.score} className="h-1.5" />
+        <p className="text-xs text-muted-foreground">
+          Strength: <span className={strength.score >= 60 ? 'text-green-600 dark:text-green-400' : strength.score >= 40 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive'}>{strength.label}</span>
+        </p>
+      </div>
+    )}
+  </div>
+);
+
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -130,41 +179,7 @@ const Auth = () => {
   };
 
   const passwordStrength = getPasswordStrength(password);
-
-  const PasswordInput = ({ id, value, onChange, placeholder = "••••••••", autoComplete = "current-password", showStrength = false }: {
-    id: string; value: string; onChange: (v: string) => void; placeholder?: string; autoComplete?: string; showStrength?: boolean;
-  }) => (
-    <div className="space-y-2">
-      <div className="relative">
-        <Input
-          id={id}
-          type={showPassword ? 'text' : 'password'}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          required disabled={isLoading} minLength={6}
-          autoComplete={autoComplete}
-          className="min-h-[44px] pr-10"
-        />
-        <button
-          type="button"
-          onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-          aria-label={showPassword ? 'Hide password' : 'Show password'}
-        >
-          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
-      </div>
-      {showStrength && value.length > 0 && (
-        <div className="space-y-1">
-          <Progress value={passwordStrength.score} className="h-1.5" />
-          <p className="text-xs text-muted-foreground">
-            Strength: <span className={passwordStrength.score >= 60 ? 'text-green-600 dark:text-green-400' : passwordStrength.score >= 40 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive'}>{passwordStrength.label}</span>
-          </p>
-        </div>
-      )}
-    </div>
-  );
+  const pwProps = { isLoading, showPassword, onToggleShow: () => setShowPassword(!showPassword), strength: passwordStrength };
 
   return (
     <PageWrapper
@@ -189,11 +204,11 @@ const Auth = () => {
               <form onSubmit={handleUpdatePassword} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="new-password">New Password</Label>
-                  <PasswordInput id="new-password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
+                  <PasswordInput {...pwProps} id="new-password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirm Password</Label>
-                  <PasswordInput id="confirm-password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
+                  <PasswordInput {...pwProps} id="confirm-password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
                 </div>
                 <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Updating...</> : 'Update Password'}
@@ -226,7 +241,7 @@ const Auth = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signin-password">Password</Label>
-                      <PasswordInput id="signin-password" value={password} onChange={setPassword} />
+                      <PasswordInput {...pwProps} id="signin-password" value={password} onChange={setPassword} />
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
                       <div className="flex items-center space-x-2 min-h-[44px]">
@@ -254,11 +269,11 @@ const Auth = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Password</Label>
-                      <PasswordInput id="signup-password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
+                      <PasswordInput {...pwProps} id="signup-password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-                      <PasswordInput id="signup-confirm-password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
+                      <PasswordInput {...pwProps} id="signup-confirm-password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
                     </div>
                     <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
                       {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating account...</> : 'Create Account'}
