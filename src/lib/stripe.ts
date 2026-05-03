@@ -4,6 +4,11 @@ export const STRIPE_PRICES = {
   BUILDER_MONTHLY: 'price_1TSrmf2MfT7Ozvjx9ips4m4f',
   TEAM_MONTHLY: 'price_1TSrmw2MfT7OzvjxoOB6YFeX',
 
+  // Annual prices (20% off vs monthly), attached to the same products as monthly
+  PERSONAL_ANNUAL: 'price_1TSs0Q2MfT7Ozvjx9f5VgwZC',
+  BUILDER_ANNUAL: 'price_1TSs0p2MfT7OzvjxX5Sl7kyN',
+  TEAM_ANNUAL: 'price_1TSs142MfT7OzvjxWjx6du7J',
+
   // Legacy aliases — preserve old import paths during transition.
   STARTER_MONTHLY: 'price_1TSrmF2MfT7OzvjxoujydZFp', // -> Personal
   PLUS_MONTHLY: 'price_1TSrmf2MfT7Ozvjx9ips4m4f',    // -> Builder
