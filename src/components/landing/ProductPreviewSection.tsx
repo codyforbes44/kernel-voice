@@ -182,9 +182,33 @@ export const ProductPreviewSection = () => {
 
   const handleStateClick = useCallback((next: DemoState) => {
     if (next === 'idle') return;
+    track('demo_state_pill_clicked', { source: DEMO_SOURCE, state: next });
     setPaused(false);
     setState(next);
   }, []);
+
+  const handlePauseToggle = useCallback(() => {
+    setPaused((p) => {
+      const next = !p;
+      track('demo_play_toggled', {
+        source: DEMO_SOURCE,
+        action: next ? 'pause' : 'play',
+        state,
+        turn_index: turnIndex,
+      });
+      return next;
+    });
+  }, [state, turnIndex]);
+
+  const handleCtaClick = useCallback(() => {
+    track('demo_cta_clicked', {
+      source: DEMO_SOURCE,
+      cta: 'try_it_for_real',
+      state,
+      turn_index: turnIndex,
+    });
+    navigate('/assistant');
+  }, [navigate, state, turnIndex]);
 
   const orbScale = useMemo(() => (state === 'idle' ? 1 : 1 + level * 0.12), [state, level]);
 
