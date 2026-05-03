@@ -259,25 +259,56 @@ export const ProductPreviewSection = () => {
         viewport={{ once: true, amount: 0.15 }}
         transition={{ duration: 0.7 }}
       >
-        <div className="relative rounded-2xl border border-border bg-card p-4 sm:p-6 md:p-10 card-elevated glow-border overflow-hidden">
+        <div
+          role="region"
+          aria-label="ƷBI Assistant interactive demo"
+          className="relative rounded-2xl border border-border bg-card p-4 sm:p-6 md:p-10 card-elevated glow-border overflow-hidden focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2 focus-within:ring-offset-background"
+          onKeyDown={(e) => {
+            // Space or K toggles play/pause when focus is inside the demo,
+            // unless the user is interacting with a button/link/input.
+            const target = e.target as HTMLElement;
+            const isInteractive = target.closest('button, a, input, textarea, select, [role="button"]');
+            if (isInteractive) return;
+            if (e.key === ' ' || e.key.toLowerCase() === 'k') {
+              e.preventDefault();
+              handlePauseToggle();
+            }
+          }}
+          tabIndex={-1}
+        >
           {/* Window chrome */}
           <div className="flex items-center gap-2 mb-4 sm:mb-6">
             <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-destructive/60" aria-hidden="true" />
             <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-muted-foreground/30" aria-hidden="true" />
             <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-muted-foreground/30" aria-hidden="true" />
-            <span className="ml-2 sm:ml-3 text-xs text-muted-foreground font-body truncate flex-1">ƷBI Assistant</span>
+            <span className="ml-2 sm:ml-3 text-xs text-muted-foreground font-body truncate flex-1" aria-hidden="true">
+              ƷBI Assistant
+            </span>
             <button
               type="button"
               onClick={handlePauseToggle}
-              className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md"
-              aria-label={paused ? 'Play demo' : 'Pause demo'}
+              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] -m-2 p-2 rounded-md text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              aria-label={paused ? 'Play demo (Space or K)' : 'Pause demo (Space or K)'}
+              aria-pressed={paused}
+              title={paused ? 'Play demo' : 'Pause demo'}
             >
-              {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+              {paused ? (
+                <Play className="w-3.5 h-3.5" aria-hidden="true" />
+              ) : (
+                <Pause className="w-3.5 h-3.5" aria-hidden="true" />
+              )}
             </button>
           </div>
 
-          {/* Transcript */}
-          <div className="min-h-[120px] sm:min-h-[140px] mb-4 sm:mb-6 space-y-2.5">
+          {/* Transcript — live region announces new lines politely. */}
+          <div
+            role="log"
+            aria-label="Demo conversation transcript"
+            aria-live="polite"
+            aria-atomic="false"
+            aria-relevant="additions text"
+            className="min-h-[120px] sm:min-h-[140px] mb-4 sm:mb-6 space-y-2.5"
+          >
             <AnimatePresence mode="popLayout">
               {userTyped && (
                 <motion.div
@@ -289,9 +320,13 @@ export const ProductPreviewSection = () => {
                   className="flex justify-end"
                 >
                   <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary/15 border border-primary/25 px-3.5 py-2 text-sm sm:text-[0.95rem] text-foreground">
+                    <span className="sr-only">You said: </span>
                     {userTyped}
                     {state === 'listening' && (
-                      <span className="inline-block w-1 h-3.5 bg-primary ml-0.5 align-middle animate-pulse" />
+                      <span
+                        className="inline-block w-1 h-3.5 bg-primary ml-0.5 align-middle animate-pulse"
+                        aria-hidden="true"
+                      />
                     )}
                   </div>
                 </motion.div>
@@ -306,9 +341,13 @@ export const ProductPreviewSection = () => {
                   className="flex justify-start"
                 >
                   <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-muted/40 border border-border px-3.5 py-2 text-sm sm:text-[0.95rem] text-foreground">
+                    <span className="sr-only">Assistant said: </span>
                     {agentTyped}
                     {state === 'speaking' && (
-                      <span className="inline-block w-1 h-3.5 bg-primary ml-0.5 align-middle animate-pulse" />
+                      <span
+                        className="inline-block w-1 h-3.5 bg-primary ml-0.5 align-middle animate-pulse"
+                        aria-hidden="true"
+                      />
                     )}
                   </div>
                 </motion.div>
@@ -357,8 +396,7 @@ export const ProductPreviewSection = () => {
                       ? { duration: 2.2, repeat: Infinity, ease: 'linear' }
                       : { duration: 0.4 },
                 }}
-                aria-label={`Assistant is ${meta.label.toLowerCase()}`}
-                role="img"
+                aria-hidden="true"
               >
                 {state === 'thinking' && (
                   <div
@@ -367,31 +405,49 @@ export const ProductPreviewSection = () => {
                   />
                 )}
               </motion.div>
+              {/* Polite SR mirror of the assistant state. */}
+              <div role="status" aria-live="polite" className="sr-only">
+                Assistant is {meta.label.toLowerCase()}
+              </div>
             </div>
 
-            <div className="w-full max-w-md h-10 sm:h-12">
+            <div className="w-full max-w-md h-10 sm:h-12" aria-hidden="true">
               <LiveWaveformCanvas level={level} isActive={state !== 'idle'} barWidth={3} barGap={3} />
             </div>
           </div>
 
-          {/* State pills */}
-          <div className="flex items-center justify-center gap-2 sm:gap-3 pt-4 mt-2 border-t border-border flex-wrap">
-            {(['listening', 'thinking', 'speaking'] as DemoState[]).map((s) => {
+          {/* State pills — toolbar with roving tabindex + arrow-key navigation. */}
+          <div
+            role="toolbar"
+            aria-label="Preview assistant state"
+            aria-orientation="horizontal"
+            className="flex items-center justify-center gap-2 sm:gap-3 pt-4 mt-2 border-t border-border flex-wrap"
+          >
+            {STATE_PILLS.map((s, idx) => {
               const m = stateMeta[s];
               const SIcon = m.icon;
               const active = state === s;
+              const isFocusTarget = idx === pillFocusIndex;
               return (
                 <button
                   key={s}
+                  ref={(el) => {
+                    pillRefs.current[idx] = el;
+                  }}
                   type="button"
                   onClick={() => handleStateClick(s)}
+                  onKeyDown={(e) => handlePillKeyDown(e, idx)}
+                  onFocus={() => setPillFocusIndex(idx)}
+                  tabIndex={isFocusTarget ? 0 : -1}
                   className={cn(
                     'flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full border text-xs sm:text-sm transition-all duration-300 min-h-[36px]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                     active
                       ? 'border-primary/60 bg-primary/15 text-foreground'
                       : 'border-border bg-card/40 text-muted-foreground hover:text-foreground hover:border-primary/30'
                   )}
                   aria-pressed={active}
+                  aria-label={`Preview ${m.label.toLowerCase()} state`}
                 >
                   <span
                     className={cn(
@@ -399,6 +455,7 @@ export const ProductPreviewSection = () => {
                       m.gradient,
                       active && 'scale-110'
                     )}
+                    aria-hidden="true"
                   >
                     <SIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary-foreground" aria-hidden="true" />
                   </span>
@@ -417,8 +474,9 @@ export const ProductPreviewSection = () => {
           <div className="mt-5 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button
               size="lg"
-              className="w-full sm:w-auto px-6 py-5 glow-primary group min-h-[48px]"
+              className="w-full sm:w-auto px-6 py-5 glow-primary group min-h-[48px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               onClick={handleCtaClick}
+              aria-label="Try the live ƷBI assistant — opens the assistant page"
             >
               <Mic className="mr-2 h-4 w-4" aria-hidden="true" />
               Try it for real
