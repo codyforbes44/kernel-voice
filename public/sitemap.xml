@@ -8,7 +8,7 @@
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://yourdomain.com/og-home.png</image:loc>
-      <image:title>ƷBI Voice</image:title>
+      <image:title>ƷBI</image:title>
     </image:image>
   </url>
   <url>
@@ -18,7 +18,7 @@
     <priority>0.8</priority>
     <image:image>
       <image:loc>https://yourdomain.com/og-assistant.png</image:loc>
-      <image:title>ƷBI Voice Assistant</image:title>
+      <image:title>ƷBI Assistant</image:title>
     </image:image>
   </url>
   <url>

@@ -52,8 +52,8 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt'],
       manifest: {
-        name: 'ƷBI Voice',
-        short_name: 'ƷBI Voice',
+        name: 'ƷBI',
+        short_name: 'ƷBI',
         description: 'Premium AI assistant with real-time conversation',
         theme_color: '#00E5E5',
         background_color: '#000000',

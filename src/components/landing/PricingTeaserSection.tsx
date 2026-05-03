@@ -9,7 +9,7 @@ const plans = [
   {
     name: 'Starter',
     price: '$4.95',
-    highlights: ['3BI Voice Assistant', 'Basic conversation history', 'Standard voice quality'],
+    highlights: ['ƷBI Assistant', 'Basic conversation history', 'Standard voice quality'],
   },
   {
     name: 'Plus',

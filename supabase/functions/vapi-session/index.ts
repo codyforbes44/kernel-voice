@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         if (!hasVapiFeature && !isProSubscriber) {
           console.log('[vapi-session] User does not have VAPI access');
           return new Response(
-            JSON.stringify({ error: 'VAPI access requires ƷBI Voice Pro subscription' }),
+            JSON.stringify({ error: 'VAPI access requires ƷBI Pro subscription' }),
             { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }

@@ -9,8 +9,8 @@ const fadeUp = {
 const Terms = () => {
   return (
     <PageWrapper
-      title="Terms of Service - ƷBI Voice"
-      description="Read ƷBI Voice's terms of service and usage guidelines."
+      title="Terms of Service - ƷBI"
+      description="Read ƷBI's terms of service and usage guidelines."
       showFooter
     >
       <main id="main-content" className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
@@ -28,13 +28,13 @@ const Terms = () => {
 
           <h2>1. Acceptance of Terms</h2>
           <p>
-            By accessing or using ƷBI Voice, you agree to be bound by these Terms of Service. 
+            By accessing or using ƷBI, you agree to be bound by these Terms of Service. 
             If you do not agree to these terms, please do not use our services.
           </p>
 
           <h2>2. Description of Service</h2>
           <p>
-            ƷBI Voice is an AI-powered voice and text assistant that provides:
+            ƷBI is an AI-powered voice and text assistant that provides:
           </p>
           <ul>
             <li>Real-time voice conversations</li>
@@ -54,7 +54,7 @@ const Terms = () => {
           </ul>
 
           <h2>4. Acceptable Use</h2>
-          <p>You agree not to use ƷBI Voice to:</p>
+          <p>You agree not to use ƷBI to:</p>
           <ul>
             <li>Violate any applicable laws or regulations</li>
             <li>Infringe on intellectual property rights</li>
@@ -84,7 +84,7 @@ const Terms = () => {
 
           <h2>8. Limitation of Liability</h2>
           <p>
-            To the fullest extent permitted by law, ƷBI Voice shall not be liable for any 
+            To the fullest extent permitted by law, ƷBI shall not be liable for any 
             indirect, incidental, special, consequential, or punitive damages arising 
             from your use of the service.
           </p>

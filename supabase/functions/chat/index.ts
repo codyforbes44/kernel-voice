@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     console.log(`Processing conversation with Lovable AI... (messages: ${allMessages.length}, streaming: ${stream})`);
 
-    const systemPrompt = 'You are ƷBI Voice, a helpful, intelligent AI assistant. You provide accurate, thoughtful responses and can help with a wide variety of tasks. Be concise but thorough in your responses.';
+    const systemPrompt = 'You are ƷBI, a helpful, intelligent AI assistant. You provide accurate, thoughtful responses and can help with a wide variety of tasks. Be concise but thorough in your responses.';
 
     // Call Lovable AI Gateway
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

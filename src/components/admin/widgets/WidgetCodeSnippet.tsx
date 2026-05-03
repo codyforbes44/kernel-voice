@@ -36,7 +36,7 @@ export function WidgetCodeSnippet({ widget, open, onClose }: WidgetCodeSnippetPr
   const elevenlabsVoiceId = config.elevenlabsVoiceId as string | undefined;
   const needsSupabaseCredentials = (enableVoice && voiceProvider === 'elevenlabs') || enableTTS || enableVoiceConversation;
 
-  const scriptEmbed = `<!-- ƷBI Voice AI Widget -->
+  const scriptEmbed = `<!-- ƷBI AI Widget -->
 <script>
   window.KernelConfig = {
     apiKey: '${widget.api_key}',
@@ -59,7 +59,7 @@ export function WidgetCodeSnippet({ widget, open, onClose }: WidgetCodeSnippetPr
 </script>
 <script src="${baseUrl}/embed.js" async></script>`;
 
-  const iframeEmbed = `<!-- ƷBI Voice AI Widget (iframe) -->
+  const iframeEmbed = `<!-- ƷBI AI Widget (iframe) -->
 <iframe
   src="${baseUrl}/widget.html?apiKey=${widget.api_key}${enableVoice ? `&enableVoice=true&voiceProvider=${voiceProvider}` : ''}${enableTTS ? `&enableTTS=true&ttsVoiceId=${ttsVoiceId}` : ''}${enableVoiceConversation ? '&enableVoiceConversation=true' : ''}${elevenlabsAgentId ? `&elevenlabsAgentId=${encodeURIComponent(elevenlabsAgentId)}` : ''}${elevenlabsVoiceId ? `&elevenlabsVoiceId=${encodeURIComponent(elevenlabsVoiceId)}` : ''}${needsSupabaseCredentials ? `&supabaseUrl=${encodeURIComponent(supabaseUrl)}&supabaseKey=${encodeURIComponent(supabaseKey)}` : ''}"
   style="

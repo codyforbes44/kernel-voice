@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 const STARTER_FEATURES = [
-  '3BI Voice Assistant',
+  'ƷBI Assistant',
   'Basic conversation history (7 days)',
   'Standard voice quality',
   'Community support',
@@ -79,7 +79,7 @@ export default function Pricing() {
 
   return (
     <PageWrapper
-      title="Pricing - ƷBI Voice"
+      title="Pricing - ƷBI"
       description="Choose the plan that fits your needs. Starter, Plus, or Pro — unlock premium voice features and more."
       showFooter
     >
@@ -94,7 +94,7 @@ export default function Pricing() {
         >
           <Badge variant="secondary" className="mb-4">
             <Crown className="h-3 w-3 mr-1" aria-hidden="true" />
-            ƷBI Voice
+            ƷBI
           </Badge>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold tracking-tight mb-3 sm:mb-4">Choose Your Plan</h1>
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">

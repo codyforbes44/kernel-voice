@@ -21,9 +21,9 @@ export const Footer = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 mb-8 sm:mb-10">
           {/* Brand */}
           <div className="space-y-3 sm:space-y-4">
-            <Link to="/" className="flex items-center space-x-2 group" aria-label="ƷBI Voice home">
+            <Link to="/" className="flex items-center space-x-2 group" aria-label="ƷBI home">
               <BrandLogo size="md" animate={false} />
-              <span className="font-bold text-lg font-display tracking-tight">ƷBI Voice</span>
+              <span className="font-bold text-lg font-display tracking-tight">ƷBI</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
               Premium AI assistant with real-time voice conversations and intelligent document analysis.
@@ -64,7 +64,7 @@ export const Footer = () => {
         {/* Bottom */}
         <div className="pt-6 sm:pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs sm:text-sm text-muted-foreground">
-            © {currentYear} ƷBI Voice. All rights reserved.
+            © {currentYear} ƷBI. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <span className="text-xs text-muted-foreground">Powered by ƷBI</span>
