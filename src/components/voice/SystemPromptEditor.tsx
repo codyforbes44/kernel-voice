@@ -6,7 +6,7 @@ import { RotateCcw, Save, ChevronDown, ChevronUp, Briefcase, Coffee, Palette, Co
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 
-const DEFAULT_SYSTEM_PROMPT = `You are ƷBI Voice, a helpful, friendly AI voice assistant. 
+const DEFAULT_SYSTEM_PROMPT = `You are ƷBI, a helpful, friendly AI voice assistant. 
 
 Your capabilities:
 - Answer questions clearly and concisely
