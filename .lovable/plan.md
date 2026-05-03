@@ -1,32 +1,46 @@
-# Remove the microphone icon from the hero orb
+# Hero background — best-in-class voice AI canvas
 
-## What changes
+## Vision
 
-Right now the hero shows a gradient orb with a big white **microphone glyph** in the middle. I'll remove that glyph and refactor the orb so it still feels like a confident, branded focal point — not an empty circle.
+Today's background is a generic "tech grid + stars + shooting stars" scene. For a real-time voice AI hero, the background should *be* what the product *does*: **make sound visible**. I'll refactor `AnimatedHeroBackground.tsx` into a layered canvas that reads as a living acoustic field — propagation rings, a subtle frequency ribbon, drifting voice particles, a depth grid that recedes to a glowing horizon. Calm, premium, alive. Stripe / Linear / ElevenLabs hero quality.
 
-## New orb (replacement)
+## What it looks like
 
-- Same size, same glow halo, same `animate-glow-pulse`.
-- Keep the warm-gold → secondary gradient base.
-- Add a slowly rotating **conic gradient** layer (Warm Gold → Secondary → Primary Glow → Warm Gold) — this matches the existing animated `BrandLogo` identity.
-- Add a soft inner ring + subtle glass highlight so it reads as a polished sphere, not a flat disc.
-- Stays purely decorative (`aria-hidden="true"`, no semantic change).
+Back-to-front layers, all rendered on a single DPR-aware canvas:
 
-## Other mic icons on the page
+1. **Vignette wash** — radial darkening at the edges so type pops; horizon glow at ~55% (cyan→transparent).
+2. **Star field** — same density rules as today, but with two-tone colour (mostly `--primary`, occasional `--secondary`), gentler twinkle, halo only on the brightest stars.
+3. **Perspective grid** — kept, but lines now subtly **pulse in waves** that travel from horizon → viewer (sin function over depth × time). Reads as "sound moving through space."
+4. **Concentric propagation rings** — three faint cyan rings emit from a single off-centre source point on a slow cadence (~every 4–7s), expand, fade, disappear. The visual signature of a voice broadcast.
+5. **Frequency ribbon** — a single thin sinuous line crosses the lower third, modulated by layered sines (think a calm spectrogram trace). Sub-pixel anti-aliased, very low alpha. This is the strongest "voice" signal in the scene.
+6. **Drifting voice particles + constellation links** — kept, retuned: fewer, smaller, slower; links only between near neighbours, lower alpha. Less "particles.js," more "dust in a sunbeam."
+7. **One occasional shooting star** every 12–20s (rarer than today). Optional — feels less generic if dialed back.
 
-I'll keep the two **smaller** mic icons because they're labels for text, not standalone glyphs:
+The radial primary glow at the top of the section stays, sitting on top of the canvas.
 
-- "**4 voice providers**" trust pill — the icon clarifies the metric.
-- "**Try the assistant**" CTA — the icon reinforces the action.
+## Sound-DNA details (the soul of it)
 
-If you'd rather strip those too, say the word and I'll swap them for `Sparkles` / `Volume2` or remove them outright.
+- **Cadence over chaos**: every animated layer uses a shared global `time` — propagation rings, grid pulse, ribbon, twinkle all subtly sync. The scene breathes at ~6 BPM (one pulse every ~10s) like a calm conversation.
+- **Brand-correct palette**: cyan (`--primary` 180°) as dominant, teal-cyan (`--secondary` 195°) as accent for ~12% of stars and the ribbon highlight. No gold (the previous code mistakenly assumed gold; the actual tokens are cyan).
+- **Depth haze**: a low-alpha fog band at the horizon line softens where grid + stars meet — gives real atmospheric depth.
+- **Motion budget**: total moving pixels capped low; grid lines redrawn each frame but only the math is animated, not geometry.
+
+## Performance & accessibility
+
+- DPR-aware canvas (cap 2×) — kept.
+- Pause via `IntersectionObserver` + `visibilitychange` — kept.
+- `prefers-reduced-motion`: render a single static composed frame, no RAF, no rings, no ribbon motion.
+- Theme-reactive via `MutationObserver` on `<html>` — kept.
+- Density auto-scales with viewport; mobile gets fewer stars/particles and a thinner ribbon.
+- No new dependencies. No DOM children. No layout shift.
 
 ## Files
 
-- **Edit** `src/components/landing/HeroSection.tsx` — replace the orb's inner JSX (lines 59–64). No other file touched.
-- The `Mic` import stays (still used by the trust strip + CTA).
+- **Rewrite** `src/components/landing/AnimatedHeroBackground.tsx` — single self-contained canvas component, same export, same `<canvas>` placement. No prop API.
+- `HeroSection.tsx` — **untouched**.
 
-## What you won't see change
+## Out of scope
 
-- Layout, spacing, parallax scroll, headline, CTAs, trust strip, animated background — all unchanged.
-- No new dependencies.
+- No SVG / image assets, no WebGL.
+- No mic-driven reactive audio (keeping homepage zero-permission).
+- The mini-orb is already removed; not re-introducing visual focal furniture.
