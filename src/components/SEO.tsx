@@ -11,7 +11,7 @@ interface SEOProps {
 }
 
 const SEO = ({ 
-  title = 'ƷBI Voice', 
+  title = 'ƷBI', 
   description = 'Premium AI assistant with real-time conversation', 
   image = '/og-home.png',
   url = typeof window !== 'undefined' ? window.location.href : '',
@@ -19,7 +19,7 @@ const SEO = ({
   keywords = ['AI voice assistant', 'voice AI', 'conversational AI'],
   noIndex = false 
 }: SEOProps) => {
-  const fullTitle = title === 'ƷBI Voice' ? title : `${title} | ƷBI Voice`;
+  const fullTitle = title === 'ƷBI' ? title : `${title} | ƷBI`;
   const fullImageUrl = image.startsWith('http') ? image : `${window.location.origin}${image}`;
 
   return (
@@ -37,7 +37,7 @@ const SEO = ({
       <meta property="og:image" content={fullImageUrl} />
       <meta property="og:url" content={url} />
       <meta property="og:type" content={type} />
-      <meta property="og:site_name" content="ƷBI Voice" />
+      <meta property="og:site_name" content="ƷBI" />
 
       {/* Twitter Card Tags */}
       <meta name="twitter:card" content="summary_large_image" />
@@ -51,7 +51,7 @@ const SEO = ({
         {JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebApplication",
-          "name": "ƷBI Voice",
+          "name": "ƷBI",
           "description": description,
           "url": url,
           "applicationCategory": "Productivity",

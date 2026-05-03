@@ -45,7 +45,7 @@ export const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group" onClick={handleLogoClick}>
             <BrandLogo size="sm" />
-            <span className="font-bold text-base sm:text-lg hidden sm:inline-block">ƷBI Voice</span>
+            <span className="font-bold text-base sm:text-lg hidden sm:inline-block">ƷBI</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -97,7 +97,7 @@ export const Header = () => {
                 <SheetHeader className="px-4 pt-4 pb-2 border-b border-border">
                   <SheetTitle className="flex items-center gap-2">
                     <BrandLogo size="sm" animate={false} />
-                    <span className="font-bold">ƷBI Voice</span>
+                    <span className="font-bold">ƷBI</span>
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col p-2" aria-label="Mobile navigation">
