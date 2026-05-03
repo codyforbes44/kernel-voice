@@ -99,6 +99,7 @@ export const PricingTeaserSection = () => {
         </motion.div>
 
         <motion.div
+          className="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-3 justify-center items-center"
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -106,11 +107,19 @@ export const PricingTeaserSection = () => {
         >
           <Button
             size="lg"
-            className="mt-8 sm:mt-10 w-full sm:w-auto px-10 py-6 text-lg glow-primary min-h-[48px]"
+            className="w-full sm:w-auto px-10 py-6 text-lg glow-primary min-h-[48px]"
             onClick={() => navigate('/pricing')}
           >
             Compare all plans
             <ChevronRight className="ml-2 h-5 w-5" />
+          </Button>
+          <Button
+            size="lg"
+            variant="ghost"
+            className="w-full sm:w-auto min-h-[48px] text-muted-foreground hover:text-foreground"
+            onClick={() => navigate('/faq')}
+          >
+            Read pricing FAQ
           </Button>
         </motion.div>
       </div>

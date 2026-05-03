@@ -43,8 +43,8 @@ export const FAQTeaserSection = () => {
       </motion.div>
 
       <div className="text-center mt-8">
-        <Button variant="outline" onClick={() => navigate('/pricing')} className="min-h-[44px]">
-          See all pricing details
+        <Button variant="outline" onClick={() => navigate('/faq')} className="min-h-[44px]">
+          Read full FAQ
           <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
