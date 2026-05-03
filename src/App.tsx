@@ -98,6 +98,7 @@ const App = () => (
                     <Route path="/admin/audit-logs" element={<ProtectedRoute>{route("Audit Logs", <AdminAuditLogs />)}</ProtectedRoute>} />
                     <Route path="/admin/settings" element={<ProtectedRoute>{route("Admin Settings", <AdminSettings />)}</ProtectedRoute>} />
                     <Route path="/admin/widgets" element={<ProtectedRoute>{route("Widgets", <AdminWidgets />)}</ProtectedRoute>} />
+                    <Route path="/widgets" element={<WidgetsRedirect />} />
 
 
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
