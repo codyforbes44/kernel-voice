@@ -174,10 +174,13 @@ const VoiceAssistant = () => {
           image="/og-home.png"
           keywords={["AI voice assistant", "voice AI", "real-time conversation", "document analysis", "web search AI"]}
         />
-        <div className="flex flex-col h-[100dvh] bg-background safe-area-inset">
+        <div className="flex flex-col min-h-dvh bg-background pt-safe pb-safe">
           <Header />
           <main id="main-content" className="flex-1 flex flex-col overflow-y-auto scrollbar-hide">
-            <div className="flex-1 flex flex-col px-3 pt-2 pb-4">
+            <div className="flex-1 flex flex-col px-3 pt-2 pb-24">
+              <div role="status" aria-live="polite" className="sr-only">
+                {va.isConnecting ? 'Connecting' : va.isConnected ? 'Connected' : va.connectionError ? 'Connection error' : 'Idle'}
+              </div>
               {va.isAuthenticated && <UpgradeBanner className="mb-2" />}
               {!va.isAuthenticated && <GuestModeBanner variant="compact" className="mb-2" />}
               {va.isAuthenticated && va.conversationTitle && (
@@ -185,7 +188,7 @@ const VoiceAssistant = () => {
               )}
               {agentsList}
               <VoiceErrorBoundary><VoiceInterfaceCard {...voiceInterfaceProps} /></VoiceErrorBoundary>
-              {transcripts && <div className="mt-3">{transcripts}</div>}
+              {transcripts && <div className="mt-3" aria-live="polite">{transcripts}</div>}
               {receipt}
               {!va.isAuthenticated && va.guestMessages.length > 0 && (
                 <div className="mt-3"><MessageHistory conversationId={va.conversationId} /></div>
@@ -196,11 +199,16 @@ const VoiceAssistant = () => {
           {va.isAuthenticated && (
             <Sheet open={mobileActionsOpen} onOpenChange={setMobileActionsOpen}>
               <SheetTrigger asChild>
-                <Button size="icon" className="fixed bottom-6 right-4 z-40 h-14 w-14 rounded-full shadow-lg glow-primary" aria-label="Open actions menu">
-                  <Plus className="h-6 w-6" />
+                <Button
+                  size="icon"
+                  className="fixed right-4 z-40 h-14 w-14 rounded-full shadow-lg glow-primary tap-target"
+                  style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 0.75rem))' }}
+                  aria-label="Open conversations and uploads"
+                >
+                  <Plus className="h-6 w-6" aria-hidden />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-auto max-h-[85vh] rounded-t-2xl">
+              <SheetContent side="bottom" className="h-auto max-h-[85dvh] rounded-t-2xl pb-safe">
                 <SheetHeader>
                   <SheetTitle>Actions</SheetTitle>
                   <SheetDescription>Manage conversations and documents</SheetDescription>
@@ -231,7 +239,7 @@ const VoiceAssistant = () => {
         image="/og-assistant.png"
         keywords={["voice conversation", "AI chat", "voice control", "hands-free AI"]}
       />
-      <div className="h-screen bg-background flex flex-col">
+      <div className="h-dvh bg-background flex flex-col">
         <Header />
         <SidebarProvider defaultOpen={va.isAuthenticated}>
           <div className="flex flex-1 w-full overflow-hidden">

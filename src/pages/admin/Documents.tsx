@@ -250,6 +250,7 @@ export default function AdminDocuments() {
 
           {/* Documents Table */}
           <div className="border rounded-lg">
+            <div className="w-full overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -322,6 +323,7 @@ export default function AdminDocuments() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
 
           {/* Pagination */}

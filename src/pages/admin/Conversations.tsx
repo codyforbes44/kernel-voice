@@ -245,6 +245,7 @@ export default function AdminConversations() {
 
           {/* Conversations Table */}
           <div className="border rounded-lg">
+            <div className="w-full overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -324,6 +325,7 @@ export default function AdminConversations() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
 
           {/* Pagination */}

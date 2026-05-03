@@ -39,9 +39,11 @@ interface AdminSidebarProps {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
   onOpenCommandPalette?: () => void;
+  /** Called when a nav item is clicked (used to close mobile drawer). */
+  onNavigate?: () => void;
 }
 
-export const AdminSidebar = ({ collapsed, onCollapsedChange, onOpenCommandPalette }: AdminSidebarProps) => {
+export const AdminSidebar = ({ collapsed, onCollapsedChange, onOpenCommandPalette, onNavigate }: AdminSidebarProps) => {
   const location = useLocation();
 
   const isActive = (path: string) => {
@@ -120,6 +122,7 @@ export const AdminSidebar = ({ collapsed, onCollapsedChange, onOpenCommandPalett
                 <TooltipTrigger asChild>
                   <Link
                     to={item.to}
+                    onClick={onNavigate}
                     className={cn(
                       'flex items-center justify-center h-10 w-10 rounded-lg transition-colors mx-auto',
                       active
@@ -139,6 +142,7 @@ export const AdminSidebar = ({ collapsed, onCollapsedChange, onOpenCommandPalett
             <Link
               key={item.to}
               to={item.to}
+              onClick={onNavigate}
               className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                 active
