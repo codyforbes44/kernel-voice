@@ -42,6 +42,8 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
 
@@ -50,7 +52,7 @@ const Auth = () => {
     if (rememberedEmail) { setEmail(rememberedEmail); setRememberMe(true); }
     
     // Redirect if already authenticated
-    if (isAuthenticated && !showUpdatePassword) navigate('/');
+    if (isAuthenticated && !showUpdatePassword) navigate(redirectTo);
     
     // Listen for PASSWORD_RECOVERY event only
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
