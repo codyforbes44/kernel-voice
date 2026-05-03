@@ -179,41 +179,7 @@ const Auth = () => {
   };
 
   const passwordStrength = getPasswordStrength(password);
-
-  const PasswordInput = ({ id, value, onChange, placeholder = "••••••••", autoComplete = "current-password", showStrength = false }: {
-    id: string; value: string; onChange: (v: string) => void; placeholder?: string; autoComplete?: string; showStrength?: boolean;
-  }) => (
-    <div className="space-y-2">
-      <div className="relative">
-        <Input
-          id={id}
-          type={showPassword ? 'text' : 'password'}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          required disabled={isLoading} minLength={6}
-          autoComplete={autoComplete}
-          className="min-h-[44px] pr-10"
-        />
-        <button
-          type="button"
-          onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-          aria-label={showPassword ? 'Hide password' : 'Show password'}
-        >
-          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
-      </div>
-      {showStrength && value.length > 0 && (
-        <div className="space-y-1">
-          <Progress value={passwordStrength.score} className="h-1.5" />
-          <p className="text-xs text-muted-foreground">
-            Strength: <span className={passwordStrength.score >= 60 ? 'text-green-600 dark:text-green-400' : passwordStrength.score >= 40 ? 'text-yellow-600 dark:text-yellow-400' : 'text-destructive'}>{passwordStrength.label}</span>
-          </p>
-        </div>
-      )}
-    </div>
-  );
+  const pwProps = { isLoading, showPassword, onToggleShow: () => setShowPassword(!showPassword), strength: passwordStrength };
 
   return (
     <PageWrapper
