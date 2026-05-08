@@ -209,7 +209,7 @@ export const VoiceInterfaceCard = React.memo(function VoiceInterfaceCard({
               </p>
             ) : (
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                Using {voiceProvider === 'elevenlabs' ? 'ElevenLabs' : voiceProvider === 'vapi' ? 'VAPI' : 'ƷBI'}
+                Using {voiceProvider === 'elevenlabs' ? 'ƷBI v2' : voiceProvider === 'vapi' ? 'VAPI' : 'ƷBI'}
               </p>
             )}
             
