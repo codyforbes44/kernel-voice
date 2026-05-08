@@ -90,7 +90,7 @@ export const ConnectionStatusBadge = ({
   const Icon = status.icon;
 
   const providerLabel = provider === 'elevenlabs' ? 'EL' : provider === 'vapi' ? 'VAPI' : '3ʙɪ';
-  const providerFullName = provider === 'elevenlabs' ? 'ElevenLabs' : provider === 'vapi' ? 'VAPI Voice' : '3ʙɪ Realtime';
+  const providerFullName = provider === 'elevenlabs' ? 'ƷBI v2' : provider === 'vapi' ? 'VAPI Voice' : '3ʙɪ Realtime';
   const authLabel = isConnected && authMethod ? `:${authMethod}` : '';
 
   const tooltipContent = (
