@@ -137,7 +137,7 @@ export const providerInfo: Record<VoiceProvider, {
     isPremium: false,
   },
   elevenlabs: {
-    name: 'ElevenLabs',
+    name: 'ƷBI v2',
     description: 'Premium voices, auto-language',
     features: ['29+ Languages', 'Auto-detect', 'Knowledge Base'],
     isPremium: false,

@@ -17,7 +17,7 @@ import {
 } from '@/components/voice/voiceTypes';
 
 export function useVoiceProviderPreference(isAuthenticated: boolean) {
-  const [provider, setProvider] = useState<VoiceProvider>('openai');
+  const [provider, setProvider] = useState<VoiceProvider>('elevenlabs');
   const [openaiVoice, setOpenAIVoice] = useState<OpenAIVoice>('alloy');
   const [openaiSettings, setOpenAISettings] = useState<OpenAIVoiceSettings>(DEFAULT_OPENAI_SETTINGS);
   const [elevenlabsSettings, setElevenLabsSettings] = useState<ElevenLabsSettings>(DEFAULT_ELEVENLABS_SETTINGS);
