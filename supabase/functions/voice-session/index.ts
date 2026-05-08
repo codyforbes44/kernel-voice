@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
 
   try {
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
-    let agentId = Deno.env.get('VITE_ELEVENLABS_AGENT_ID');
+    let agentId = Deno.env.get('ELEVENLABS_AGENT_ID') || Deno.env.get('VITE_ELEVENLABS_AGENT_ID');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
