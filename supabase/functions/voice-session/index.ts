@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     if (connectionType === 'webrtc') {
       // Get conversation token for WebRTC (recommended - lower latency)
       const response = await fetch(
-        `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
+        `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${agentId}`,
         {
           method: 'GET',
           headers: {
@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
     } else {
       // Legacy: Get signed URL for WebSocket
       const response = await fetch(
-        `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
+        `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${agentId}`,
         {
           method: 'GET',
           headers: {
