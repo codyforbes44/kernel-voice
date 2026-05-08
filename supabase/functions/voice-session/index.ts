@@ -24,40 +24,8 @@ Deno.serve(async (req) => {
       throw new Error('Voice agent not configured');
     }
 
-    // Check if user has elevenlabs_voice feature
-    const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
-      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-      const userClient = createClient(supabaseUrl, supabaseServiceKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-
-      const { data: { user } } = await userClient.auth.getUser();
-      
-      if (user) {
-        // Check if user has the elevenlabs_voice feature
-        const { data: feature } = await adminClient
-          .from('user_features')
-          .select('enabled')
-          .eq('user_id', user.id)
-          .eq('feature_key', 'elevenlabs_voice')
-          .eq('enabled', true)
-          .is('revoked_at', null)
-          .maybeSingle();
-
-        if (!feature) {
-          console.log('User does not have ElevenLabs access:', user.id);
-          return new Response(JSON.stringify({ 
-            error: 'Premium voice feature not enabled for this account' 
-          }), {
-            status: 403,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-        
-        console.log('User has ElevenLabs access:', user.id);
-      }
-    }
+    // Voice providers are ungated for all users (guests + authenticated)
+    void supabaseUrl; void supabaseServiceKey; void createClient;
 
     // Parse request body for options
     let connectionType = 'webrtc'; // Default to WebRTC for lower latency
